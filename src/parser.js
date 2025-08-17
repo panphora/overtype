@@ -155,9 +155,22 @@ export class MarkdownParser {
     let html = text;
     // Order matters: parse code first to avoid conflicts
     html = this.parseInlineCode(html);
+    // Use placeholders to protect inline code while preserving formatting spans
+    const codeBlocks = new Map();
+    html = html.replace(/(<code>.*?<\/code>)/g, (match) => {
+      // Prevent conflicts with private use area Unicode
+      const placeholder = `\uE000${codeBlocks.size}\uE001`;
+      codeBlocks.set(placeholder, match);
+      return placeholder;
+    });
+    // Process other inline elements on text with placeholders
     html = this.parseLinks(html);
     html = this.parseBold(html);
     html = this.parseItalic(html);
+    // Restore code blocks
+    codeBlocks.forEach((codeBlock, placeholder) => {
+      html = html.replace(placeholder, codeBlock);
+    });
     return html;
   }
 

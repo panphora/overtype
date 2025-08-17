@@ -198,6 +198,166 @@ This is **bold** and *italic*.
   assert(actual.includes('class="raw-line"'), 'Raw line display', 'Should show raw line for active line');
 })();
 
+// Test: Inline code with underscores and stars
+(() => {
+  const tests = [
+    { 
+      input: '`OP_CAT_DOG`', 
+      expected: '<div><code><span class="syntax-marker">`</span>OP_CAT_DOG<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not italicize underscores inside code'
+    },
+    { 
+      input: '`OP_CAT` and *dog*', 
+      expected: '<div><code><span class="syntax-marker">`</span>OP_CAT<span class="syntax-marker">`</span></code> and <em><span class="syntax-marker">*</span>dog<span class="syntax-marker">*</span></em></div>',
+      description: 'Should italicize outside code but not inside'
+    },
+    { 
+      input: '`function_name_here` _should work_', 
+      expected: '<div><code><span class="syntax-marker">`</span>function_name_here<span class="syntax-marker">`</span></code> <em><span class="syntax-marker">_</span>should work<span class="syntax-marker">_</span></em></div>',
+      description: 'Should handle mixed code and italic with underscores'
+    },
+    { 
+      input: '`__init__` method', 
+      expected: '<div><code><span class="syntax-marker">`</span>__init__<span class="syntax-marker">`</span></code> method</div>',
+      description: 'Should not bold double underscores inside code'
+    },
+    { 
+      input: 'Text `with_code` and **bold**', 
+      expected: '<div>Text <code><span class="syntax-marker">`</span>with_code<span class="syntax-marker">`</span></code> and <strong><span class="syntax-marker">**</span>bold<span class="syntax-marker">**</span></strong></div>',
+      description: 'Should handle code with underscores and separate bold'
+    },
+    { 
+      input: '`*asterisk*` and _underscore_', 
+      expected: '<div><code><span class="syntax-marker">`</span>*asterisk*<span class="syntax-marker">`</span></code> and <em><span class="syntax-marker">_</span>underscore<span class="syntax-marker">_</span></em></div>',
+      description: 'Should not italicize asterisks inside code'
+    }
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(htmlEqual(actual, test.expected), `Inline code protection: ${test.input}`, `${test.description}. Expected: ${test.expected}, Got: ${actual}`);
+  });
+})();
+
+// Test: Formatting that spans across code blocks
+(() => {
+  const tests = [
+    { 
+      input: '*cat `test` dog*', 
+      expected: '<div><em><span class="syntax-marker">*</span>cat <code><span class="syntax-marker">`</span>test<span class="syntax-marker">`</span></code> dog<span class="syntax-marker">*</span></em></div>',
+      description: 'Should italicize text that spans across code blocks'
+    },
+    { 
+      input: '**bold `code_here` more bold**', 
+      expected: '<div><strong><span class="syntax-marker">**</span>bold <code><span class="syntax-marker">`</span>code_here<span class="syntax-marker">`</span></code> more bold<span class="syntax-marker">**</span></strong></div>',
+      description: 'Should bold text that spans across code blocks'
+    },
+    { 
+      input: '_italic `with_underscores` still italic_', 
+      expected: '<div><em><span class="syntax-marker">_</span>italic <code><span class="syntax-marker">`</span>with_underscores<span class="syntax-marker">`</span></code> still italic<span class="syntax-marker">_</span></em></div>',
+      description: 'Should handle italic with underscores spanning code'
+    },
+    { 
+      input: '__bold `code` and `more_code` bold__', 
+      expected: '<div><strong><span class="syntax-marker">__</span>bold <code><span class="syntax-marker">`</span>code<span class="syntax-marker">`</span></code> and <code><span class="syntax-marker">`</span>more_code<span class="syntax-marker">`</span></code> bold<span class="syntax-marker">__</span></strong></div>',
+      description: 'Should bold text spanning multiple code blocks'
+    }
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(htmlEqual(actual, test.expected), `Spanning code: ${test.input}`, `${test.description}. Expected: ${test.expected}, Got: ${actual}`);
+  });
+})();
+
+// Test: Multiple inline code blocks with external formatting
+(() => {
+  const tests = [
+    { 
+      input: '`first_code` and `second_code` with *italic*', 
+      expected: '<div><code><span class="syntax-marker">`</span>first_code<span class="syntax-marker">`</span></code> and <code><span class="syntax-marker">`</span>second_code<span class="syntax-marker">`</span></code> with <em><span class="syntax-marker">*</span>italic<span class="syntax-marker">*</span></em></div>',
+      description: 'Should handle multiple code blocks with external formatting'
+    },
+    { 
+      input: '*Before `__code__` between `_more_code_` after*', 
+      expected: '<div><em><span class="syntax-marker">*</span>Before <code><span class="syntax-marker">`</span>__code__<span class="syntax-marker">`</span></code> between <code><span class="syntax-marker">`</span>_more_code_<span class="syntax-marker">`</span></code> after<span class="syntax-marker">*</span></em></div>',
+      description: 'Should handle italic spanning multiple protected code blocks'
+    },
+    { 
+      input: '**Text `code1` middle `code2` end**', 
+      expected: '<div><strong><span class="syntax-marker">**</span>Text <code><span class="syntax-marker">`</span>code1<span class="syntax-marker">`</span></code> middle <code><span class="syntax-marker">`</span>code2<span class="syntax-marker">`</span></code> end<span class="syntax-marker">**</span></strong></div>',
+      description: 'Should bold across multiple code blocks'
+    }
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(htmlEqual(actual, test.expected), `Multiple code + format: ${test.input}`, `${test.description}. Expected: ${test.expected}, Got: ${actual}`);
+  });
+})();
+
+// Test: Complex nested scenarios
+(() => {
+  const tests = [
+    { 
+      input: 'Normal `code_block` and **bold `with_code` bold** text', 
+      expected: '<div>Normal <code><span class="syntax-marker">`</span>code_block<span class="syntax-marker">`</span></code> and <strong><span class="syntax-marker">**</span>bold <code><span class="syntax-marker">`</span>with_code<span class="syntax-marker">`</span></code> bold<span class="syntax-marker">**</span></strong> text</div>',
+      description: 'Should handle mixed standalone and spanning formatting'
+    },
+    { 
+      input: '*italic* `code_here` **bold `spanning_code` bold**', 
+      expected: '<div><em><span class="syntax-marker">*</span>italic<span class="syntax-marker">*</span></em> <code><span class="syntax-marker">`</span>code_here<span class="syntax-marker">`</span></code> <strong><span class="syntax-marker">**</span>bold <code><span class="syntax-marker">`</span>spanning_code<span class="syntax-marker">`</span></code> bold<span class="syntax-marker">**</span></strong></div>',
+      description: 'Should handle multiple different formatting types with code'
+    },
+    {
+      input: '[Link `with_code` text](url) and `regular_code`',
+      expected: '<div><a href="url"><span class="syntax-marker">[</span>Link <code><span class="syntax-marker">`</span>with_code<span class="syntax-marker">`</span></code> text<span class="syntax-marker">](</span><span class="syntax-marker">url</span><span class="syntax-marker">)</span></a> and <code><span class="syntax-marker">`</span>regular_code<span class="syntax-marker">`</span></code></div>',
+      description: 'Should handle links spanning code blocks'
+    }
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(htmlEqual(actual, test.expected), `Complex nested code: ${test.input}`, `${test.description}. Expected: ${test.expected}, Got: ${actual}`);
+  });
+})();
+
+// Test: Edge cases that should NOT be formatted
+(() => {
+  const tests = [
+    { 
+      input: '`**not_bold**`', 
+      expected: '<div><code><span class="syntax-marker">`</span>**not_bold**<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not process bold markers inside code'
+    },
+    { 
+      input: '`__also_not_bold__`', 
+      expected: '<div><code><span class="syntax-marker">`</span>__also_not_bold__<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not process underscore bold markers inside code'
+    },
+    { 
+      input: '`*not_italic*`', 
+      expected: '<div><code><span class="syntax-marker">`</span>*not_italic*<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not process asterisk italic markers inside code'
+    },
+    { 
+      input: '`_not_italic_`', 
+      expected: '<div><code><span class="syntax-marker">`</span>_not_italic_<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not process underscore italic markers inside code'
+    },
+    {
+      input: '`[not_a_link](url)`',
+      expected: '<div><code><span class="syntax-marker">`</span>[not_a_link](url)<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not process link markers inside code'
+    }
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(htmlEqual(actual, test.expected), `Code protection edge cases: ${test.input}`, `${test.description}. Expected: ${test.expected}, Got: ${actual}`);
+  });
+})();
+
 // ===== Integration Tests =====
 console.log('\n🔧 Integration Tests\n');
 
