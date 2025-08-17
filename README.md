@@ -431,6 +431,11 @@ OverType uses a unique invisible textarea overlay approach:
    - Textarea content drives everything
    - One-way data flow: textarea → parser → preview
 
+## Contributors
+
+Special thanks to:
+- [Josh Doman](https://github.com/joshdoman) - Fixed inline code formatting preservation ([#6](https://github.com/panphora/overtype/pull/6))
+
 ## License
 
 MIT

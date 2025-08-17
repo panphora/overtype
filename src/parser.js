@@ -156,9 +156,15 @@ export class MarkdownParser {
     // Order matters: parse code first to avoid conflicts
     html = this.parseInlineCode(html);
     // Use placeholders to protect inline code while preserving formatting spans
+    // We use Unicode Private Use Area (U+E000-U+F8FF) as placeholders because:
+    // 1. These characters are reserved for application-specific use
+    // 2. They'll never appear in user text
+    // 3. They maintain single-character width (important for alignment)
+    // 4. They're invisible if accidentally rendered
+    // This allows formatting like *text `code` text* to span across code blocks
+    // while preventing formatting inside code like `__init__` from being bolded
     const codeBlocks = new Map();
     html = html.replace(/(<code>.*?<\/code>)/g, (match) => {
-      // Prevent conflicts with private use area Unicode
       const placeholder = `\uE000${codeBlocks.size}\uE001`;
       codeBlocks.set(placeholder, match);
       return placeholder;
