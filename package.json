@@ -46,7 +46,6 @@
   },
   "homepage": "https://github.com/panphora/overtype#readme",
   "dependencies": {
-    "@floating-ui/dom": "^1.7.3",
     "markdown-actions": "^1.1.2"
   }
 }

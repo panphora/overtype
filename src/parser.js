@@ -7,6 +7,16 @@
  * - Markdown tokens remain visible but styled
  */
 export class MarkdownParser {
+  // Track link index for anchor naming
+  static linkIndex = 0;
+  
+  /**
+   * Reset link index (call before parsing a new document)
+   */
+  static resetLinkIndex() {
+    this.linkIndex = 0;
+  }
+  
   /**
    * Escape HTML special characters
    * @param {string} text - Raw text to escape
@@ -143,7 +153,10 @@ export class MarkdownParser {
    * @returns {string} HTML with link styling
    */
   static parseLinks(html) {
-    return html.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2"><span class="syntax-marker">[</span>$1<span class="syntax-marker">](</span><span class="syntax-marker">$2</span><span class="syntax-marker">)</span></a>');
+    return html.replace(/\[(.+?)\]\((.+?)\)/g, (match, text, url) => {
+      const anchorName = `--link-${this.linkIndex++}`;
+      return `<a href="${url}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${text}<span class="syntax-marker">](</span><span class="syntax-marker">${url}</span><span class="syntax-marker">)</span></a>`;
+    });
   }
 
   /**
@@ -223,6 +236,9 @@ export class MarkdownParser {
    * @returns {string} Parsed HTML
    */
   static parse(text, activeLine = -1, showActiveLineRaw = false) {
+    // Reset link counter for each parse
+    this.resetLinkIndex();
+    
     const lines = text.split('\n');
     const parsedLines = lines.map((line, index) => {
       // Show raw markdown on active line if requested

@@ -1,9 +1,8 @@
 /**
- * Link Tooltip - Gmail/Google Docs style link preview
+ * Link Tooltip - CSS Anchor Positioning with index-based anchors
  * Shows a clickable tooltip when cursor is within a link
+ * Uses CSS anchor positioning with dynamically selected anchor
  */
-
-import { computePosition, flip, shift, offset } from '@floating-ui/dom';
 
 export class LinkTooltip {
   constructor(editor) {
@@ -11,63 +10,81 @@ export class LinkTooltip {
     this.tooltip = null;
     this.currentLink = null;
     this.hideTimeout = null;
-    this.isMouseInTooltip = false;
-    this.isMouseInLink = false;
     
     this.init();
   }
   
   init() {
+    // Check for CSS anchor positioning support
+    const supportsAnchor = 
+      CSS.supports('position-anchor: --x') &&
+      CSS.supports('position-area: center');
+    
+    if (!supportsAnchor) {
+      // Don't show anything if not supported
+      return;
+    }
+    
     // Create tooltip element
     this.createTooltip();
     
     // Listen for cursor position changes
     this.editor.textarea.addEventListener('selectionchange', () => this.checkCursorPosition());
-    this.editor.textarea.addEventListener('input', () => this.checkCursorPosition());
     this.editor.textarea.addEventListener('keyup', (e) => {
-      // Arrow keys might move cursor
-      if (e.key.includes('Arrow')) {
+      if (e.key.includes('Arrow') || e.key === 'Home' || e.key === 'End') {
         this.checkCursorPosition();
       }
     });
     
-    // Hide tooltip when scrolling
+    // Hide tooltip when typing or scrolling
+    this.editor.textarea.addEventListener('input', () => this.hide());
     this.editor.textarea.addEventListener('scroll', () => this.hide());
     
-    // Mouse events for tooltip persistence
-    this.tooltip.addEventListener('mouseenter', () => {
-      this.isMouseInTooltip = true;
-      this.cancelHide();
-    });
-    
-    this.tooltip.addEventListener('mouseleave', () => {
-      this.isMouseInTooltip = false;
-      this.scheduleHide();
-    });
+    // Keep tooltip visible on hover
+    this.tooltip.addEventListener('mouseenter', () => this.cancelHide());
+    this.tooltip.addEventListener('mouseleave', () => this.scheduleHide());
   }
   
   createTooltip() {
+    // Create tooltip element
     this.tooltip = document.createElement('div');
     this.tooltip.className = 'overtype-link-tooltip';
-    this.tooltip.style.cssText = `
-      position: absolute;
-      background: #333;
-      color: white;
-      padding: 6px 10px;
-      border-radius: 16px;
-      font-size: 12px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      display: none;
-      z-index: 10000;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      max-width: 300px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      transition: opacity 0.2s;
-      opacity: 0;
+    
+    // Add CSS anchor positioning styles
+    const tooltipStyles = document.createElement('style');
+    tooltipStyles.textContent = `
+      @supports (position-anchor: --x) and (position-area: center) {
+        .overtype-link-tooltip {
+          position: absolute;
+          position-anchor: var(--target-anchor, --link-0);
+          position-area: block-end center;
+          margin-top: 8px;
+          
+          background: #333;
+          color: white;
+          padding: 6px 10px;
+          border-radius: 16px;
+          font-size: 12px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          display: none;
+          z-index: 10000;
+          cursor: pointer;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          max-width: 300px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          
+          position-try: most-width block-end inline-end, flip-inline, block-start center;
+          position-visibility: anchors-visible;
+        }
+        
+        .overtype-link-tooltip.visible {
+          display: flex;
+        }
+      }
     `;
+    document.head.appendChild(tooltipStyles);
     
     // Add link icon and text container
     this.tooltip.innerHTML = `
@@ -90,8 +107,8 @@ export class LinkTooltip {
       }
     });
     
-    // Append to document body for proper positioning
-    document.body.appendChild(this.tooltip);
+    // Append tooltip to editor container
+    this.editor.container.appendChild(this.tooltip);
   }
   
   checkCursorPosition() {
@@ -99,19 +116,13 @@ export class LinkTooltip {
     const text = this.editor.textarea.value;
     
     // Find if cursor is within a markdown link
-    const link = this.findLinkAtPosition(text, cursorPos);
+    const linkInfo = this.findLinkAtPosition(text, cursorPos);
     
-    if (link) {
-      this.isMouseInLink = true;
-      if (!this.currentLink || 
-          this.currentLink.start !== link.start || 
-          this.currentLink.url !== link.url) {
-        // New link or different link
-        this.show(link);
+    if (linkInfo) {
+      if (!this.currentLink || this.currentLink.url !== linkInfo.url || this.currentLink.index !== linkInfo.index) {
+        this.show(linkInfo);
       }
     } else {
-      // Not in a link
-      this.isMouseInLink = false;
       this.scheduleHide();
     }
   }
@@ -120,6 +131,7 @@ export class LinkTooltip {
     // Regex to find markdown links: [text](url)
     const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     let match;
+    let linkIndex = 0;
     
     while ((match = linkRegex.exec(text)) !== null) {
       const start = match.index;
@@ -127,128 +139,42 @@ export class LinkTooltip {
       
       if (position >= start && position <= end) {
         return {
-          start: start,
-          end: end,
           text: match[1],
           url: match[2],
-          fullMatch: match[0]
+          index: linkIndex,
+          start: start,
+          end: end
         };
       }
+      linkIndex++;
     }
     
     return null;
   }
   
-  async show(link) {
-    this.currentLink = link;
+  show(linkInfo) {
+    this.currentLink = linkInfo;
     this.cancelHide();
     
     // Update tooltip content
     const urlSpan = this.tooltip.querySelector('.overtype-link-tooltip-url');
-    urlSpan.textContent = link.url;
+    urlSpan.textContent = linkInfo.url;
     
-    // Get the position of the link in the preview
-    const linkElement = this.findLinkElementInPreview(link);
+    // Set the CSS variable to point to the correct anchor
+    this.tooltip.style.setProperty('--target-anchor', `--link-${linkInfo.index}`);
     
-    if (linkElement) {
-      // Use the link element as reference
-      await this.positionTooltip(linkElement);
-    } else {
-      // Fallback: position based on cursor
-      await this.positionTooltipAtCursor(link);
-    }
-    
-    // Show tooltip with animation
-    this.tooltip.style.display = 'block';
-    // Force reflow
-    this.tooltip.offsetHeight;
-    this.tooltip.style.opacity = '1';
-  }
-  
-  findLinkElementInPreview(link) {
-    // Find the corresponding link element in the preview
-    const links = this.editor.preview.querySelectorAll('a');
-    
-    for (const linkEl of links) {
-      // Check if this link contains our URL
-      const urlSpans = linkEl.querySelectorAll('.syntax-marker');
-      for (const span of urlSpans) {
-        if (span.textContent === link.url) {
-          return linkEl;
-        }
-      }
-    }
-    
-    return null;
-  }
-  
-  async positionTooltip(referenceEl) {
-    const { x, y } = await computePosition(referenceEl, this.tooltip, {
-      placement: 'bottom',
-      middleware: [
-        offset(6),
-        flip(),
-        shift({ padding: 10 })
-      ]
-    });
-    
-    Object.assign(this.tooltip.style, {
-      left: `${x}px`,
-      top: `${y}px`
-    });
-  }
-  
-  async positionTooltipAtCursor(link) {
-    // Get cursor position in the textarea
-    const textarea = this.editor.textarea;
-    
-    // Create a temporary element to measure text position
-    const measurer = document.createElement('div');
-    measurer.style.cssText = window.getComputedStyle(textarea).cssText;
-    measurer.style.position = 'absolute';
-    measurer.style.visibility = 'hidden';
-    measurer.style.whiteSpace = 'pre-wrap';
-    measurer.style.wordWrap = 'break-word';
-    
-    // Get text up to cursor
-    const textBeforeCursor = textarea.value.substring(0, link.start + link.fullMatch.length / 2);
-    measurer.textContent = textBeforeCursor;
-    
-    document.body.appendChild(measurer);
-    const textHeight = measurer.offsetHeight;
-    document.body.removeChild(measurer);
-    
-    // Get textarea position
-    const rect = textarea.getBoundingClientRect();
-    
-    // Estimate position (this is approximate)
-    const x = rect.left + rect.width / 2;
-    const y = rect.top + Math.min(textHeight, rect.height - 50);
-    
-    Object.assign(this.tooltip.style, {
-      left: `${x}px`,
-      top: `${y}px`,
-      transform: 'translateX(-50%)'
-    });
+    // Show tooltip (CSS anchor positioning handles the rest)
+    this.tooltip.classList.add('visible');
   }
   
   hide() {
-    this.tooltip.style.opacity = '0';
-    setTimeout(() => {
-      if (this.tooltip.style.opacity === '0') {
-        this.tooltip.style.display = 'none';
-        this.currentLink = null;
-      }
-    }, 200);
+    this.tooltip.classList.remove('visible');
+    this.currentLink = null;
   }
   
   scheduleHide() {
     this.cancelHide();
-    this.hideTimeout = setTimeout(() => {
-      if (!this.isMouseInTooltip && !this.isMouseInLink) {
-        this.hide();
-      }
-    }, 300);
+    this.hideTimeout = setTimeout(() => this.hide(), 300);
   }
   
   cancelHide() {
