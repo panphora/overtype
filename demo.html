@@ -12,8 +12,11 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
+            background: #000;
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.6;
             min-height: 100vh;
             padding: 20px;
         }
@@ -21,44 +24,15 @@
         .hero {
             text-align: center;
             color: white;
-            padding: 40px 20px;
+            padding: 30px 20px 40px;
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        .hero h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
         .hero .tagline {
-            font-size: 1.3rem;
-            opacity: 0.95;
-            margin-bottom: 30px;
-        }
-
-        .features {
-            display: flex;
-            gap: 30px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 40px;
-        }
-
-        .feature {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            background: rgba(255,255,255,0.15);
-            border-radius: 25px;
-            backdrop-filter: blur(10px);
-        }
-
-        .feature-icon {
-            font-size: 1.2rem;
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-top: 10px;
         }
 
         .demo-container {
@@ -74,35 +48,33 @@
             .demo-container {
                 grid-template-columns: 1fr;
             }
-            .hero h1 {
-                font-size: 2.5rem;
-            }
         }
 
         .demo-section {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
         .demo-header {
-            padding: 20px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
+            padding: 15px 20px;
+            background: #111;
+            color: #fff;
+            border-bottom: 1px solid #333;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .demo-header h2 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            font-size: 14px;
+            font-weight: normal;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
         }
 
         .demo-controls {
@@ -112,19 +84,20 @@
 
         .btn {
             padding: 6px 12px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            border-radius: 6px;
+            background: transparent;
+            border: 1px solid #666;
+            color: #fff;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 12px;
             transition: all 0.2s;
-            backdrop-filter: blur(10px);
+            font-family: inherit;
         }
 
         .btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-1px);
+            background: #fff;
+            color: #000;
+            border-color: #fff;
         }
 
         .editor-wrapper {
@@ -132,385 +105,174 @@
             position: relative;
         }
 
-
-
-        .floating-controls {
+        .theme-toggle {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
             z-index: 1000;
-        }
-
-        .fab {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 10px 15px;
+            background: #4251de;
+            border: 1px solid #1b257d;
+            color: #fff;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 1.5rem;
-            border: none;
-        }
-
-        .fab:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-        }
-
-        .fab.primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .modal h3 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .shortcuts-grid {
-            display: grid;
-            gap: 10px;
-        }
-
-        .shortcut {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 6px;
-        }
-
-        .shortcut kbd {
-            background: white;
-            padding: 2px 6px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-family: monospace;
-            font-size: 0.9rem;
-        }
-
-        .theme-selector {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .theme-option {
-            flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
+            font-size: 12px;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             transition: all 0.2s;
         }
 
-        .theme-option:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-        }
-
-        .theme-option.active {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .sync-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #4caf50;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            transform: translateY(-100%);
-            transition: transform 0.3s;
-            z-index: 3000;
-        }
-
-        .sync-banner.show {
-            transform: translateY(0);
+        .theme-toggle:hover {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
         }
 
         .github-link {
-            position: fixed;
+            position: absolute;
             top: 20px;
             right: 20px;
-            background: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            color: #fff;
             text-decoration: none;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            z-index: 100;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            font-size: 12px;
         }
 
         .github-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            opacity: 1;
         }
     </style>
 </head>
 <body>
-    <a href="https://github.com/panphora/overtype" class="github-link">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-        </svg>
-        View on GitHub
-    </a>
+    <a href="https://github.com/panphora/overtype" class="github-link">View on GitHub →</a>
 
     <div class="hero">
-        <h1>✨ OverType</h1>
-        <p class="tagline">A lightweight markdown editor with perfect WYSIWYG alignment</p>
-        
-        <div style="max-width: 800px; margin: 20px auto 40px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 10px; backdrop-filter: blur(10px);">
-            <p style="line-height: 1.6; opacity: 0.95;">
-                We overlap an invisible textarea on top of styled output, giving the illusion of editing styled text using a plain textarea.
-            </p>
-        </div>
-        
-        <div class="features">
-            <div class="feature">
-                <span class="feature-icon">🎯</span>
-                <span>Perfect Alignment</span>
-            </div>
-            <div class="feature">
-                <span class="feature-icon">🎨</span>
-                <span>Themeable</span>
-            </div>
-            <div class="feature">
-                <span class="feature-icon">📱</span>
-                <span>Mobile Ready</span>
-            </div>
-            <div class="feature">
-                <span class="feature-icon">🚀</span>
-                <span>21KB Minified</span>
-            </div>
-            <div class="feature">
-                <span class="feature-icon">🔧</span>
-                <span>Zero Dependencies</span>
-            </div>
-        </div>
+        <img src="logo-text.svg" alt="OverType" style="width: 300px; max-width: 90%; margin: 0 auto 20px; display: block;">
+        <p class="tagline">Interactive Demo - Try all the features</p>
     </div>
 
     <div class="demo-container">
+        <!-- Main Editor with Toolbar -->
         <div class="demo-section">
+            <div class="demo-header">
+                <h2>Main Editor</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="editors.main.getValue() && alert('Content: ' + editors.main.getValue().substring(0, 100) + '...')">Get Value</button>
+                    <button class="btn" onclick="editors.main.setValue('# New Content\n\nEditor reset!')">Set Value</button>
+                </div>
+            </div>
             <div id="main-editor" class="editor-wrapper"></div>
         </div>
 
+        <!-- Preview Editor -->
         <div class="demo-section">
+            <div class="demo-header">
+                <h2>Live Preview</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="syncWithMain()">Sync with Main</button>
+                </div>
+            </div>
             <div id="preview-editor" class="editor-wrapper"></div>
         </div>
 
+        <!-- Notes Editor -->
         <div class="demo-section">
+            <div class="demo-header">
+                <h2>Notes</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="editors.notes.setValue('')">Clear</button>
+                </div>
+            </div>
             <div id="notes-editor" class="editor-wrapper"></div>
         </div>
 
+        <!-- Code Editor -->
         <div class="demo-section">
+            <div class="demo-header">
+                <h2>Code Editor</h2>
+            </div>
             <div id="code-editor" class="editor-wrapper"></div>
         </div>
     </div>
 
-    <div class="floating-controls">
-        <button class="fab" onclick="showShortcuts()" title="Keyboard Shortcuts">⌨️</button>
-        <button class="fab primary" onclick="showThemeModal()" title="Theme Settings">🎨</button>
-    </div>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()">
+        Toggle Theme
+    </button>
 
-    <div id="sync-banner" class="sync-banner">
-        ✅ All editors synchronized!
-    </div>
-
-    <div id="shortcuts-modal" class="modal">
-        <div class="modal-content">
-            <h3>⌨️ Keyboard Shortcuts</h3>
-            <div class="shortcuts-grid">
-                <div class="shortcut">
-                    <span>Bold</span>
-                    <div><kbd>Cmd/Ctrl</kbd> + <kbd>B</kbd></div>
-                </div>
-                <div class="shortcut">
-                    <span>Italic</span>
-                    <div><kbd>Cmd/Ctrl</kbd> + <kbd>I</kbd></div>
-                </div>
-                <div class="shortcut">
-                    <span>Code</span>
-                    <div><kbd>Cmd/Ctrl</kbd> + <kbd>K</kbd></div>
-                </div>
-                <div class="shortcut">
-                    <span>Link</span>
-                    <div><kbd>Cmd/Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>K</kbd></div>
-                </div>
-                <div class="shortcut">
-                    <span>Numbered List</span>
-                    <div><kbd>Cmd/Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>7</kbd></div>
-                </div>
-                <div class="shortcut">
-                    <span>Bullet List</span>
-                    <div><kbd>Cmd/Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>8</kbd></div>
-                </div>
-            </div>
-            <br>
-            <button class="btn" style="background: #667eea; color: white; width: 100%; padding: 12px;" onclick="closeModal('shortcuts-modal')">Close</button>
-        </div>
-    </div>
-
-    <div id="theme-modal" class="modal">
-        <div class="modal-content">
-            <h3>🎨 Theme Settings</h3>
-            <p style="margin-bottom: 15px; color: #666;">Choose a theme for all editors</p>
-            <div class="theme-selector">
-                <div class="theme-option" onclick="applyGlobalTheme('solar')">
-                    <div style="font-size: 2rem; margin-bottom: 10px;">☀️</div>
-                    <strong>Solar</strong>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Light & warm</p>
-                </div>
-                <div class="theme-option" onclick="applyGlobalTheme('cave')">
-                    <div style="font-size: 2rem; margin-bottom: 10px;">🌙</div>
-                    <strong>Cave</strong>
-                    <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Dark & cool</p>
-                </div>
-            </div>
-            <br>
-            <button class="btn" style="background: #667eea; color: white; width: 100%; padding: 12px;" onclick="closeModal('theme-modal')">Close</button>
-        </div>
-    </div>
-
-    <!-- OverType now includes markdown-actions bundled -->
-    <script src="dist/overtype.js"></script>
+    <script src="dist/overtype.min.js"></script>
     <script>
-        // Store editor instances
-        const editors = {};
+        let editors = {};
         
         // Sample content for each editor
         const sampleContent = {
-            main: `# Welcome to OverType! 
+            main: `# Welcome to OverType
 
-This is a **powerful** yet *lightweight* markdown editor.
+A **lightweight** markdown editor with perfect WYSIWYG alignment.
 
-## Features at a Glance
-
-- 🎯 Perfect character alignment
-- 👻 Invisible textarea overlay  
-- 🎨 Beautiful themes
+## Features
+- 🚀 ~73KB minified
+- 🎨 Theme support
 - ⌨️ Keyboard shortcuts
 - 📱 Mobile optimized
 
-## Try It Out
-
-Start typing below or try the keyboard shortcuts!
-
-> Pro tip: Press **Cmd/Ctrl + B** for bold text
-
-\`\`\`
-// Code blocks work too!
-const editor = new OverType('#editor');
-\`\`\``,
+Try typing some markdown!`,
 
             preview: `# Live Preview Demo
 
 Watch as your **markdown** transforms in real-time!
 
-## Shopping List
-- [ ] Milk
-- [ ] Bread  
-- [ ] Coffee ☕
-- [ ] Chocolate 🍫
-
 ## Links
-Check out [GitHub](https://github.com) for more!
+Move your cursor into this link to see the tooltip:
+[GitHub Repository](https://github.com/panphora/overtype)
 
----
+## Code Support
+Inline \`code\` and blocks:
 
-*Type anything and see it styled instantly!*`,
+\`\`\`javascript
+const editor = new OverType('#editor');
+\`\`\``,
 
-            notes: `# Quick Notes 📝
+            notes: `# Quick Notes
 
-## Meeting Agenda
-1. Project status update
-2. **Budget review**
-3. *Timeline discussion*
-4. Next steps
+Use this space for:
+- Todo lists
+- Meeting notes
+- Code snippets
+- Draft content
 
-## Action Items
-- Complete documentation
-- Review pull requests
-- Deploy to staging
+> Tip: Use Tab to indent!`,
 
-> Remember: Ship early, ship often!`,
+            code: `# Code Documentation
 
-            code: `# Code Snippets
-
-## JavaScript Example
-\`\`\`
-class OverType {
-  constructor(target, options) {
-    this.init(target, options);
-  }
-  
-  getValue() {
-    return this.textarea.value;
-  }
-}
+## Installation
+\`\`\`bash
+npm install overtype
 \`\`\`
 
-## CSS Styling
-\`\`\`
-.editor {
-  font-family: monospace;
-  line-height: 1.6;
-}
+## Basic Usage
+\`\`\`javascript
+import OverType from 'overtype';
+
+const editor = new OverType('#editor', {
+  theme: 'cave',
+  toolbar: true
+});
 \`\`\`
 
-## Usage
-\`npm install overtype\``
+## API Methods
+- \`getValue()\` - Get markdown content
+- \`setValue(text)\` - Set content
+- \`setTheme(name)\` - Change theme`
         };
 
         // Initialize all editors
         function initEditors() {
-            // Handle both direct class and module.default scenarios
             const OT = window.OverType.default || window.OverType;
             
-            // Set global theme
+            // Set initial theme
             OT.setTheme('solar');
             
             // Main editor with toolbar
@@ -539,7 +301,6 @@ class OverType {
                 fontSize: '13px',
                 showStats: true
             });
-
         }
 
         // Toggle theme globally
@@ -550,74 +311,15 @@ class OverType {
             OT.setTheme(newTheme);
         }
 
-        // Clear specific editor
-        function clearEditor(editorKey) {
-            editors[editorKey].setValue('');
+        // Sync preview with main
+        function syncWithMain() {
+            if (editors.main && editors.preview) {
+                editors.preview.setValue(editors.main.getValue());
+            }
         }
-
-        // Sync all editors with main editor content
-        function syncAllEditors() {
-            const mainContent = editors.main.getValue();
-            Object.keys(editors).forEach(key => {
-                if (key !== 'main') {
-                    editors[key].setValue(mainContent);
-                }
-            });
-            
-            // Show sync banner
-            const banner = document.getElementById('sync-banner');
-            banner.classList.add('show');
-            setTimeout(() => {
-                banner.classList.remove('show');
-            }, 2000);
-        }
-
-        // Apply theme globally
-        function applyGlobalTheme(theme) {
-            const OT = window.OverType.default || window.OverType;
-            OT.setTheme(theme);
-            
-            // Update theme modal UI
-            document.querySelectorAll('.theme-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            event.target.closest('.theme-option').classList.add('active');
-        }
-
-        // Modal functions
-        function showShortcuts() {
-            document.getElementById('shortcuts-modal').classList.add('active');
-        }
-
-        function showThemeModal() {
-            document.getElementById('theme-modal').classList.add('active');
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
-        // Close modals on background click
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                }
-            });
-        });
 
         // Initialize on load
-        window.addEventListener('DOMContentLoaded', () => {
-            initEditors();
-        });
-
-        // Keyboard shortcut for sync (Cmd/Ctrl + Shift + S)
-        document.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'S') {
-                e.preventDefault();
-                syncAllEditors();
-            }
-        });
+        document.addEventListener('DOMContentLoaded', initEditors);
     </script>
 </body>
 </html>
