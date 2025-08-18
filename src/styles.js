@@ -235,6 +235,8 @@ export function generateStyles(options = {}) {
       padding: 0 !important;
       border-radius: 2px !important;
       font-family: inherit !important;
+      font-size: inherit !important;
+      line-height: inherit !important;
       font-weight: normal !important;
     }
 

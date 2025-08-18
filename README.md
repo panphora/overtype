@@ -383,6 +383,27 @@ Check the `examples` folder for complete examples:
 - `custom-theme.html` - Theme customization
 - `dynamic.html` - Dynamic creation/destruction
 
+## Limitations
+
+Due to the transparent textarea overlay approach, OverType has some intentional design limitations:
+
+### Images Not Supported
+Images (`![alt](url)`) are not rendered. Variable-height images would break the character alignment between textarea and preview.
+
+### Monospace Font Required
+All text must use a monospace font to maintain alignment. Variable-width fonts would cause the textarea cursor position to drift from the visual text position.
+
+### Fixed Font Size
+All content must use the same font size. Different sizes for headers or other elements would break vertical alignment.
+
+### Visible Markdown Syntax
+All markdown formatting characters remain visible (e.g., `**bold**` shows the asterisks). This is intentional - hiding them would break the 1:1 character mapping.
+
+### Links Require Modifier Key
+Links are clickable with Cmd/Ctrl+Click only. Direct clicking would interfere with text editing since clicks need to position the cursor in the textarea.
+
+These limitations are what enable OverType's core benefits: perfect native textarea behavior, tiny size, and zero complexity.
+
 ## Development
 
 ```bash

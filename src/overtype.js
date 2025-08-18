@@ -9,6 +9,7 @@ import { ShortcutsManager } from './shortcuts.js';
 import { generateStyles } from './styles.js';
 import { getTheme, mergeTheme, solar, themeToCSSVars } from './themes.js';
 import { Toolbar } from './toolbar.js';
+import { LinkTooltip } from './link-tooltip.js';
 
 /**
  * OverType Editor Class
@@ -97,6 +98,9 @@ class OverType {
 
       // Setup shortcuts manager
       this.shortcuts = new ShortcutsManager(this);
+      
+      // Setup link tooltip
+      this.linkTooltip = new LinkTooltip(this);
 
       // Setup toolbar if enabled
       if (this.options.toolbar) {
@@ -471,7 +475,52 @@ class OverType {
      * @private
      */
     handleKeydown(event) {
-      // Let shortcuts manager handle it first
+      // Handle Tab key to prevent focus loss and insert spaces
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        
+        // Insert 2 spaces at cursor position
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const value = this.textarea.value;
+        
+        // If there's a selection, indent/outdent based on shift key
+        if (start !== end && event.shiftKey) {
+          // Outdent: remove 2 spaces from start of each selected line
+          const before = value.substring(0, start);
+          const selection = value.substring(start, end);
+          const after = value.substring(end);
+          
+          const lines = selection.split('\n');
+          const outdented = lines.map(line => line.replace(/^  /, '')).join('\n');
+          
+          this.textarea.value = before + outdented + after;
+          this.textarea.selectionStart = start;
+          this.textarea.selectionEnd = start + outdented.length;
+        } else if (start !== end) {
+          // Indent: add 2 spaces to start of each selected line
+          const before = value.substring(0, start);
+          const selection = value.substring(start, end);
+          const after = value.substring(end);
+          
+          const lines = selection.split('\n');
+          const indented = lines.map(line => '  ' + line).join('\n');
+          
+          this.textarea.value = before + indented + after;
+          this.textarea.selectionStart = start;
+          this.textarea.selectionEnd = start + indented.length;
+        } else {
+          // No selection: just insert 2 spaces
+          this.textarea.value = value.substring(0, start) + '  ' + value.substring(end);
+          this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
+        }
+        
+        // Trigger input event to update preview
+        this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+      
+      // Let shortcuts manager handle other keys
       const handled = this.shortcuts.handleKeydown(event);
       
       // Call user callback if provided
