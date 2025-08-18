@@ -358,6 +358,38 @@ This is **bold** and *italic*.
   });
 })();
 
+// Test: Code fence improvements - reject invalid patterns
+(() => {
+  const tests = [
+    { input: '```', expected: '<div><span class="code-fence">```</span></div>', description: 'Valid code fence' },
+    { input: '```js`', expected: '<div>```js`</div>', description: 'Should reject fence with subsequent backtick' },
+    { input: '```contains`backtick', expected: '<div>```contains`backtick</div>', description: 'Should reject fence with backtick in content' }
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseCodeBlock(test.input) || `<div>${MarkdownParser.escapeHtml(test.input)}</div>`;
+    assert(htmlEqual(actual, test.expected), `Code fence: ${test.input}`, `${test.description}`);
+  });
+})();
+
+// Test: Multi-backtick inline code
+(() => {
+  const tests = [
+    { input: '``code with `backtick` inside``', expected: '<div><code><span class="syntax-marker">``</span>code with `backtick` inside<span class="syntax-marker">``</span></code></div>' },
+    { input: '`single` and ``double``', expected: '<div><code><span class="syntax-marker">`</span>single<span class="syntax-marker">`</span></code> and <code><span class="syntax-marker">``</span>double<span class="syntax-marker">``</span></code></div>' },
+    { input: '```triple```', expected: '<div><code><span class="syntax-marker">```</span>triple<span class="syntax-marker">```</span></code></div>' },
+    { input: '`unmatched``', expected: '<div>`unmatched``</div>' },
+    { input: '``unmatched`', expected: '<div>``unmatched`</div>' },
+    { input: '```unmatched``', expected: '<div>```unmatched``</div>' },
+    { input: '``unmatched```', expected: '<div>``unmatched```</div>' },
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(htmlEqual(actual, test.expected), `Multi-backtick: ${test.input} ${actual}`, 'Should handle equal backtick matching');
+  });
+})();
+
 // ===== Integration Tests =====
 console.log('\n🔧 Integration Tests\n');
 

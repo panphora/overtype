@@ -109,7 +109,9 @@ export class MarkdownParser {
    * @returns {string|null} Parsed code fence or null
    */
   static parseCodeBlock(html) {
-    if (html.startsWith('```')) {
+    // The line must start with three backticks and have no backticks after subsequent text
+    const codeFenceRegex = /^`{3}[^`]*$/;
+    if (codeFenceRegex.test(html)) {
       return `<div><span class="code-fence">${html}</span></div>`;
     }
     return null;
@@ -144,7 +146,15 @@ export class MarkdownParser {
    * @returns {string} HTML with code styling
    */
   static parseInlineCode(html) {
-    return html.replace(/`(.+?)`/g, '<code><span class="syntax-marker">`</span>$1<span class="syntax-marker">`</span></code>');
+    // Must have equal number of backticks before and after inline code
+    //
+    // Regex explainer:
+    // (?<!`): A negative lookbehind ensuring the opening backticks are not preceded by another backtick.
+    // (`+): A capturing group that matches and remembers the opening sequence of one or more backticks. This is Group 1.
+    // ((?:(?!\1).)+?): A capturing group that greedily matches any character that is not the exact sequence of backticks captured in Group 1. This is Group 2.
+    // (\1): A backreference to Group 1, ensuring the closing sequence has the exact same number of backticks as the opening sequence. This is Group 3.
+    // (?!`): A negative lookahead ensuring the closing backticks are not followed by another backtick.
+    return html.replace(/(?<!`)(`+)(?!`)((?:(?!\1).)+?)(\1)(?!`)/g, '<code><span class="syntax-marker">$1</span>$2<span class="syntax-marker">$3</span></code>');
   }
 
   /**
