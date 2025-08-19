@@ -62,11 +62,14 @@ export type Editor = {
     showStats: (show: boolean) => void;
 }
 
+
+type Target = string | HTMLElement | NodeList | HTMLElement[]
+
 interface OverTypeModule {
     destroyAll: () => void;
     getInstance: (element: HTMLElement) => Editor | null;
-    init: (target: string, options?: Options) => Editor[];
-    new(target: string, options?: Options): Editor[];
+    init: (target: Target, options?: Options) => Editor[];
+    new(target: Target, options?: Options): Editor[];
     setTheme: (theme: string | Theme, overrides: Theme['colors']) => void;
     themes: {
         'solar': Theme;
