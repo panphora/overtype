@@ -1,6 +1,6 @@
 {
   "name": "overtype",
-  "version": "1.1.0",
+  "version": "1.1.4",
   "description": "A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay",
   "main": "dist/overtype.js",
   "module": "dist/overtype.esm.js",

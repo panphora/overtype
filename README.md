@@ -140,6 +140,26 @@ editors.forEach((editor, index) => {
 });
 ```
 
+### Form Integration
+
+```javascript
+// Use with form validation
+const [editor] = new OverType('#message', {
+  placeholder: 'Your message...',
+  textareaProps: {
+    required: true,
+    maxLength: 500,
+    name: 'message'
+  }
+});
+
+// The textarea will work with native form validation
+document.querySelector('form').addEventListener('submit', (e) => {
+  const content = editor.getValue();
+  // Form will automatically validate required field
+});
+```
+
 ### Custom Theme
 
 ```javascript
@@ -269,6 +289,14 @@ new OverType(target, options)
   autofocus: false,
   placeholder: 'Start typing...',
   value: '',
+  
+  // Native textarea properties
+  textareaProps: {
+    required: true,
+    maxLength: 500,
+    name: 'content',
+    // Any HTML textarea attribute
+  },
   
   // Stats bar
   showStats: false,  // Enable/disable stats bar

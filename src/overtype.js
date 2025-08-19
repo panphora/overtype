@@ -144,8 +144,14 @@ class OverType {
           lineHeight: 1.5
         },
         
+        // Native textarea properties
+        textareaProps: {},
+        
         // Behavior
         autofocus: false,
+        autoResize: false,  // Auto-expand height with content
+        minHeight: '100px', // Minimum height for autoResize mode
+        maxHeight: null,    // Maximum height for autoResize mode (null = unlimited)
         placeholder: 'Start typing...',
         value: '',
         
@@ -307,10 +313,6 @@ class OverType {
       this.wrapper = document.createElement('div');
       this.wrapper.className = 'overtype-wrapper';
       
-      // Add stats wrapper class if stats are enabled
-      if (this.options.showStats) {
-        this.wrapper.classList.add('with-stats');
-      }
       
       // Apply instance-specific styles via CSS custom properties
       if (this.options.fontSize) {
@@ -330,6 +332,19 @@ class OverType {
       this.textarea.className = 'overtype-input';
       this.textarea.placeholder = this.options.placeholder;
       this._configureTextarea();
+      
+      // Apply any native textarea properties
+      if (this.options.textareaProps) {
+        Object.entries(this.options.textareaProps).forEach(([key, value]) => {
+          if (key === 'className' || key === 'class') {
+            this.textarea.className += ' ' + value;
+          } else if (key === 'style' && typeof value === 'object') {
+            Object.assign(this.textarea.style, value);
+          } else {
+            this.textarea.setAttribute(key, value);
+          }
+        });
+      }
 
       // Create preview div
       this.preview = document.createElement('div');
@@ -340,19 +355,42 @@ class OverType {
       this.wrapper.appendChild(this.textarea);
       this.wrapper.appendChild(this.preview);
       
-      // Add stats bar if enabled
+      // Add wrapper to container first
+      this.container.appendChild(this.wrapper);
+      
+      // Add stats bar at the end (bottom) if enabled
       if (this.options.showStats) {
         this.statsBar = document.createElement('div');
         this.statsBar.className = 'overtype-stats';
-        this.wrapper.appendChild(this.statsBar);
+        this.container.appendChild(this.statsBar);
         this._updateStats();
       }
       
-      // Add wrapper to container
-      this.container.appendChild(this.wrapper);
-      
       // Add container to element
       this.element.appendChild(this.container);
+      
+      // Debug logging
+      if (window.location.pathname.includes('demo.html')) {
+        console.log('_createDOM completed:', {
+          elementId: this.element.id,
+          autoResize: this.options.autoResize,
+          containerClasses: this.container.className,
+          hasStats: !!this.statsBar,
+          hasToolbar: this.options.toolbar
+        });
+      }
+      
+      // Setup auto-resize if enabled
+      if (this.options.autoResize) {
+        this._setupAutoResize();
+      } else {
+        // Ensure auto-resize class is removed if not using auto-resize
+        this.container.classList.remove('overtype-auto-resize');
+        
+        if (window.location.pathname.includes('demo.html')) {
+          console.log('Removed auto-resize class from:', this.element.id);
+        }
+      }
     }
 
     /**
@@ -377,6 +415,16 @@ class OverType {
       // Apply autofocus
       if (this.options.autofocus) {
         this.textarea.focus();
+      }
+      
+      // Setup or remove auto-resize
+      if (this.options.autoResize) {
+        if (!this.container.classList.contains('overtype-auto-resize')) {
+          this._setupAutoResize();
+        }
+      } else {
+        // Ensure auto-resize class is removed
+        this.container.classList.remove('overtype-auto-resize');
       }
 
       // Update preview with initial content
@@ -442,6 +490,11 @@ class OverType {
           // Apply class to divs between the fences
           if (currentDiv.tagName === 'DIV') {
             currentDiv.classList.add('code-block-line');
+            
+            // Strip all formatting by replacing with plain text
+            // This prevents markdown formatting inside code blocks
+            const plainText = currentDiv.textContent;
+            currentDiv.textContent = plainText;
           }
           
           // Move to next sibling
@@ -554,6 +607,11 @@ class OverType {
     setValue(value) {
       this.textarea.value = value;
       this.updatePreview();
+      
+      // Update height if auto-resize is enabled
+      if (this.options.autoResize) {
+        this._updateAutoHeight();
+      }
     }
 
 
@@ -630,6 +688,89 @@ class OverType {
     }
     
     /**
+     * Setup auto-resize functionality
+     * @private
+     */
+    _setupAutoResize() {
+      // Add auto-resize class for styling
+      this.container.classList.add('overtype-auto-resize');
+      
+      // Store previous height for comparison
+      this.previousHeight = null;
+      
+      // Initial height update
+      this._updateAutoHeight();
+      
+      // Listen for input events
+      this.textarea.addEventListener('input', () => this._updateAutoHeight());
+      
+      // Listen for window resize
+      window.addEventListener('resize', () => this._updateAutoHeight());
+    }
+    
+    /**
+     * Update height based on scrollHeight
+     * @private
+     */
+    _updateAutoHeight() {
+      if (!this.options.autoResize) return;
+      
+      const textarea = this.textarea;
+      const preview = this.preview;
+      const wrapper = this.wrapper;
+      
+      // Get computed styles
+      const computed = window.getComputedStyle(textarea);
+      const paddingTop = parseFloat(computed.paddingTop);
+      const paddingBottom = parseFloat(computed.paddingBottom);
+      
+      // Store scroll positions
+      const scrollTop = textarea.scrollTop;
+      
+      // Reset height to get accurate scrollHeight
+      textarea.style.setProperty('height', 'auto', 'important');
+      
+      // Calculate new height based on scrollHeight
+      let newHeight = textarea.scrollHeight;
+      
+      // Apply min height constraint
+      if (this.options.minHeight) {
+        const minHeight = parseInt(this.options.minHeight);
+        newHeight = Math.max(newHeight, minHeight);
+      }
+      
+      // Apply max height constraint
+      let overflow = 'hidden';
+      if (this.options.maxHeight) {
+        const maxHeight = parseInt(this.options.maxHeight);
+        if (newHeight > maxHeight) {
+          newHeight = maxHeight;
+          overflow = 'auto';
+        }
+      }
+      
+      // Apply the new height to all elements with !important to override base styles
+      const heightPx = newHeight + 'px';
+      textarea.style.setProperty('height', heightPx, 'important');
+      textarea.style.setProperty('overflow-y', overflow, 'important');
+      
+      preview.style.setProperty('height', heightPx, 'important');
+      preview.style.setProperty('overflow-y', overflow, 'important');
+      
+      wrapper.style.setProperty('height', heightPx, 'important');
+      
+      // Restore scroll position
+      textarea.scrollTop = scrollTop;
+      preview.scrollTop = scrollTop;
+      
+      // Track if height changed
+      if (this.previousHeight !== newHeight) {
+        this.previousHeight = newHeight;
+        // Could dispatch a custom event here if needed
+      }
+    }
+    
+    /**
      * Show or hide stats bar
      * @param {boolean} show - Whether to show stats
      */
@@ -637,17 +778,15 @@ class OverType {
       this.options.showStats = show;
       
       if (show && !this.statsBar) {
-        // Create stats bar
+        // Create stats bar (add to container, not wrapper)
         this.statsBar = document.createElement('div');
         this.statsBar.className = 'overtype-stats';
-        this.wrapper.appendChild(this.statsBar);
-        this.wrapper.classList.add('with-stats');
+        this.container.appendChild(this.statsBar);
         this._updateStats();
       } else if (!show && this.statsBar) {
         // Remove stats bar
         this.statsBar.remove();
         this.statsBar = null;
-        this.wrapper.classList.remove('with-stats');
       }
     }
 

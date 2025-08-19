@@ -14,7 +14,7 @@ export function generateStyles(options = {}) {
   const {
     fontSize = '14px',
     lineHeight = 1.6,
-    fontFamily = "ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', monospace",
+    fontFamily = '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
     padding = '20px',
     theme = null,
     mobile = {}
@@ -41,7 +41,8 @@ export function generateStyles(options = {}) {
   return `
     /* OverType Editor Styles */
     .overtype-container {
-      position: relative !important;
+      display: grid !important;
+      grid-template-rows: auto 1fr auto !important;
       width: 100% !important;
       height: 100% !important;
       ${themeVars ? `
@@ -49,12 +50,26 @@ export function generateStyles(options = {}) {
       ${themeVars}` : ''}
     }
     
+    /* Auto-resize mode styles */
+    .overtype-container.overtype-auto-resize {
+      height: auto !important;
+      grid-template-rows: auto auto auto !important;
+    }
+    
+    .overtype-container.overtype-auto-resize .overtype-wrapper {
+      height: auto !important;
+      min-height: 60px !important;
+      overflow: visible !important;
+    }
+    
     .overtype-wrapper {
       position: relative !important;
       width: 100% !important;
-      height: 100% !important;
+      height: 100% !important; /* Take full height of grid cell */
+      min-height: 60px !important; /* Minimum usable height */
       overflow: hidden !important;
       background: var(--bg-secondary, #ffffff) !important;
+      grid-row: 2 !important; /* Always second row in grid */
     }
 
     /* Critical alignment styles - must be identical for both layers */
@@ -69,6 +84,8 @@ export function generateStyles(options = {}) {
       
       /* Font properties - any difference breaks alignment */
       font-family: ${fontFamily} !important;
+      font-synthesis: none !important; /* no faux bold/italic width drift */
+      font-variant-ligatures: none !important; /* keep metrics stable for code */
       font-size: var(--instance-font-size, ${fontSize}) !important;
       line-height: var(--instance-line-height, ${lineHeight}) !important;
       font-weight: normal !important;
@@ -335,15 +352,9 @@ export function generateStyles(options = {}) {
     }
 
     /* Stats bar */
-    .overtype-wrapper.with-stats {
-      padding-bottom: 40px !important;
-    }
     
-    .overtype-wrapper .overtype-stats {
-      position: absolute !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
+    /* Stats bar - positioned by grid, not absolute */
+    .overtype-stats {
       height: 40px !important;
       padding: 0 20px !important;
       background: #f8f9fa !important;
@@ -354,24 +365,24 @@ export function generateStyles(options = {}) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       font-size: 0.85rem !important;
       color: #666 !important;
-      z-index: 2 !important;
+      grid-row: 3 !important; /* Always third row in grid */
     }
     
     /* Dark theme stats bar */
-    .overtype-wrapper[data-theme="cave"] .overtype-stats {
+    .overtype-container[data-theme="cave"] .overtype-stats {
       background: var(--bg-secondary, #1D2D3E) !important;
       border-top: 1px solid rgba(197, 221, 232, 0.1) !important;
       color: var(--text, #c5dde8) !important;
     }
     
-    .overtype-wrapper .overtype-stats .overtype-stat {
+    .overtype-stats .overtype-stat {
       display: flex !important;
       align-items: center !important;
       gap: 5px !important;
       white-space: nowrap !important;
     }
     
-    .overtype-wrapper .overtype-stats .live-dot {
+    .overtype-stats .live-dot {
       width: 8px !important;
       height: 8px !important;
       background: #4caf50 !important;
@@ -384,11 +395,6 @@ export function generateStyles(options = {}) {
       50% { opacity: 0.6; transform: scale(1.2); }
     }
     
-    /* Adjust textarea and preview for stats bar */
-    .overtype-wrapper.with-stats .overtype-input,
-    .overtype-wrapper.with-stats .overtype-preview {
-      height: calc(100% - 40px) !important;
-    }
 
     /* Toolbar Styles */
     .overtype-toolbar {
@@ -399,6 +405,9 @@ export function generateStyles(options = {}) {
       background: var(--toolbar-bg, var(--bg-primary, #f8f9fa));
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+      flex-shrink: 0;
+      height: auto !important;
+      grid-row: 1 !important; /* Always first row in grid */
     }
 
     .overtype-toolbar-button {

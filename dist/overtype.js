@@ -1,5 +1,5 @@
 /**
- * OverType v1.1.0
+ * OverType v1.1.4
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author Demo User
@@ -129,7 +129,8 @@ var OverType = (() => {
      * @returns {string|null} Parsed code fence or null
      */
     static parseCodeBlock(html) {
-      if (html.startsWith("```")) {
+      const codeFenceRegex = /^`{3}[^`]*$/;
+      if (codeFenceRegex.test(html)) {
         return `<div><span class="code-fence">${html}</span></div>`;
       }
       return null;
@@ -161,7 +162,7 @@ var OverType = (() => {
      * @returns {string} HTML with code styling
      */
     static parseInlineCode(html) {
-      return html.replace(/`(.+?)`/g, '<code><span class="syntax-marker">`</span>$1<span class="syntax-marker">`</span></code>');
+      return html.replace(new RegExp("(?<!`)(`+)(?!`)((?:(?!\\1).)+?)(\\1)(?!`)", "g"), '<code><span class="syntax-marker">$1</span>$2<span class="syntax-marker">$3</span></code>');
     }
     /**
      * Parse links
@@ -1318,7 +1319,7 @@ ${blockSuffix}` : suffix;
     const {
       fontSize = "14px",
       lineHeight = 1.6,
-      fontFamily = "ui-monospace, 'SFMono-Regular', 'Menlo', 'Consolas', 'Liberation Mono', monospace",
+      fontFamily = '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
       padding = "20px",
       theme = null,
       mobile = {}
@@ -1338,7 +1339,8 @@ ${blockSuffix}` : suffix;
     return `
     /* OverType Editor Styles */
     .overtype-container {
-      position: relative !important;
+      display: grid !important;
+      grid-template-rows: auto 1fr auto !important;
       width: 100% !important;
       height: 100% !important;
       ${themeVars ? `
@@ -1346,12 +1348,26 @@ ${blockSuffix}` : suffix;
       ${themeVars}` : ""}
     }
     
+    /* Auto-resize mode styles */
+    .overtype-container.overtype-auto-resize {
+      height: auto !important;
+      grid-template-rows: auto auto auto !important;
+    }
+    
+    .overtype-container.overtype-auto-resize .overtype-wrapper {
+      height: auto !important;
+      min-height: 60px !important;
+      overflow: visible !important;
+    }
+    
     .overtype-wrapper {
       position: relative !important;
       width: 100% !important;
-      height: 100% !important;
+      height: 100% !important; /* Take full height of grid cell */
+      min-height: 60px !important; /* Minimum usable height */
       overflow: hidden !important;
       background: var(--bg-secondary, #ffffff) !important;
+      grid-row: 2 !important; /* Always second row in grid */
     }
 
     /* Critical alignment styles - must be identical for both layers */
@@ -1366,6 +1382,8 @@ ${blockSuffix}` : suffix;
       
       /* Font properties - any difference breaks alignment */
       font-family: ${fontFamily} !important;
+      font-synthesis: none !important; /* no faux bold/italic width drift */
+      font-variant-ligatures: none !important; /* keep metrics stable for code */
       font-size: var(--instance-font-size, ${fontSize}) !important;
       line-height: var(--instance-line-height, ${lineHeight}) !important;
       font-weight: normal !important;
@@ -1632,15 +1650,9 @@ ${blockSuffix}` : suffix;
     }
 
     /* Stats bar */
-    .overtype-wrapper.with-stats {
-      padding-bottom: 40px !important;
-    }
     
-    .overtype-wrapper .overtype-stats {
-      position: absolute !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
+    /* Stats bar - positioned by grid, not absolute */
+    .overtype-stats {
       height: 40px !important;
       padding: 0 20px !important;
       background: #f8f9fa !important;
@@ -1651,24 +1663,24 @@ ${blockSuffix}` : suffix;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       font-size: 0.85rem !important;
       color: #666 !important;
-      z-index: 2 !important;
+      grid-row: 3 !important; /* Always third row in grid */
     }
     
     /* Dark theme stats bar */
-    .overtype-wrapper[data-theme="cave"] .overtype-stats {
+    .overtype-container[data-theme="cave"] .overtype-stats {
       background: var(--bg-secondary, #1D2D3E) !important;
       border-top: 1px solid rgba(197, 221, 232, 0.1) !important;
       color: var(--text, #c5dde8) !important;
     }
     
-    .overtype-wrapper .overtype-stats .overtype-stat {
+    .overtype-stats .overtype-stat {
       display: flex !important;
       align-items: center !important;
       gap: 5px !important;
       white-space: nowrap !important;
     }
     
-    .overtype-wrapper .overtype-stats .live-dot {
+    .overtype-stats .live-dot {
       width: 8px !important;
       height: 8px !important;
       background: #4caf50 !important;
@@ -1681,11 +1693,6 @@ ${blockSuffix}` : suffix;
       50% { opacity: 0.6; transform: scale(1.2); }
     }
     
-    /* Adjust textarea and preview for stats bar */
-    .overtype-wrapper.with-stats .overtype-input,
-    .overtype-wrapper.with-stats .overtype-preview {
-      height: calc(100% - 40px) !important;
-    }
 
     /* Toolbar Styles */
     .overtype-toolbar {
@@ -1696,6 +1703,9 @@ ${blockSuffix}` : suffix;
       background: var(--toolbar-bg, var(--bg-primary, #f8f9fa));
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+      flex-shrink: 0;
+      height: auto !important;
+      grid-row: 1 !important; /* Always first row in grid */
     }
 
     .overtype-toolbar-button {
@@ -2247,8 +2257,16 @@ ${blockSuffix}` : suffix;
           padding: "12px",
           lineHeight: 1.5
         },
+        // Native textarea properties
+        textareaProps: {},
         // Behavior
         autofocus: false,
+        autoResize: false,
+        // Auto-expand height with content
+        minHeight: "100px",
+        // Minimum height for autoResize mode
+        maxHeight: null,
+        // Maximum height for autoResize mode (null = unlimited)
         placeholder: "Start typing...",
         value: "",
         // Callbacks
@@ -2365,9 +2383,6 @@ ${blockSuffix}` : suffix;
       }
       this.wrapper = document.createElement("div");
       this.wrapper.className = "overtype-wrapper";
-      if (this.options.showStats) {
-        this.wrapper.classList.add("with-stats");
-      }
       if (this.options.fontSize) {
         this.wrapper.style.setProperty("--instance-font-size", this.options.fontSize);
       }
@@ -2382,19 +2397,47 @@ ${blockSuffix}` : suffix;
       this.textarea.className = "overtype-input";
       this.textarea.placeholder = this.options.placeholder;
       this._configureTextarea();
+      if (this.options.textareaProps) {
+        Object.entries(this.options.textareaProps).forEach(([key, value]) => {
+          if (key === "className" || key === "class") {
+            this.textarea.className += " " + value;
+          } else if (key === "style" && typeof value === "object") {
+            Object.assign(this.textarea.style, value);
+          } else {
+            this.textarea.setAttribute(key, value);
+          }
+        });
+      }
       this.preview = document.createElement("div");
       this.preview.className = "overtype-preview";
       this.preview.setAttribute("aria-hidden", "true");
       this.wrapper.appendChild(this.textarea);
       this.wrapper.appendChild(this.preview);
+      this.container.appendChild(this.wrapper);
       if (this.options.showStats) {
         this.statsBar = document.createElement("div");
         this.statsBar.className = "overtype-stats";
-        this.wrapper.appendChild(this.statsBar);
+        this.container.appendChild(this.statsBar);
         this._updateStats();
       }
-      this.container.appendChild(this.wrapper);
       this.element.appendChild(this.container);
+      if (window.location.pathname.includes("demo.html")) {
+        console.log("_createDOM completed:", {
+          elementId: this.element.id,
+          autoResize: this.options.autoResize,
+          containerClasses: this.container.className,
+          hasStats: !!this.statsBar,
+          hasToolbar: this.options.toolbar
+        });
+      }
+      if (this.options.autoResize) {
+        this._setupAutoResize();
+      } else {
+        this.container.classList.remove("overtype-auto-resize");
+        if (window.location.pathname.includes("demo.html")) {
+          console.log("Removed auto-resize class from:", this.element.id);
+        }
+      }
     }
     /**
      * Configure textarea attributes
@@ -2416,6 +2459,13 @@ ${blockSuffix}` : suffix;
     _applyOptions() {
       if (this.options.autofocus) {
         this.textarea.focus();
+      }
+      if (this.options.autoResize) {
+        if (!this.container.classList.contains("overtype-auto-resize")) {
+          this._setupAutoResize();
+        }
+      } else {
+        this.container.classList.remove("overtype-auto-resize");
       }
       this.updatePreview();
     }
@@ -2457,6 +2507,8 @@ ${blockSuffix}` : suffix;
         while (currentDiv && currentDiv !== closeParent) {
           if (currentDiv.tagName === "DIV") {
             currentDiv.classList.add("code-block-line");
+            const plainText = currentDiv.textContent;
+            currentDiv.textContent = plainText;
           }
           currentDiv = currentDiv.nextElementSibling;
           if (!currentDiv)
@@ -2541,6 +2593,9 @@ ${blockSuffix}` : suffix;
     setValue(value) {
       this.textarea.value = value;
       this.updatePreview();
+      if (this.options.autoResize) {
+        this._updateAutoHeight();
+      }
     }
     /**
      * Focus the editor
@@ -2605,6 +2660,57 @@ ${blockSuffix}` : suffix;
       }
     }
     /**
+     * Setup auto-resize functionality
+     * @private
+     */
+    _setupAutoResize() {
+      this.container.classList.add("overtype-auto-resize");
+      this.previousHeight = null;
+      this._updateAutoHeight();
+      this.textarea.addEventListener("input", () => this._updateAutoHeight());
+      window.addEventListener("resize", () => this._updateAutoHeight());
+    }
+    /**
+     * Update height based on scrollHeight
+     * @private
+     */
+    _updateAutoHeight() {
+      if (!this.options.autoResize)
+        return;
+      const textarea = this.textarea;
+      const preview = this.preview;
+      const wrapper = this.wrapper;
+      const computed = window.getComputedStyle(textarea);
+      const paddingTop = parseFloat(computed.paddingTop);
+      const paddingBottom = parseFloat(computed.paddingBottom);
+      const scrollTop = textarea.scrollTop;
+      textarea.style.setProperty("height", "auto", "important");
+      let newHeight = textarea.scrollHeight;
+      if (this.options.minHeight) {
+        const minHeight = parseInt(this.options.minHeight);
+        newHeight = Math.max(newHeight, minHeight);
+      }
+      let overflow = "hidden";
+      if (this.options.maxHeight) {
+        const maxHeight = parseInt(this.options.maxHeight);
+        if (newHeight > maxHeight) {
+          newHeight = maxHeight;
+          overflow = "auto";
+        }
+      }
+      const heightPx = newHeight + "px";
+      textarea.style.setProperty("height", heightPx, "important");
+      textarea.style.setProperty("overflow-y", overflow, "important");
+      preview.style.setProperty("height", heightPx, "important");
+      preview.style.setProperty("overflow-y", overflow, "important");
+      wrapper.style.setProperty("height", heightPx, "important");
+      textarea.scrollTop = scrollTop;
+      preview.scrollTop = scrollTop;
+      if (this.previousHeight !== newHeight) {
+        this.previousHeight = newHeight;
+      }
+    }
+    /**
      * Show or hide stats bar
      * @param {boolean} show - Whether to show stats
      */
@@ -2613,13 +2719,11 @@ ${blockSuffix}` : suffix;
       if (show && !this.statsBar) {
         this.statsBar = document.createElement("div");
         this.statsBar.className = "overtype-stats";
-        this.wrapper.appendChild(this.statsBar);
-        this.wrapper.classList.add("with-stats");
+        this.container.appendChild(this.statsBar);
         this._updateStats();
       } else if (!show && this.statsBar) {
         this.statsBar.remove();
         this.statsBar = null;
-        this.wrapper.classList.remove("with-stats");
       }
     }
     /**

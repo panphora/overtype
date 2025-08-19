@@ -31,7 +31,9 @@
         }
 
         body {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace;
+            font-family: "SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace;
+            font-synthesis: none; /* no faux bold/italic width drift */
+            font-variant-ligatures: none; /* keep metrics stable for code */
             background: #000;
             color: #fff;
             font-size: 14px;
@@ -455,7 +457,7 @@
         </p>
 
         <!-- Under the Hood Section -->
-        <h2>A PEAK UNDER THE HOOD</h2>
+        <h2>A PEEK UNDER THE HOOD</h2>
         
         <div class="code-block">
             <pre><span style="opacity: 0.5">// The entire trick:</span>
