@@ -376,6 +376,7 @@ This is **bold** and *italic*.
 (() => {
   const tests = [
     { input: '``code with `backtick` inside``', expected: '<div><code><span class="syntax-marker">``</span>code with `backtick` inside<span class="syntax-marker">``</span></code></div>' },
+    { input: '`code with ``multi-backtick`` inside`', expected: '<div><code><span class="syntax-marker">`</span>code with ``multi-backtick`` inside<span class="syntax-marker">`</span></code></div>' },
     { input: '`single` and ``double``', expected: '<div><code><span class="syntax-marker">`</span>single<span class="syntax-marker">`</span></code> and <code><span class="syntax-marker">``</span>double<span class="syntax-marker">``</span></code></div>' },
     { input: '```triple```', expected: '<div><code><span class="syntax-marker">```</span>triple<span class="syntax-marker">```</span></code></div>' },
     { input: '`unmatched``', expected: '<div>`unmatched``</div>' },

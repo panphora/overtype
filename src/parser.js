@@ -151,10 +151,9 @@ export class MarkdownParser {
     // Regex explainer:
     // (?<!`): A negative lookbehind ensuring the opening backticks are not preceded by another backtick.
     // (`+): A capturing group that matches and remembers the opening sequence of one or more backticks. This is Group 1.
-    // ((?:(?!\1).)+?): A capturing group that greedily matches any character that is not the exact sequence of backticks captured in Group 1. This is Group 2.
+    // (.*?)(?=(?<!`)\1(?!`)): A capturing group that matches any character until the exact sequence of backticks captured in Group 1 is found, with no backticks before or after. This is Group 2.
     // (\1): A backreference to Group 1, ensuring the closing sequence has the exact same number of backticks as the opening sequence. This is Group 3.
-    // (?!`): A negative lookahead ensuring the closing backticks are not followed by another backtick.
-    return html.replace(/(?<!`)(`+)(?!`)((?:(?!\1).)+?)(\1)(?!`)/g, '<code><span class="syntax-marker">$1</span>$2<span class="syntax-marker">$3</span></code>');
+    return html.replace(/(?<!`)(`+)(?!`)(.*?)(?=(?<!`)\1(?!`))(\1)/g, '<code><span class="syntax-marker">$1</span>$2<span class="syntax-marker">$3</span></code>');
   }
 
   /**
