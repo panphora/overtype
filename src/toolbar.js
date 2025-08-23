@@ -7,10 +7,11 @@ import * as icons from './icons.js';
 import * as markdownActions from 'markdown-actions';
 
 export class Toolbar {
-  constructor(editor) {
+  constructor(editor, buttonConfig = null) {
     this.editor = editor;
     this.container = null;
     this.buttons = {};
+    this.buttonConfig = buttonConfig
   }
 
   /**
@@ -24,7 +25,7 @@ export class Toolbar {
     this.container.setAttribute('aria-label', 'Text formatting');
 
     // Define toolbar buttons
-    const buttonConfig = [
+    const buttonConfig = this.buttonConfig ?? [
       { name: 'bold', icon: icons.boldIcon, title: 'Bold (Ctrl+B)', action: 'toggleBold' },
       { name: 'italic', icon: icons.italicIcon, title: 'Italic (Ctrl+I)', action: 'toggleItalic' },
       { separator: true },

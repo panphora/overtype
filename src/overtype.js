@@ -104,7 +104,7 @@ class OverType {
 
       // Setup toolbar if enabled
       if (this.options.toolbar) {
-        this.toolbar = new Toolbar(this);
+        this.toolbar = new Toolbar(this, this.options.toolbar.buttons);
         this.toolbar.create();
         
         // Update toolbar states on selection change
