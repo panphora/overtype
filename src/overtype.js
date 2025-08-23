@@ -30,7 +30,7 @@ class OverType {
     constructor(target, options = {}) {
       // Convert target to array of elements
       let elements;
-      
+
       if (typeof target === 'string') {
         elements = document.querySelectorAll(target);
         if (elements.length === 0) {
@@ -73,10 +73,10 @@ class OverType {
      */
     _init(element, options = {}) {
       this.element = element;
-      
+
       // Store the original theme option before merging
       this.instanceTheme = options.theme || null;
-      
+
       this.options = this._mergeOptions(options);
       this.instanceId = ++OverType.instanceCount;
       this.initialized = false;
@@ -98,7 +98,7 @@ class OverType {
 
       // Setup shortcuts manager
       this.shortcuts = new ShortcutsManager(this);
-      
+
       // Setup link tooltip
       this.linkTooltip = new LinkTooltip(this);
 
@@ -106,7 +106,7 @@ class OverType {
       if (this.options.toolbar) {
         this.toolbar = new Toolbar(this);
         this.toolbar.create();
-        
+
         // Update toolbar states on selection change
         this.textarea.addEventListener('selectionchange', () => {
           this.toolbar.updateButtonStates();
@@ -137,17 +137,17 @@ class OverType {
         /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
         fontFamily: '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
         padding: '16px',
-        
+
         // Mobile styles
         mobile: {
           fontSize: '16px',  // Prevent zoom on iOS
           padding: '12px',
           lineHeight: 1.5
         },
-        
+
         // Native textarea properties
         textareaProps: {},
-        
+
         // Behavior
         autofocus: false,
         autoResize: false,  // Auto-expand height with content
@@ -155,22 +155,23 @@ class OverType {
         maxHeight: null,    // Maximum height for autoResize mode (null = unlimited)
         placeholder: 'Start typing...',
         value: '',
-        
+
         // Callbacks
         onChange: null,
         onKeydown: null,
-        
+
         // Features
         showActiveLineRaw: false,
         showStats: false,
         toolbar: false,
         statsFormatter: null,
-        smartLists: true  // Enable smart list continuation
+        smartLists: true,  // Enable smart list continuation
+        codeHighlighter: null  // Per-instance code highlighter
       };
-      
+
       // Remove theme and colors from options - these are now global
       const { theme, colors, ...cleanOptions } = options;
-      
+
       return {
         ...defaults,
         ...cleanOptions
@@ -198,7 +199,7 @@ class OverType {
         if (themeName) {
           this.container.setAttribute('data-theme', themeName);
         }
-        
+
         // If using instance theme, apply CSS variables to container
         if (this.instanceTheme) {
           const themeObj = typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme;
@@ -210,7 +211,7 @@ class OverType {
         wrapper.parentNode.insertBefore(this.container, wrapper);
         this.container.appendChild(wrapper);
       }
-      
+
       if (!this.wrapper) {
         // No valid structure found
         if (container) container.remove();
@@ -218,7 +219,7 @@ class OverType {
         this._buildFromScratch();
         return;
       }
-      
+
       this.textarea = this.wrapper.querySelector('.overtype-input');
       this.preview = this.wrapper.querySelector('.overtype-preview');
 
@@ -231,7 +232,7 @@ class OverType {
 
       // Store reference on wrapper
       this.wrapper._instance = this;
-      
+
       // Apply instance-specific styles via CSS custom properties
       if (this.options.fontSize) {
         this.wrapper.style.setProperty('--instance-font-size', this.options.fontSize);
@@ -294,14 +295,14 @@ class OverType {
       // Create container that will hold toolbar and editor
       this.container = document.createElement('div');
       this.container.className = 'overtype-container';
-      
+
       // Set theme on container - use instance theme if provided
       const themeToUse = this.instanceTheme || OverType.currentTheme || solar;
       const themeName = typeof themeToUse === 'string' ? themeToUse : themeToUse.name;
       if (themeName) {
         this.container.setAttribute('data-theme', themeName);
       }
-      
+
       // If using instance theme, apply CSS variables to container
       if (this.instanceTheme) {
         const themeObj = typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme;
@@ -310,12 +311,12 @@ class OverType {
           this.container.style.cssText += cssVars;
         }
       }
-      
+
       // Create wrapper for editor
       this.wrapper = document.createElement('div');
       this.wrapper.className = 'overtype-wrapper';
-      
-      
+
+
       // Apply instance-specific styles via CSS custom properties
       if (this.options.fontSize) {
         this.wrapper.style.setProperty('--instance-font-size', this.options.fontSize);
@@ -326,7 +327,7 @@ class OverType {
       if (this.options.padding) {
         this.wrapper.style.setProperty('--instance-padding', this.options.padding);
       }
-      
+
       this.wrapper._instance = this;
 
       // Create textarea
@@ -334,7 +335,7 @@ class OverType {
       this.textarea.className = 'overtype-input';
       this.textarea.placeholder = this.options.placeholder;
       this._configureTextarea();
-      
+
       // Apply any native textarea properties
       if (this.options.textareaProps) {
         Object.entries(this.options.textareaProps).forEach(([key, value]) => {
@@ -356,12 +357,12 @@ class OverType {
       // Assemble DOM
       this.wrapper.appendChild(this.textarea);
       this.wrapper.appendChild(this.preview);
-      
+
       // No need to prevent link clicks - pointer-events handles this
-      
+
       // Add wrapper to container first
       this.container.appendChild(this.wrapper);
-      
+
       // Add stats bar at the end (bottom) if enabled
       if (this.options.showStats) {
         this.statsBar = document.createElement('div');
@@ -369,10 +370,10 @@ class OverType {
         this.container.appendChild(this.statsBar);
         this._updateStats();
       }
-      
+
       // Add container to element
       this.element.appendChild(this.container);
-      
+
       // Debug logging
       if (window.location.pathname.includes('demo.html')) {
         console.log('_createDOM completed:', {
@@ -383,14 +384,14 @@ class OverType {
           hasToolbar: this.options.toolbar
         });
       }
-      
+
       // Setup auto-resize if enabled
       if (this.options.autoResize) {
         this._setupAutoResize();
       } else {
         // Ensure auto-resize class is removed if not using auto-resize
         this.container.classList.remove('overtype-auto-resize');
-        
+
         if (window.location.pathname.includes('demo.html')) {
           console.log('Removed auto-resize class from:', this.element.id);
         }
@@ -420,7 +421,7 @@ class OverType {
       if (this.options.autofocus) {
         this.textarea.focus();
       }
-      
+
       // Setup or remove auto-resize
       if (this.options.autoResize) {
         if (!this.container.classList.contains('overtype-auto-resize')) {
@@ -442,21 +443,21 @@ class OverType {
       const text = this.textarea.value;
       const cursorPos = this.textarea.selectionStart;
       const activeLine = this._getCurrentLine(text, cursorPos);
-      
+
       // Parse markdown
-      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw);
+      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter);
       this.preview.innerHTML = html || '<span style="color: #808080;">Start typing...</span>';
-      
+
       // Apply code block backgrounds
       this._applyCodeBlockBackgrounds();
-      
+
       // Links always have real hrefs now - no need to update them
-      
+
       // Update stats if enabled
       if (this.options.showStats && this.statsBar) {
         this._updateStats();
       }
-      
+
       // Trigger onChange callback
       if (this.options.onChange && this.initialized) {
         this.options.onChange(text, this);
@@ -470,26 +471,26 @@ class OverType {
     _applyCodeBlockBackgrounds() {
       // Find all code fence elements
       const codeFences = this.preview.querySelectorAll('.code-fence');
-      
+
       // Process pairs of code fences
       for (let i = 0; i < codeFences.length - 1; i += 2) {
         const openFence = codeFences[i];
         const closeFence = codeFences[i + 1];
-        
+
         // Get parent divs
         const openParent = openFence.parentElement;
         const closeParent = closeFence.parentElement;
-        
+
         if (!openParent || !closeParent) continue;
-        
+
         // Make fences display: block
         openFence.style.display = 'block';
         closeFence.style.display = 'block';
-        
+
         // Apply class to parent divs
         openParent.classList.add('code-block-line');
         closeParent.classList.add('code-block-line');
-        
+
         // With the new structure, there's a <pre> block between fences, not DIVs
         // We don't need to process anything between the fences anymore
         // The <pre><code> structure already handles the content correctly
@@ -521,21 +522,21 @@ class OverType {
       // Handle Tab key to prevent focus loss and insert spaces
       if (event.key === 'Tab') {
         event.preventDefault();
-        
+
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
         const value = this.textarea.value;
-        
+
         // If there's a selection, indent/outdent based on shift key
         if (start !== end && event.shiftKey) {
           // Outdent: remove 2 spaces from start of each selected line
           const before = value.substring(0, start);
           const selection = value.substring(start, end);
           const after = value.substring(end);
-          
+
           const lines = selection.split('\n');
           const outdented = lines.map(line => line.replace(/^  /, '')).join('\n');
-          
+
           // Try to use execCommand first to preserve undo history
           if (document.execCommand) {
             // Select the text that needs to be replaced
@@ -552,10 +553,10 @@ class OverType {
           const before = value.substring(0, start);
           const selection = value.substring(start, end);
           const after = value.substring(end);
-          
+
           const lines = selection.split('\n');
           const indented = lines.map(line => '  ' + line).join('\n');
-          
+
           // Try to use execCommand first to preserve undo history
           if (document.execCommand) {
             // Select the text that needs to be replaced
@@ -578,12 +579,12 @@ class OverType {
             this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
           }
         }
-        
+
         // Trigger input event to update preview
         this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
         return;
       }
-      
+
       // Handle Enter key for smart list continuation
       if (event.key === 'Enter' && !event.shiftKey && !event.metaKey && !event.ctrlKey && this.options.smartLists) {
         if (this.handleSmartListContinuation()) {
@@ -591,10 +592,10 @@ class OverType {
           return;
         }
       }
-      
+
       // Let shortcuts manager handle other keys
       const handled = this.shortcuts.handleKeydown(event);
-      
+
       // Call user callback if provided
       if (!handled && this.options.onKeydown) {
         this.options.onKeydown(event, this);
@@ -609,15 +610,15 @@ class OverType {
       const textarea = this.textarea;
       const cursorPos = textarea.selectionStart;
       const context = MarkdownParser.getListContext(textarea.value, cursorPos);
-      
+
       if (!context || !context.inList) return false;
-      
+
       // Handle empty list item (exit list)
       if (context.content.trim() === '' && cursorPos >= context.markerEndPos) {
         this.deleteListMarker(context);
         return true;
       }
-      
+
       // Handle text splitting if cursor is in middle of content
       if (cursorPos > context.markerEndPos && cursorPos < context.lineEnd) {
         this.splitListItem(context, cursorPos);
@@ -625,15 +626,15 @@ class OverType {
         // Just add new item after current line
         this.insertNewListItem(context);
       }
-      
+
       // Handle numbered list renumbering
       if (context.listType === 'numbered') {
         this.scheduleNumberedListUpdate();
       }
-      
+
       return true;
     }
-    
+
     /**
      * Delete list marker and exit list
      * @private
@@ -642,11 +643,11 @@ class OverType {
       // Select from line start to marker end
       this.textarea.setSelectionRange(context.lineStart, context.markerEndPos);
       document.execCommand('delete');
-      
+
       // Trigger input event
       this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
-    
+
     /**
      * Insert new list item
      * @private
@@ -654,11 +655,11 @@ class OverType {
     insertNewListItem(context) {
       const newItem = MarkdownParser.createNewListItem(context);
       document.execCommand('insertText', false, '\n' + newItem);
-      
+
       // Trigger input event
       this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
-    
+
     /**
      * Split list item at cursor position
      * @private
@@ -666,23 +667,23 @@ class OverType {
     splitListItem(context, cursorPos) {
       // Get text after cursor
       const textAfterCursor = context.content.substring(cursorPos - context.markerEndPos);
-      
+
       // Delete text after cursor
       this.textarea.setSelectionRange(cursorPos, context.lineEnd);
       document.execCommand('delete');
-      
+
       // Insert new list item with remaining text
       const newItem = MarkdownParser.createNewListItem(context);
       document.execCommand('insertText', false, '\n' + newItem + textAfterCursor);
-      
+
       // Position cursor after new list marker
       const newCursorPos = this.textarea.selectionStart - textAfterCursor.length;
       this.textarea.setSelectionRange(newCursorPos, newCursorPos);
-      
+
       // Trigger input event
       this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
-    
+
     /**
      * Schedule numbered list renumbering
      * @private
@@ -692,13 +693,13 @@ class OverType {
       if (this.numberUpdateTimeout) {
         clearTimeout(this.numberUpdateTimeout);
       }
-      
+
       // Schedule update after current input cycle
       this.numberUpdateTimeout = setTimeout(() => {
         this.updateNumberedLists();
       }, 10);
     }
-    
+
     /**
      * Update/renumber all numbered lists
      * @private
@@ -706,16 +707,16 @@ class OverType {
     updateNumberedLists() {
       const value = this.textarea.value;
       const cursorPos = this.textarea.selectionStart;
-      
+
       const newValue = MarkdownParser.renumberLists(value);
-      
+
       if (newValue !== value) {
         // Calculate cursor offset
         let offset = 0;
         const oldLines = value.split('\n');
         const newLines = newValue.split('\n');
         let charCount = 0;
-        
+
         for (let i = 0; i < oldLines.length && charCount < cursorPos; i++) {
           if (oldLines[i] !== newLines[i]) {
             const diff = newLines[i].length - oldLines[i].length;
@@ -725,12 +726,12 @@ class OverType {
           }
           charCount += oldLines[i].length + 1; // +1 for newline
         }
-        
+
         // Update textarea
         this.textarea.value = newValue;
         const newCursorPos = cursorPos + offset;
         this.textarea.setSelectionRange(newCursorPos, newCursorPos);
-        
+
         // Trigger update
         this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
       }
@@ -761,7 +762,7 @@ class OverType {
     setValue(value) {
       this.textarea.value = value;
       this.updatePreview();
-      
+
       // Update height if auto-resize is enabled
       if (this.options.autoResize) {
         this._updateAutoHeight();
@@ -776,13 +777,13 @@ class OverType {
      */
     getRenderedHTML(processForPreview = false) {
       const markdown = this.getValue();
-      let html = MarkdownParser.parse(markdown);
-      
+      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
+
       if (processForPreview) {
         // Post-process HTML for preview mode
-        html = MarkdownParser.postProcessHTML(html);
+        html = MarkdownParser.postProcessHTML(html, this.options.codeHighlighter);
       }
-      
+
       return html;
     }
 
@@ -827,24 +828,33 @@ class OverType {
     }
 
     /**
+     * Set instance-specific code highlighter
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    setCodeHighlighter(highlighter) {
+      this.options.codeHighlighter = highlighter;
+      this.updatePreview();
+    }
+
+    /**
      * Update stats bar
      * @private
      */
     _updateStats() {
       if (!this.statsBar) return;
-      
+
       const value = this.textarea.value;
       const lines = value.split('\n');
       const chars = value.length;
       const words = value.split(/\s+/).filter(w => w.length > 0).length;
-      
+
       // Calculate line and column
       const selectionStart = this.textarea.selectionStart;
       const beforeCursor = value.substring(0, selectionStart);
       const linesBeforeCursor = beforeCursor.split('\n');
       const currentLine = linesBeforeCursor.length;
       const currentColumn = linesBeforeCursor[linesBeforeCursor.length - 1].length + 1;
-      
+
       // Use custom formatter if provided
       if (this.options.statsFormatter) {
         this.statsBar.innerHTML = this.options.statsFormatter({
@@ -865,7 +875,7 @@ class OverType {
         `;
       }
     }
-    
+
     /**
      * Setup auto-resize functionality
      * @private
@@ -873,51 +883,51 @@ class OverType {
     _setupAutoResize() {
       // Add auto-resize class for styling
       this.container.classList.add('overtype-auto-resize');
-      
+
       // Store previous height for comparison
       this.previousHeight = null;
-      
+
       // Initial height update
       this._updateAutoHeight();
-      
+
       // Listen for input events
       this.textarea.addEventListener('input', () => this._updateAutoHeight());
-      
+
       // Listen for window resize
       window.addEventListener('resize', () => this._updateAutoHeight());
     }
-    
+
     /**
      * Update height based on scrollHeight
      * @private
      */
     _updateAutoHeight() {
       if (!this.options.autoResize) return;
-      
+
       const textarea = this.textarea;
       const preview = this.preview;
       const wrapper = this.wrapper;
-      
+
       // Get computed styles
       const computed = window.getComputedStyle(textarea);
       const paddingTop = parseFloat(computed.paddingTop);
       const paddingBottom = parseFloat(computed.paddingBottom);
-      
+
       // Store scroll positions
       const scrollTop = textarea.scrollTop;
-      
+
       // Reset height to get accurate scrollHeight
       textarea.style.setProperty('height', 'auto', 'important');
-      
+
       // Calculate new height based on scrollHeight
       let newHeight = textarea.scrollHeight;
-      
+
       // Apply min height constraint
       if (this.options.minHeight) {
         const minHeight = parseInt(this.options.minHeight);
         newHeight = Math.max(newHeight, minHeight);
       }
-      
+
       // Apply max height constraint
       let overflow = 'hidden';
       if (this.options.maxHeight) {
@@ -927,35 +937,35 @@ class OverType {
           overflow = 'auto';
         }
       }
-      
+
       // Apply the new height to all elements with !important to override base styles
       const heightPx = newHeight + 'px';
       textarea.style.setProperty('height', heightPx, 'important');
       textarea.style.setProperty('overflow-y', overflow, 'important');
-      
+
       preview.style.setProperty('height', heightPx, 'important');
       preview.style.setProperty('overflow-y', overflow, 'important');
-      
+
       wrapper.style.setProperty('height', heightPx, 'important');
-      
+
       // Restore scroll position
       textarea.scrollTop = scrollTop;
       preview.scrollTop = scrollTop;
-      
+
       // Track if height changed
       if (this.previousHeight !== newHeight) {
         this.previousHeight = newHeight;
         // Could dispatch a custom event here if needed
       }
     }
-    
+
     /**
      * Show or hide stats bar
      * @param {boolean} show - Whether to show stats
      */
     showStats(show) {
       this.options.showStats = show;
-      
+
       if (show && !this.statsBar) {
         // Create stats bar (add to container, not wrapper)
         this.statsBar = document.createElement('div');
@@ -968,7 +978,7 @@ class OverType {
         this.statsBar = null;
       }
     }
-    
+
     /**
      * Show or hide the plain textarea (toggle overlay visibility)
      * @param {boolean} show - true to show plain textarea (hide overlay), false to show overlay
@@ -982,7 +992,7 @@ class OverType {
         // Show overlay mode (hide plain textarea text)
         this.container.classList.remove('plain-mode');
       }
-      
+
       // Update toolbar button if exists
       if (this.toolbar) {
         const toggleBtn = this.container.querySelector('[data-action="toggle-plain"]');
@@ -992,7 +1002,7 @@ class OverType {
           toggleBtn.title = show ? 'Show markdown preview' : 'Show plain textarea';
         }
       }
-      
+
       return show;
     }
 
@@ -1009,7 +1019,7 @@ class OverType {
         // Show edit mode
         this.container.classList.remove('preview-mode');
       }
-      
+
       return show;
     }
 
@@ -1030,7 +1040,7 @@ class OverType {
       if (this.wrapper) {
         const content = this.getValue();
         this.wrapper.remove();
-        
+
         // Restore original content
         this.element.textContent = content;
       }
@@ -1095,7 +1105,23 @@ class OverType {
 
       OverType.stylesInjected = true;
     }
-    
+
+    /**
+     * Set global code highlighter for all OverType instances
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    static setCodeHighlighter(highlighter) {
+      MarkdownParser.setCodeHighlighter(highlighter);
+
+      // Update all existing instances
+      document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
+        const instance = wrapper._instance;
+        if (instance && instance.updatePreview) {
+          instance.updatePreview();
+        }
+      });
+    }
+
     /**
      * Set global theme for all OverType instances
      * @param {string|Object} theme - Theme name or custom theme object
@@ -1104,18 +1130,18 @@ class OverType {
     static setTheme(theme, customColors = null) {
       // Process theme
       let themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
-      
+
       // Apply custom colors if provided
       if (customColors) {
         themeObj = mergeTheme(themeObj, customColors);
       }
-      
+
       // Store as current theme
       OverType.currentTheme = themeObj;
-      
+
       // Re-inject styles with new theme
       OverType.injectStyles(true);
-      
+
       // Update all existing instances - update container theme attribute
       document.querySelectorAll('.overtype-container').forEach(container => {
         const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
@@ -1123,7 +1149,7 @@ class OverType {
           container.setAttribute('data-theme', themeName);
         }
       });
-      
+
       // Also handle any old-style wrappers without containers
       document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
         if (!wrapper.closest('.overtype-container')) {
@@ -1132,7 +1158,7 @@ class OverType {
             wrapper.setAttribute('data-theme', themeName);
           }
         }
-        
+
         // Trigger preview update for the instance
         const instance = wrapper._instance;
         if (instance) {
