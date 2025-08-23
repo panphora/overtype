@@ -325,6 +325,14 @@ export function generateStyles(options = {}) {
       font-style: italic !important;
     }
 
+    /* Strikethrough text */
+    .overtype-wrapper .overtype-preview del {
+      color: var(--del, #ee964b) !important;
+      text-decoration: line-through !important;
+      text-decoration-color: var(--del, #ee964b) !important;
+      text-decoration-thickness: 1px !important;
+    }
+
     /* Inline code */
     .overtype-wrapper .overtype-preview code {
       background: var(--code-bg, rgba(244, 211, 94, 0.4)) !important;

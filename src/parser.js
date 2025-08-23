@@ -140,6 +140,20 @@ export class MarkdownParser {
   }
 
   /**
+   * Parse strikethrough text
+   * Supports both single (~) and double (~~) tildes, but rejects 3+ tildes
+   * @param {string} html - HTML with potential strikethrough markdown
+   * @returns {string} HTML with strikethrough styling
+   */
+  static parseStrikethrough(html) {
+    // Double tilde strikethrough: ~~text~~ (but not if part of 3+ tildes)
+    html = html.replace(/(?<!~)~~(?!~)(.+?)(?<!~)~~(?!~)/g, '<del><span class="syntax-marker">~~</span>$1<span class="syntax-marker">~~</span></del>');
+    // Single tilde strikethrough: ~text~ (but not if part of 2+ tildes on either side)
+    html = html.replace(/(?<!~)~(?!~)(.+?)(?<!~)~(?!~)/g, '<del><span class="syntax-marker">~</span>$1<span class="syntax-marker">~</span></del>');
+    return html;
+  }
+
+  /**
    * Parse inline code
    * @param {string} html - HTML with potential code markdown
    * @returns {string} HTML with code styling
@@ -246,6 +260,7 @@ export class MarkdownParser {
     });
     
     // Process other inline elements on text with placeholders
+    html = this.parseStrikethrough(html);
     html = this.parseBold(html);
     html = this.parseItalic(html);
     
