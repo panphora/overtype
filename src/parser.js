@@ -1,6 +1,6 @@
 /**
  * MarkdownParser - Parses markdown into HTML while preserving character alignment
- * 
+ *
  * Key principles:
  * - Every character must occupy the exact same position as in the textarea
  * - No font-size changes, no padding/margin on inline elements
@@ -9,14 +9,14 @@
 export class MarkdownParser {
   // Track link index for anchor naming
   static linkIndex = 0;
-  
+
   /**
    * Reset link index (call before parsing a new document)
    */
   static resetLinkIndex() {
     this.linkIndex = 0;
   }
-  
+
   /**
    * Escape HTML special characters
    * @param {string} text - Raw text to escape
@@ -165,7 +165,7 @@ export class MarkdownParser {
     // Trim whitespace and convert to lowercase for protocol check
     const trimmed = url.trim();
     const lower = trimmed.toLowerCase();
-    
+
     // Allow safe protocols
     const safeProtocols = [
       'http://',
@@ -174,22 +174,22 @@ export class MarkdownParser {
       'ftp://',
       'ftps://'
     ];
-    
+
     // Check if URL starts with a safe protocol
     const hasSafeProtocol = safeProtocols.some(protocol => lower.startsWith(protocol));
-    
+
     // Allow relative URLs (starting with / or # or no protocol)
-    const isRelative = trimmed.startsWith('/') || 
-                      trimmed.startsWith('#') || 
+    const isRelative = trimmed.startsWith('/') ||
+                      trimmed.startsWith('#') ||
                       trimmed.startsWith('?') ||
                       trimmed.startsWith('.') ||
                       (!trimmed.includes(':') && !trimmed.includes('//'));
-    
+
     // If safe protocol or relative URL, return as-is
     if (hasSafeProtocol || isRelative) {
       return url;
     }
-    
+
     // Block dangerous protocols (javascript:, data:, vbscript:, etc.)
     return '#';
   }
@@ -218,7 +218,7 @@ export class MarkdownParser {
     let html = text;
     // Order matters: parse code first
     html = this.parseInlineCode(html);
-    
+
     // Use placeholders to protect inline code while preserving formatting spans
     // We use Unicode Private Use Area (U+E000-U+F8FF) as placeholders because:
     // 1. These characters are reserved for application-specific use
@@ -226,34 +226,34 @@ export class MarkdownParser {
     // 3. They maintain single-character width (important for alignment)
     // 4. They're invisible if accidentally rendered
     const sanctuaries = new Map();
-    
+
     // Protect code blocks
     html = html.replace(/(<code>.*?<\/code>)/g, (match) => {
       const placeholder = `\uE000${sanctuaries.size}\uE001`;
       sanctuaries.set(placeholder, match);
       return placeholder;
     });
-    
+
     // Parse links AFTER protecting code but BEFORE bold/italic
     // This ensures link URLs don't get processed as markdown
     html = this.parseLinks(html);
-    
+
     // Protect entire link elements (not just the URL part)
     html = html.replace(/(<a[^>]*>.*?<\/a>)/g, (match) => {
       const placeholder = `\uE000${sanctuaries.size}\uE001`;
       sanctuaries.set(placeholder, match);
       return placeholder;
     });
-    
+
     // Process other inline elements on text with placeholders
     html = this.parseBold(html);
     html = this.parseItalic(html);
-    
+
     // Restore all sanctuaries
     sanctuaries.forEach((content, placeholder) => {
       html = html.replace(placeholder, content);
     });
-    
+
     return html;
   }
 
@@ -264,33 +264,33 @@ export class MarkdownParser {
    */
   static parseLine(line) {
     let html = this.escapeHtml(line);
-    
+
     // Preserve indentation
     html = this.preserveIndentation(html, line);
-    
+
     // Check for block elements first
     const horizontalRule = this.parseHorizontalRule(html);
     if (horizontalRule) return horizontalRule;
-    
+
     const codeBlock = this.parseCodeBlock(html);
     if (codeBlock) return codeBlock;
-    
+
     // Parse block elements
     html = this.parseHeader(html);
     html = this.parseBlockquote(html);
     html = this.parseBulletList(html);
     html = this.parseNumberedList(html);
-    
+
     // Parse inline elements
     html = this.parseInlineElements(html);
-    
+
     // Wrap in div to maintain line structure
     if (html.trim() === '') {
       // Intentionally use &nbsp; for empty lines to maintain vertical spacing
       // This causes a 0->1 character count difference but preserves visual alignment
       return '<div>&nbsp;</div>';
     }
-    
+
     return `<div>${html}</div>`;
   }
 
@@ -304,17 +304,17 @@ export class MarkdownParser {
   static parse(text, activeLine = -1, showActiveLineRaw = false) {
     // Reset link counter for each parse
     this.resetLinkIndex();
-    
+
     const lines = text.split('\n');
     let inCodeBlock = false;
-    
+
     const parsedLines = lines.map((line, index) => {
       // Show raw markdown on active line if requested
       if (showActiveLineRaw && index === activeLine) {
         const content = this.escapeHtml(line) || '&nbsp;';
         return `<div class="raw-line">${content}</div>`;
       }
-      
+
       // Check if this line is a code fence
       const codeFenceRegex = /^```[^`]*$/;
       if (codeFenceRegex.test(line)) {
@@ -322,21 +322,21 @@ export class MarkdownParser {
         // Parse fence markers normally to get styled output
         return this.parseLine(line);
       }
-      
+
       // If we're inside a code block, don't parse as markdown
       if (inCodeBlock) {
         const escaped = this.escapeHtml(line);
         const indented = this.preserveIndentation(escaped, line);
         return `<div>${indented || '&nbsp;'}</div>`;
       }
-      
+
       // Otherwise, parse the markdown normally
       return this.parseLine(line);
     });
-    
+
     // Join without newlines to prevent extra spacing
     const html = parsedLines.join('');
-    
+
     // Apply post-processing for list consolidation
     return this.postProcessHTML(html);
   }
@@ -352,25 +352,25 @@ export class MarkdownParser {
       // In Node.js environment - do manual post-processing
       return this.postProcessHTMLManual(html);
     }
-    
+
     // Parse HTML string into DOM
     const container = document.createElement('div');
     container.innerHTML = html;
-    
+
     let currentList = null;
     let listType = null;
     let currentCodeBlock = null;
     let inCodeBlock = false;
-    
+
     // Process all direct children - need to be careful with live NodeList
     const children = Array.from(container.children);
-    
+
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
-      
+
       // Skip if child was already processed/removed
       if (!child.parentNode) continue;
-      
+
       // Check for code fence start/end
       const codeFence = child.querySelector('.code-fence');
       if (codeFence) {
@@ -379,22 +379,22 @@ export class MarkdownParser {
           if (!inCodeBlock) {
             // Start of code block - keep fence visible, then add pre/code
             inCodeBlock = true;
-            
+
             // Create the code block that will follow the fence
             currentCodeBlock = document.createElement('pre');
             const codeElement = document.createElement('code');
             currentCodeBlock.appendChild(codeElement);
             currentCodeBlock.className = 'code-block';
-            
+
             // Extract language if present
             const lang = fenceText.slice(3).trim();
             if (lang) {
               codeElement.className = `language-${lang}`;
             }
-            
+
             // Insert code block after the fence div (don't remove the fence)
             container.insertBefore(currentCodeBlock, child.nextSibling);
-            
+
             // Store reference to the code element for adding content
             currentCodeBlock._codeElement = codeElement;
             continue;
@@ -406,7 +406,7 @@ export class MarkdownParser {
           }
         }
       }
-      
+
       // Check if we're in a code block - any div that's not a code fence
       if (inCodeBlock && currentCodeBlock && child.tagName === 'DIV' && !child.querySelector('.code-fence')) {
         const codeElement = currentCodeBlock._codeElement || currentCodeBlock.querySelector('code');
@@ -422,36 +422,52 @@ export class MarkdownParser {
         child.remove();
         continue;
       }
-      
+
       // Check if this div contains a list item
       let listItem = null;
       if (child.tagName === 'DIV') {
         // Look for li inside the div
         listItem = child.querySelector('li');
       }
-      
+
       if (listItem) {
         const isBullet = listItem.classList.contains('bullet-list');
         const isOrdered = listItem.classList.contains('ordered-list');
-        
+
         if (!isBullet && !isOrdered) {
           currentList = null;
           listType = null;
           continue;
         }
-        
+
         const newType = isBullet ? 'ul' : 'ol';
-        
+
         // Start new list or continue current
         if (!currentList || listType !== newType) {
           currentList = document.createElement(newType);
           container.insertBefore(currentList, child);
           listType = newType;
         }
-        
+
+        // Extract and preserve indentation from the div before moving the list item
+        const indentationNodes = [];
+        for (const node of child.childNodes) {
+          if (node.nodeType === 3 && node.textContent.match(/^\u00A0+$/)) {
+            // This is a text node containing only non-breaking spaces (indentation)
+            indentationNodes.push(node.cloneNode(true));
+          } else if (node === listItem) {
+            break; // Stop when we reach the list item
+          }
+        }
+
+        // Add indentation to the list item
+        indentationNodes.forEach(node => {
+          listItem.insertBefore(node, listItem.firstChild);
+        });
+
         // Move the list item to the current list
         currentList.appendChild(listItem);
-        
+
         // Remove the now-empty div wrapper
         child.remove();
       } else {
@@ -460,7 +476,7 @@ export class MarkdownParser {
         listType = null;
       }
     }
-    
+
     return container.innerHTML;
   }
 
@@ -471,25 +487,53 @@ export class MarkdownParser {
    */
   static postProcessHTMLManual(html) {
     let processed = html;
-    
+
     // Process unordered lists
     processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const items = match.match(/<li class="bullet-list">.*?<\/li>/gs) || [];
-      if (items.length > 0) {
+      const divs = match.match(/<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
+      if (divs.length > 0) {
+        const items = divs.map(div => {
+          // Extract indentation and list item
+          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const listItemMatch = div.match(/<li class="bullet-list">.*?<\/li>/);
+
+          if (indentMatch && listItemMatch) {
+            const indentation = indentMatch[1];
+            const listItem = listItemMatch[0];
+            // Insert indentation at the start of the list item content
+            return listItem.replace(/<li class="bullet-list">/, `<li class="bullet-list">${indentation}`);
+          }
+          return listItemMatch ? listItemMatch[0] : '';
+        }).filter(Boolean);
+
         return '<ul>' + items.join('') + '</ul>';
       }
       return match;
     });
-    
+
     // Process ordered lists
     processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const items = match.match(/<li class="ordered-list">.*?<\/li>/gs) || [];
-      if (items.length > 0) {
+      const divs = match.match(/<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>/gs) || [];
+      if (divs.length > 0) {
+        const items = divs.map(div => {
+          // Extract indentation and list item
+          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const listItemMatch = div.match(/<li class="ordered-list">.*?<\/li>/);
+
+          if (indentMatch && listItemMatch) {
+            const indentation = indentMatch[1];
+            const listItem = listItemMatch[0];
+            // Insert indentation at the start of the list item content
+            return listItem.replace(/<li class="ordered-list">/, `<li class="ordered-list">${indentation}`);
+          }
+          return listItemMatch ? listItemMatch[0] : '';
+        }).filter(Boolean);
+
         return '<ol>' + items.join('') + '</ol>';
       }
       return match;
     });
-    
+
     // Process code blocks - KEEP the fence markers for alignment AND use semantic pre/code
     const codeBlockRegex = /<div><span class="code-fence">(```[^<]*)<\/span><\/div>(.*?)<div><span class="code-fence">(```)<\/span><\/div>/gs;
     processed = processed.replace(codeBlockRegex, (match, openFence, content, closeFence) => {
@@ -501,20 +545,20 @@ export class MarkdownParser {
           .replace(/&nbsp;/g, ' ');
         return text;
       }).join('\n');
-      
+
       // Extract language from the opening fence
       const lang = openFence.slice(3).trim();
       const langClass = lang ? ` class="language-${lang}"` : '';
-      
+
       // Keep fence markers visible as separate divs, with pre/code block between them
       let result = `<div><span class="code-fence">${openFence}</span></div>`;
       // Content is already escaped, don't double-escape
       result += `<pre class="code-block"><code${langClass}>${codeContent}</code></pre>`;
       result += `<div><span class="code-fence">${closeFence}</span></div>`;
-      
+
       return result;
     });
-    
+
     return processed;
   }
 
@@ -539,7 +583,7 @@ export class MarkdownParser {
     let currentPos = 0;
     let lineIndex = 0;
     let lineStart = 0;
-    
+
     for (let i = 0; i < lines.length; i++) {
       const lineLength = lines[i].length;
       if (currentPos + lineLength >= cursorPosition) {
@@ -549,10 +593,10 @@ export class MarkdownParser {
       }
       currentPos += lineLength + 1; // +1 for newline
     }
-    
+
     const currentLine = lines[lineIndex];
     const lineEnd = lineStart + currentLine.length;
-    
+
     // Check for checkbox first (most specific)
     const checkboxMatch = currentLine.match(this.LIST_PATTERNS.checkbox);
     if (checkboxMatch) {
@@ -568,7 +612,7 @@ export class MarkdownParser {
         markerEndPos: lineStart + checkboxMatch[1].length + checkboxMatch[2].length + 5 // indent + "- [ ] "
       };
     }
-    
+
     // Check for bullet list
     const bulletMatch = currentLine.match(this.LIST_PATTERNS.bullet);
     if (bulletMatch) {
@@ -583,7 +627,7 @@ export class MarkdownParser {
         markerEndPos: lineStart + bulletMatch[1].length + bulletMatch[2].length + 1 // indent + marker + space
       };
     }
-    
+
     // Check for numbered list
     const numberedMatch = currentLine.match(this.LIST_PATTERNS.numbered);
     if (numberedMatch) {
@@ -598,7 +642,7 @@ export class MarkdownParser {
         markerEndPos: lineStart + numberedMatch[1].length + numberedMatch[2].length + 2 // indent + number + ". "
       };
     }
-    
+
     // Not in a list
     return {
       inList: false,
@@ -639,31 +683,31 @@ export class MarkdownParser {
     const lines = text.split('\n');
     const numbersByIndent = new Map();
     let inList = false;
-    
+
     const result = lines.map(line => {
       const match = line.match(this.LIST_PATTERNS.numbered);
-      
+
       if (match) {
         const indent = match[1];
         const indentLevel = indent.length;
         const content = match[3];
-        
+
         // If we weren't in a list or indent changed, reset lower levels
         if (!inList) {
           numbersByIndent.clear();
         }
-        
+
         // Get the next number for this indent level
         const currentNumber = (numbersByIndent.get(indentLevel) || 0) + 1;
         numbersByIndent.set(indentLevel, currentNumber);
-        
+
         // Clear deeper indent levels
         for (const [level] of numbersByIndent) {
           if (level > indentLevel) {
             numbersByIndent.delete(level);
           }
         }
-        
+
         inList = true;
         return `${indent}${currentNumber}. ${content}`;
       } else {
@@ -676,7 +720,7 @@ export class MarkdownParser {
         return line;
       }
     });
-    
+
     return result.join('\n');
   }
 }
