@@ -144,6 +144,7 @@
 
     <script src="../dist/overtype.js"></script>
     <script>
+        const OT = window.OverType?.default || window.OverType;
         let editors = [];
         
         // Sample content for each editor
@@ -239,7 +240,7 @@ All endpoints require a valid \`API_KEY\` in the header.
             const containers = document.querySelectorAll('.editor');
             const contents = [sampleContent.notes, sampleContent.todo, sampleContent.code, sampleContent.docs];
             
-            editors = OverType.init('.editor', {
+            editors = OT.init('.editor', {
                 onChange: (value, instance) => {
                     const index = editors.indexOf(instance);
                     console.log(`Editor ${index + 1} changed:`, value.length + ' characters');

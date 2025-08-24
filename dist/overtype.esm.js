@@ -1,5 +1,5 @@
 /**
- * OverType v1.2.2
+ * OverType v1.2.3
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author Demo User
@@ -147,13 +147,7 @@ var MarkdownParser = class {
   static sanitizeUrl(url) {
     const trimmed = url.trim();
     const lower = trimmed.toLowerCase();
-    const safeProtocols = [
-      "http://",
-      "https://",
-      "mailto:",
-      "ftp://",
-      "ftps://"
-    ];
+    const safeProtocols = ["http://", "https://", "mailto:", "ftp://", "ftps://"];
     const hasSafeProtocol = safeProtocols.some((protocol) => lower.startsWith(protocol));
     const isRelative = trimmed.startsWith("/") || trimmed.startsWith("#") || trimmed.startsWith("?") || trimmed.startsWith(".") || !trimmed.includes(":") && !trimmed.includes("//");
     if (hasSafeProtocol || isRelative) {
@@ -301,10 +295,12 @@ var MarkdownParser = class {
       }
       if (inCodeBlock && currentCodeBlock && child.tagName === "DIV" && !child.querySelector(".code-fence")) {
         const codeElement = currentCodeBlock._codeElement || currentCodeBlock.querySelector("code");
+        const raw = child.innerHTML.trim();
+        const isOnlyNbsp = /^(&nbsp;)*$/.test(raw);
+        const lineText = isOnlyNbsp ? "" : child.textContent.replace(/\u00A0/g, " ");
         if (codeElement.textContent.length > 0) {
           codeElement.textContent += "\n";
         }
-        const lineText = child.textContent.replace(/\u00A0/g, " ");
         codeElement.textContent += lineText;
         child.remove();
         continue;
@@ -361,7 +357,9 @@ var MarkdownParser = class {
     processed = processed.replace(codeBlockRegex, (match, openFence, content, closeFence) => {
       const lines = content.match(/<div>(.*?)<\/div>/gs) || [];
       const codeContent = lines.map((line) => {
-        const text = line.replace(/<div>(.*?)<\/div>/s, "$1").replace(/&nbsp;/g, " ");
+        const inner = line.replace(/<div>(.*?)<\/div>/s, "$1");
+        const isOnlyNbsp = /^(&nbsp;)*$/.test(inner.trim());
+        const text = isOnlyNbsp ? "" : inner.replace(/&nbsp;/g, " ");
         return text;
       }).join("\n");
       const lang = openFence.slice(3).trim();
@@ -2568,7 +2566,7 @@ var Toolbar = class {
           this.editor.showPlainTextarea(!isPlain);
           break;
       }
-      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      textarea.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
     } catch (error) {
       console.error("Error loading markdown-actions:", error);
     }
@@ -2738,7 +2736,7 @@ var LinkTooltip = class {
     this.init();
   }
   init() {
-    const supportsAnchor = CSS.supports("position-anchor: --x") && CSS.supports("position-area: center");
+    const supportsAnchor = typeof CSS !== "undefined" && CSS.supports && CSS.supports("position-anchor: --x") && CSS.supports("position-area: center");
     if (!supportsAnchor) {
       return;
     }
@@ -3109,6 +3107,7 @@ var _OverType = class _OverType {
     this.textarea.className = "overtype-input";
     this.textarea.placeholder = this.options.placeholder;
     this._configureTextarea();
+    this._attachInstanceEventListeners();
     if (this.options.textareaProps) {
       Object.entries(this.options.textareaProps).forEach(([key, value]) => {
         if (key === "className" || key === "class") {
@@ -3126,6 +3125,7 @@ var _OverType = class _OverType {
     this.wrapper.appendChild(this.textarea);
     this.wrapper.appendChild(this.preview);
     this.container.appendChild(this.wrapper);
+    this.textarea.addEventListener("scroll", (e) => this.handleScroll(e));
     if (this.options.showStats) {
       this.statsBar = document.createElement("div");
       this.statsBar.className = "overtype-stats";
@@ -3143,7 +3143,9 @@ var _OverType = class _OverType {
       });
     }
     if (this.options.autoResize) {
-      this._setupAutoResize();
+      if (!this.container.classList.contains("overtype-auto-resize")) {
+        this._setupAutoResize();
+      }
     } else {
       this.container.classList.remove("overtype-auto-resize");
       if (window.location.pathname.includes("demo.html")) {
@@ -3163,6 +3165,42 @@ var _OverType = class _OverType {
     this.textarea.setAttribute("data-gramm", "false");
     this.textarea.setAttribute("data-gramm_editor", "false");
     this.textarea.setAttribute("data-enable-grammarly", "false");
+  }
+  /**
+   * Attach instance-level listeners so events work inside Shadow DOM
+   * @private
+   */
+  _attachInstanceEventListeners() {
+    if (this._instanceListenersAttached)
+      return;
+    this._boundHandleInput = (e) => this.handleInput(e);
+    this._boundHandleKeydown = (e) => this.handleKeydown(e);
+    this._boundUpdateToolbarStates = () => {
+      if (this.toolbar && typeof this.toolbar.updateButtonStates === "function") {
+        this.toolbar.updateButtonStates();
+      }
+      if (this.options.showStats && this.statsBar) {
+        this._updateStats();
+      }
+    };
+    this.textarea.addEventListener("input", this._boundHandleInput);
+    this.textarea.addEventListener("keydown", this._boundHandleKeydown);
+    this.textarea.addEventListener("keyup", this._boundUpdateToolbarStates);
+    this.textarea.addEventListener("select", this._boundUpdateToolbarStates);
+    this._instanceListenersAttached = true;
+  }
+  /**
+   * Detach instance-level listeners
+   * @private
+   */
+  _detachInstanceEventListeners() {
+    if (!this._instanceListenersAttached)
+      return;
+    this.textarea.removeEventListener("input", this._boundHandleInput);
+    this.textarea.removeEventListener("keydown", this._boundHandleKeydown);
+    this.textarea.removeEventListener("keyup", this._boundUpdateToolbarStates);
+    this.textarea.removeEventListener("select", this._boundUpdateToolbarStates);
+    this._instanceListenersAttached = false;
   }
   /**
    * Apply options to the editor
@@ -3435,6 +3473,42 @@ var _OverType = class _OverType {
     return this.preview.innerHTML;
   }
   /**
+   * Insert text at current selection/caret position
+   * @param {string} text - Text to insert
+   */
+  insertText(text) {
+    const textarea = this.textarea;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    if (document.execCommand) {
+      textarea.setSelectionRange(start, end);
+      document.execCommand("insertText", false, text);
+    } else {
+      const value = textarea.value;
+      textarea.value = value.substring(0, start) + text + value.substring(end);
+      const newPos = start + text.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  /**
+   * Get editor statistics
+   * @returns {{characters:number, words:number, lines:number, line:number, column:number}}
+   */
+  getStats() {
+    const value = this.textarea.value;
+    const characters = value.length;
+    const words = value.split(/\s+/).filter((w) => w.length > 0).length;
+    const linesArr = value.split("\n");
+    const lines = linesArr.length;
+    const selectionStart = this.textarea.selectionStart;
+    const beforeCursor = value.substring(0, selectionStart);
+    const beforeLines = beforeCursor.split("\n");
+    const line = beforeLines.length;
+    const column = beforeLines[beforeLines.length - 1].length + 1;
+    return { characters, words, lines, line, column };
+  }
+  /**
    * Focus the editor
    */
   focus() {
@@ -3605,6 +3679,9 @@ var _OverType = class _OverType {
     if (this.shortcuts) {
       this.shortcuts.destroy();
     }
+    if (this.textarea) {
+      this._detachInstanceEventListeners();
+    }
     if (this.wrapper) {
       const content = this.getValue();
       this.wrapper.remove();
@@ -3714,14 +3791,18 @@ var _OverType = class _OverType {
           instance.handleKeydown(e);
       }
     });
-    document.addEventListener("scroll", (e) => {
-      if (e.target && e.target.classList && e.target.classList.contains("overtype-input")) {
-        const wrapper = e.target.closest(".overtype-wrapper");
-        const instance = wrapper == null ? void 0 : wrapper._instance;
-        if (instance)
-          instance.handleScroll(e);
-      }
-    }, true);
+    document.addEventListener(
+      "scroll",
+      (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains("overtype-input")) {
+          const wrapper = e.target.closest(".overtype-wrapper");
+          const instance = wrapper == null ? void 0 : wrapper._instance;
+          if (instance)
+            instance.handleScroll(e);
+        }
+      },
+      true
+    );
     document.addEventListener("selectionchange", (e) => {
       const activeElement = document.activeElement;
       if (activeElement && activeElement.classList.contains("overtype-input")) {

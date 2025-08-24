@@ -90,7 +90,7 @@ export class Toolbar {
     }
 
     // Add click handler
-    button.addEventListener('click', (e) => {
+    button.addEventListener('click', e => {
       e.preventDefault();
       this.handleAction(config.action, button);
     });
@@ -115,7 +115,6 @@ export class Toolbar {
     textarea.focus();
 
     try {
-      
       switch (action) {
         case 'toggleBold':
           markdownActions.toggleBold(textarea);
@@ -157,8 +156,8 @@ export class Toolbar {
           break;
       }
 
-      // Trigger input event to update preview
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      // Trigger input event to update preview (composed for Shadow DOM)
+      textarea.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     } catch (error) {
       console.error('Error loading markdown-actions:', error);
     }
@@ -177,7 +176,7 @@ export class Toolbar {
       // Update button states
       Object.entries(this.buttons).forEach(([name, button]) => {
         let isActive = false;
-        
+
         switch (name) {
           case 'bold':
             isActive = activeFormats.includes('bold');
@@ -240,25 +239,25 @@ export class Toolbar {
 
     // Create dropdown menu
     const dropdown = this.createViewDropdown();
-    
+
     // Position dropdown relative to button
     const rect = button.getBoundingClientRect();
     dropdown.style.top = `${rect.bottom + 4}px`;
     dropdown.style.left = `${rect.left}px`;
-    
+
     // Append to body instead of button
     document.body.appendChild(dropdown);
     button.classList.add('dropdown-active');
-    
+
     // Store reference for document click handler
-    this.handleDocumentClick = (e) => {
+    this.handleDocumentClick = e => {
       if (!button.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.remove();
         button.classList.remove('dropdown-active');
         document.removeEventListener('click', this.handleDocumentClick);
       }
     };
-    
+
     // Close on click outside
     setTimeout(() => {
       document.addEventListener('click', this.handleDocumentClick);
@@ -271,49 +270,49 @@ export class Toolbar {
   createViewDropdown() {
     const dropdown = document.createElement('div');
     dropdown.className = 'overtype-dropdown-menu';
-    
+
     // Determine current mode
     const isPlain = this.editor.container.classList.contains('plain-mode');
     const isPreview = this.editor.container.classList.contains('preview-mode');
-    const currentMode = isPreview ? 'preview' : (isPlain ? 'plain' : 'normal');
-    
+    const currentMode = isPreview ? 'preview' : isPlain ? 'plain' : 'normal';
+
     // Create menu items
     const modes = [
       { id: 'normal', label: 'Normal Edit', icon: '✓' },
       { id: 'plain', label: 'Plain Textarea', icon: '✓' },
       { id: 'preview', label: 'Preview Mode', icon: '✓' }
     ];
-    
+
     modes.forEach(mode => {
       const item = document.createElement('button');
       item.className = 'overtype-dropdown-item';
       item.type = 'button';
-      
+
       const check = document.createElement('span');
       check.className = 'overtype-dropdown-check';
       check.textContent = currentMode === mode.id ? mode.icon : '';
-      
+
       const label = document.createElement('span');
       label.textContent = mode.label;
-      
+
       item.appendChild(check);
       item.appendChild(label);
-      
+
       if (currentMode === mode.id) {
         item.classList.add('active');
       }
-      
-      item.addEventListener('click', (e) => {
+
+      item.addEventListener('click', e => {
         e.stopPropagation();
         this.setViewMode(mode.id);
         dropdown.remove();
         this.viewModeButton.classList.remove('dropdown-active');
         document.removeEventListener('click', this.handleDocumentClick);
       });
-      
+
       dropdown.appendChild(item);
     });
-    
+
     return dropdown;
   }
 
@@ -323,8 +322,8 @@ export class Toolbar {
   setViewMode(mode) {
     // Clear all mode classes
     this.editor.container.classList.remove('plain-mode', 'preview-mode');
-    
-    switch(mode) {
+
+    switch (mode) {
       case 'plain':
         this.editor.showPlainTextarea(true);
         break;

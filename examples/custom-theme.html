@@ -235,6 +235,7 @@
 
     <script src="../dist/overtype.js"></script>
     <script>
+        const OT = window.OverType?.default || window.OverType;
         // Custom theme definitions
         const customThemes = {
             ocean: {
@@ -347,7 +348,7 @@
         };
 
         // Initialize editor
-        const [editor] = new OverType('#editor', {
+        const [editor] = new OT('#editor', {
             value: `# Custom Theme Demo
 
 This editor supports **custom themes** with full color customization.
@@ -394,9 +395,9 @@ Happy theming! 🎨`,
             if (themeName === 'custom') {
                 applyCustomTheme();
             } else if (customThemes[themeName]) {
-                OverType.setTheme(customThemes[themeName]);
+                OT.setTheme(customThemes[themeName]);
             } else {
-                OverType.setTheme(themeName);
+                OT.setTheme(themeName);
             }
             
             currentTheme = themeName;
@@ -415,7 +416,7 @@ Happy theming! 🎨`,
                 colors: colors
             };
             
-            OverType.setTheme(customTheme);
+            OT.setTheme(customTheme);
             console.log('Applied custom theme:', customTheme);
         }
         
@@ -426,7 +427,7 @@ Happy theming! 🎨`,
                 const theme = {
                     name: presetName,
                     colors: {
-                        ...OverType.themes.solar.colors,
+                        ...OT.themes.solar.colors,
                         ...preset
                     }
                 };
@@ -458,7 +459,7 @@ Happy theming! 🎨`,
         }
         
         function resetColors() {
-            const solarColors = OverType.themes.solar.colors;
+            const solarColors = OT.themes.solar.colors;
             
             Object.keys(solarColors).forEach(key => {
                 const input = document.getElementById(key);
