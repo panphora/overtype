@@ -197,12 +197,175 @@
             </div>
             <div id="code-editor" class="editor-wrapper"></div>
         </div>
+        <!-- Web Component Editor -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>Web Component</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="wcUpdateContent()">Update</button>
+                    <button class="btn" onclick="wcGetValue()">Get Value</button>
+                    <button class="btn" onclick="wcFocus()">Focus</button>
+                </div>
+            </div>
+            <div style="padding: 10px; background: #0a0a0a;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center;">
+                    <label>Theme:
+                        <select id="wc-theme-select" onchange="wcChangeTheme()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
+                            <option value="solar" selected>solar</option>
+                            <option value="cave">cave</option>
+                        </select>
+                    </label>
+                    <label>Height:
+                        <select id="wc-height-select" onchange="wcChangeHeight()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
+                            <option value="200px">200px</option>
+                            <option value="300px" selected>300px</option>
+                            <option value="400px">400px</option>
+                        </select>
+                    </label>
+                    <label>Font Size:
+                        <select id="wc-fontsize-select" onchange="wcChangeFontSize()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
+                            <option value="12px">12px</option>
+                            <option value="14px">14px</option>
+                            <option value="16px" selected>16px</option>
+                            <option value="18px">18px</option>
+                        </select>
+                    </label>
+                    <label style="display:flex; gap:6px; align-items:center;">
+                        <input id="wc-toolbar-check" type="checkbox" onchange="wcToggleToolbar()" checked>
+                        Toolbar
+                    </label>
+                    <label style="display:flex; gap:6px; align-items:center;">
+                        <input id="wc-stats-check" type="checkbox" onchange="wcToggleStats()" checked>
+                        Stats
+                    </label>
+                    <label style="display:flex; gap:6px; align-items:center;">
+                        <input id="wc-autoresize-check" type="checkbox" onchange="wcToggleAutoResize()">
+                        Auto Resize
+                    </label>
+                </div>
+                <overtype-editor 
+                    id="wc-editor"
+                    value="# Web Component\n\nThis demo uses the native <overtype-editor> custom element."
+                    theme="solar"
+                    height="300px"
+                    toolbar
+                    show-stats>
+                </overtype-editor>
+                <div id="wc-output" style="margin-top:10px; border:1px solid #333; padding:8px; background:#0f0f0f; font-size:12px; min-height:40px;">
+                    Waiting for events...
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Theme Toggle -->
     <button class="theme-toggle" onclick="toggleTheme()">
         Toggle Theme
     </button>
+
+    <script type="module">
+        // Register custom element and set up minimal interaction
+        import OverTypeEditor from './dist/overtype-webcomponent.esm.js';
+
+        function wcGetValue() {
+            const el = document.getElementById('wc-editor');
+            if (el?.getValue) {
+                alert(el.getValue().slice(0, 200));
+            }
+        }
+
+        function wcUpdateContent() {
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            const content = `# Updated at: ${new Date().toLocaleTimeString()}\n\n**This content was updated programmatically.**`;
+            if (el.setValue) el.setValue(content); else el.setAttribute('value', content);
+        }
+
+        function wcFocus() {
+            const el = document.getElementById('wc-editor');
+            el?.focus && el.focus();
+        }
+
+        function wcChangeTheme() {
+            const sel = document.getElementById('wc-theme-select');
+            const el = document.getElementById('wc-editor');
+            el?.setAttribute('theme', sel.value);
+            const Lib = window.OverType?.default || window.OverType;
+            Lib?.setTheme && Lib.setTheme(sel.value);
+        }
+
+        function wcChangeHeight() {
+            const sel = document.getElementById('wc-height-select');
+            const el = document.getElementById('wc-editor');
+            el?.setAttribute('height', sel.value);
+        }
+
+        function wcChangeFontSize() {
+            const sel = document.getElementById('wc-fontsize-select');
+            const el = document.getElementById('wc-editor');
+            el?.setAttribute('font-size', sel.value);
+        }
+
+        function wcToggleToolbar() {
+            const chk = document.getElementById('wc-toolbar-check');
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            if (chk.checked) el.setAttribute('toolbar', ''); else el.removeAttribute('toolbar');
+        }
+
+        function wcToggleStats() {
+            const chk = document.getElementById('wc-stats-check');
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            if (chk.checked) el.setAttribute('show-stats', ''); else el.removeAttribute('show-stats');
+        }
+
+        function wcToggleAutoResize() {
+            const chk = document.getElementById('wc-autoresize-check');
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            if (chk.checked) {
+                el.setAttribute('auto-resize', '');
+                el.removeAttribute('height');
+            } else {
+                el.removeAttribute('auto-resize');
+                el.setAttribute('height', document.getElementById('wc-height-select').value || '300px');
+            }
+        }
+
+        // Listen to WC events for live output
+        function setupWcEvents() {
+            const el = document.getElementById('wc-editor');
+            const out = document.getElementById('wc-output');
+            if (!el || !out) return;
+            el.addEventListener('ready', () => { out.textContent = 'Ready'; });
+            el.addEventListener('change', (e) => {
+                const stats = el.getStats?.();
+                const chars = stats?.characters ?? e.detail?.value?.length ?? 0;
+                out.innerHTML = `<strong>Changed</strong> · ${chars} chars · ${new Date().toLocaleTimeString()}`;
+            });
+            el.addEventListener('keydown', (e) => {
+                out.innerHTML = `<strong>Key:</strong> ${e.detail?.event?.key || ''}`;
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupWcEvents);
+        } else {
+            setupWcEvents();
+        }
+
+        // Expose to buttons in header
+        window.wcGetValue = wcGetValue;
+        window.wcUpdateContent = wcUpdateContent;
+        window.wcFocus = wcFocus;
+        window.wcChangeTheme = wcChangeTheme;
+        window.wcChangeHeight = wcChangeHeight;
+        window.wcChangeFontSize = wcChangeFontSize;
+        window.wcToggleToolbar = wcToggleToolbar;
+        window.wcToggleStats = wcToggleStats;
+        window.wcToggleAutoResize = wcToggleAutoResize;
+    </script>
 
     <script src="dist/overtype.min.js"></script>
     <script>
@@ -311,6 +474,11 @@ const editor = new OverType('#editor', {
             const currentTheme = OT.currentTheme?.name || 'solar';
             const newTheme = currentTheme === 'solar' ? 'cave' : 'solar';
             OT.setTheme(newTheme);
+            // Keep Web Component in sync
+            const wc = document.getElementById('wc-editor');
+            wc?.setAttribute('theme', newTheme);
+            const sel = document.getElementById('wc-theme-select');
+            if (sel) sel.value = newTheme;
         }
 
         // Sync preview with main

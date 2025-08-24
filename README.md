@@ -1,6 +1,6 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~82KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~84KB minified with all features.
 
 ## Features
 
@@ -9,7 +9,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~82KB minified
+- 🚀 **Lightweight** - ~84KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -25,7 +25,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~82KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~84KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -475,6 +475,282 @@ Check the `examples` folder for complete examples:
 - `custom-theme.html` - Theme customization
 - `dynamic.html` - Dynamic creation/destruction
 
+## Web Component
+
+OverType also provides a native Web Component `overtype-editor` with full style isolation and a declarative API.
+
+### Features
+
+- **🛡️ Style isolation**: Shadow DOM prevents page styles from leaking in
+- **📝 Declarative API**: Configure via HTML attributes, no manual init required
+- **🔄 Reactive props**: Attribute changes apply immediately
+- **🌐 Framework-agnostic**: Native Web Component that works everywhere
+- **🎨 Themes**: Built-in Solar (light) and Cave (dark)
+- **📱 Mobile-friendly**: Great mobile behavior and native keyboards
+
+### Install & Import
+
+```bash
+npm install overtype
+```
+
+ESM (recommended):
+
+```javascript
+import 'overtype/webcomponent';
+```
+
+Via CDN:
+
+```html
+<!-- IIFE (no bundler needed) -->
+<script src="https://unpkg.com/overtype/dist/overtype-webcomponent.min.js"></script>
+
+<!-- Or ESM: load module build directly -->
+<script type="module" src="https://unpkg.com/overtype/dist/overtype-webcomponent.esm.js"></script>
+```
+
+### Minimal Usage
+
+```html
+<overtype-editor 
+  value="# Hello OverType!"
+  theme="solar"
+  height="300px"
+  toolbar>
+</overtype-editor>
+```
+
+### Multi-line Content
+
+You can provide multi-line content to the Web Component in two ways:
+
+- Attribute with escaped sequences (recommended for inline HTML)
+
+```html
+<overtype-editor 
+  value="# Hello\\n\\nThis content spans multiple lines using escaped newlines."
+  height="220px">
+</overtype-editor>
+```
+
+- Element text content (write actual multi-line text between tags)
+
+```html
+<overtype-editor height="220px">
+# Hello
+
+This content spans multiple lines using element text content.
+</overtype-editor>
+```
+
+Notes:
+- The `value` attribute accepts common escaped sequences such as `\\n` (newline), `\\t` (tab), and `\\r` (carriage return).
+- When the `value` attribute is not present, the component uses its element `textContent` as the initial value.
+
+### HTML Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `value` | string | '' | Initial Markdown content (supports escaped `\\n`; falls back to element text when omitted) |
+| `theme` | 'solar'\|'cave' | 'solar' | Editor theme |
+| `placeholder` | string | 'Start typing...' | Placeholder text |
+| `height` | string | - | Editor height (e.g. '300px') |
+| `min-height` | string | '100px' | Minimum height |
+| `max-height` | string | - | Maximum height |
+| `font-size` | string | '14px' | Font size |
+| `line-height` | string | '1.6' | Line height |
+| `padding` | string | '16px' | Padding |
+| `toolbar` | boolean | false | Show toolbar |
+| `show-stats` | boolean | false | Show stats bar |
+| `auto-resize` | boolean | false | Auto adjust height |
+| `autofocus` | boolean | false | Auto focus |
+| `readonly` | boolean | false | Read-only mode |
+| `smart-lists` | boolean | true | Smart list continuation |
+
+### JavaScript API (on the custom element instance)
+
+```javascript
+const editor = document.querySelector('overtype-editor');
+
+// Content operations
+editor.getValue();
+editor.setValue(content);
+editor.getHTML();
+editor.insertText(text);
+
+// Control
+editor.focus();
+editor.blur();
+editor.isReady();
+
+// Status
+editor.getStats();
+editor.getEditor();
+```
+
+### Events
+
+```javascript
+const editor = document.querySelector('overtype-editor');
+
+editor.addEventListener('change', (e) => {
+  console.log('New content:', e.detail.value);
+  console.log('Editor instance:', e.detail.editor);
+});
+
+editor.addEventListener('keydown', (e) => {
+  console.log('Key pressed:', e.detail.event.key);
+});
+
+editor.addEventListener('ready', (e) => {
+  console.log('Editor ready:', e.detail.editor);
+});
+
+editor.addEventListener('error', (e) => {
+  console.error('Initialization error:', e.detail.error);
+});
+```
+
+### Examples
+
+Basic:
+
+```html
+<overtype-editor 
+  value="# Basic Editor\n\nStart your Markdown writing journey!"
+  height="200px">
+</overtype-editor>
+```
+
+With toolbar and stats:
+
+```html
+<overtype-editor 
+  value="# Full-Featured Editor\n\nSupports toolbar and statistics."
+  theme="cave"
+  height="400px"
+  toolbar
+  show-stats
+  autofocus>
+</overtype-editor>
+```
+
+Auto-resize:
+
+```html
+<overtype-editor 
+  value="# Auto Height\n\nHeight adjusts to content!"
+  auto-resize
+  min-height="100px"
+  max-height="500px">
+</overtype-editor>
+```
+
+Dynamic attributes:
+
+```html
+<overtype-editor id="dynamic-editor" theme="solar"></overtype-editor>
+<script>
+  const editor = document.getElementById('dynamic-editor');
+  editor.setAttribute('theme', 'cave');
+  editor.setAttribute('height', '300px');
+  editor.setAttribute('toolbar', '');
+</script>
+```
+
+### Themes
+
+Built-in themes:
+
+- Solar (light)
+- Cave (dark)
+
+```html
+<overtype-editor theme="solar"></overtype-editor>
+<overtype-editor theme="cave"></overtype-editor>
+```
+
+### Framework Integration
+
+React:
+
+```jsx
+function App() {
+  const [content, setContent] = useState('# Hello React!');
+  return (
+    <overtype-editor
+      value={content}
+      onchange={(e) => setContent(e.detail.value)}
+      theme="solar"
+      toolbar
+    />
+  );
+}
+```
+
+Vue:
+
+```vue
+<template>
+  <overtype-editor
+    :value="content"
+    @change="handleChange"
+    theme="cave"
+    toolbar
+  />
+</template>
+
+<script>
+export default {
+  data() {
+    return { content: '# Hello Vue!' };
+  },
+  methods: {
+    handleChange(e) {
+      this.content = e.detail.value;
+    }
+  }
+};
+</script>
+```
+
+Angular:
+
+```typescript
+@Component({
+  template: `
+    <overtype-editor
+      [value]="content"
+      (change)="handleChange($event)"
+      theme="solar"
+      toolbar>
+    </overtype-editor>
+  `
+})
+export class AppComponent {
+  content = '# Hello Angular!';
+  handleChange(event: CustomEvent) {
+    this.content = event.detail.value;
+  }
+}
+```
+
+### Build Files
+
+- `dist/overtype-webcomponent.js` - IIFE (dev)
+- `dist/overtype-webcomponent.min.js` - IIFE (prod, minified)
+- `dist/overtype-webcomponent.esm.js` - ES Module
+
+### Browser Support
+
+- Chrome 62+
+- Firefox 78+
+- Safari 16+
+- Edge (Chromium)
+
+See `demo.html` for a full interactive demo (includes a Web Component section).
+
 ## Limitations
 
 Due to the transparent textarea overlay approach, OverType has some intentional design limitations:
@@ -566,7 +842,7 @@ MIT
 - **Pluggable parser system** - Support for any programming language or syntax
 - **Parser registry** - Automatic language detection by file extension or MIME type  
 - **Cleaner separation** - Extracted the overlay technique without markdown-specific features
-- **Smaller footprint** - ~82KB minified (vs OverType's ~78KB)
+- **Smaller footprint** - ~84KB minified (vs OverType's ~78KB)
 
 Key components extracted from OverType to Synesthesia:
 - The transparent textarea overlay technique for perfect WYSIWYG alignment
