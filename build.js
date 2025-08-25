@@ -32,7 +32,19 @@ const baseConfig = {
 
 // Check for watch mode
 const isWatch = process.argv.includes('--watch');
-
+const iifeBaseConfig = {
+  ...baseConfig,
+  format: 'iife',
+  globalName: 'OverType',
+  platform: 'browser',
+  footer: {
+    js: `
+if (typeof window !== "undefined" && typeof window.document !== "undefined") {
+  window.OverType = OverType.default ? OverType.default : OverType;
+}
+    `
+  }
+};
 async function build() {
   try {
     // Clean dist directory
@@ -47,9 +59,7 @@ async function build() {
         ...baseConfig,
         entryPoints: ['src/overtype.js'],
         outfile: 'dist/overtype.js',
-        format: 'iife',
-        globalName: 'OverType',
-        platform: 'browser',
+        ...iifeBaseConfig,
         logLevel: 'info'
       });
 
@@ -61,9 +71,7 @@ async function build() {
         ...baseConfig,
         entryPoints: ['src/overtype.js'],
         outfile: 'dist/overtype.js',
-        format: 'iife',
-        globalName: 'OverType',
-        platform: 'browser'
+        ...iifeBaseConfig
       });
       console.log('✅ Built dist/overtype.js');
 
@@ -72,11 +80,9 @@ async function build() {
         ...baseConfig,
         entryPoints: ['src/overtype.js'],
         outfile: 'dist/overtype.min.js',
-        format: 'iife',
-        globalName: 'OverType',
+        ...iifeBaseConfig,
         minify: true,
         sourcemap: false,
-        platform: 'browser'
       });
       console.log('✅ Built dist/overtype.min.js');
 

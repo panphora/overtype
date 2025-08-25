@@ -1,5 +1,5 @@
 /**
- * OverType v1.2.2
+ * OverType v1.2.3
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author Demo User
@@ -3776,9 +3776,6 @@ ${blockSuffix}` : suffix;
   OverType.themes = { solar, cave: getTheme("cave") };
   OverType.getTheme = getTheme;
   OverType.currentTheme = solar;
-  if (typeof window !== "undefined" && typeof window.document !== "undefined") {
-    window.OverType = OverType;
-  }
   var overtype_default = OverType;
   return __toCommonJS(overtype_exports);
 })();
@@ -3787,4 +3784,9 @@ ${blockSuffix}` : suffix;
  * @version 1.0.0
  * @license MIT
  */
+
+if (typeof window !== "undefined" && typeof window.document !== "undefined") {
+  window.OverType = OverType.default ? OverType.default : OverType;
+}
+    
 //# sourceMappingURL=overtype.js.map

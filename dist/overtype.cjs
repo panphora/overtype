@@ -1,5 +1,5 @@
 /**
- * OverType v1.2.2
+ * OverType v1.2.3
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author Demo User
@@ -3776,9 +3776,6 @@ OverType.ShortcutsManager = ShortcutsManager;
 OverType.themes = { solar, cave: getTheme("cave") };
 OverType.getTheme = getTheme;
 OverType.currentTheme = solar;
-if (typeof window !== "undefined" && typeof window.document !== "undefined") {
-  window.OverType = OverType;
-}
 var overtype_default = OverType;
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
