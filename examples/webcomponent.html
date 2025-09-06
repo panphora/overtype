@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType - Web Component Showcase</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 16px;
+            background: #0b0b0b;
+            color: #eaeaea;
+        }
+        h1 {
+            margin: 0 0 6px;
+        }
+        .subtitle {
+            margin: 0 0 20px;
+            color: #bdbdbd;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 880px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+        .card {
+            background: #111;
+            border: 1px solid #242424;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .card h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+            padding: 12px 14px;
+            background: #171717;
+            border-bottom: 1px solid #242424;
+        }
+        .card .body {
+            padding: 12px;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        select, input[type="text"], input[type="number"], button {
+            background: #0f0f0f;
+            color: #eaeaea;
+            border: 1px solid #2c2c2c;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        button { cursor: pointer; }
+        .output {
+            margin-top: 10px;
+            padding: 8px;
+            background: #0f0f0f;
+            border: 1px solid #242424;
+            border-radius: 6px;
+            min-height: 44px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            white-space: pre-wrap;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>OverType Web Component</h1>
+    <p class="subtitle">Attributes, events and API usage</p>
+
+    <div class="grid">
+        <div class="card">
+            <h2>Editor</h2>
+            <div class="body">
+                <div class="row">
+                    <label>Theme
+                        <select id="themeSel">
+                            <option value="solar" selected>solar</option>
+                            <option value="cave">cave</option>
+                        </select>
+                    </label>
+                    <label>Height
+                        <select id="heightSel">
+                            <option value="220px">220px</option>
+                            <option value="300px" selected>300px</option>
+                            <option value="400px">400px</option>
+                        </select>
+                    </label>
+                    <label>Font size
+                        <select id="fontSel">
+                            <option value="12px">12px</option>
+                            <option value="14px" selected>14px</option>
+                            <option value="16px">16px</option>
+                            <option value="18px">18px</option>
+                        </select>
+                    </label>
+                    <label><input id="toolbarChk" type="checkbox" checked> toolbar</label>
+                    <label><input id="statsChk" type="checkbox" checked> stats</label>
+                    <label><input id="autoChk" type="checkbox"> auto-resize</label>
+                </div>
+                <overtype-editor id="wc"
+                    value="# Web Component\n\nUse attributes, events and API."
+                    theme="solar"
+                    height="300px"
+                    font-size="14px"
+                    toolbar
+                    show-stats>
+                </overtype-editor>
+                <div id="out" class="output">Waiting for events…</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>API</h2>
+            <div class="body">
+                <div class="row">
+                    <button id="btnGet">getValue()</button>
+                    <button id="btnSet">setValue()</button>
+                    <button id="btnInsert">insertText()</button>
+                    <button id="btnFocus">focus()</button>
+                    <button id="btnBlur">blur()</button>
+                    <button id="btnHTML">getHTML()</button>
+                </div>
+                <div class="row">
+                    <input id="insertInput" type="text" placeholder="text to insert" style="min-width:260px;">
+                </div>
+                <div class="row">
+                    <button id="btnMultilineAttr">Set multiline via attribute</button>
+                    <button id="btnMultilineText">Set multiline via textContent</button>
+                </div>
+                <div id="apiOut" class="output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../dist/overtype-webcomponent.esm.js"></script>
+    <script type="module">
+        const wc = document.getElementById('wc');
+        const out = document.getElementById('out');
+        const apiOut = document.getElementById('apiOut');
+
+        function log(msg) { out.textContent = msg; }
+
+        // Attribute controls
+        document.getElementById('themeSel').addEventListener('change', (e) => wc.setAttribute('theme', e.target.value));
+        document.getElementById('heightSel').addEventListener('change', (e) => wc.setAttribute('height', e.target.value));
+        document.getElementById('fontSel').addEventListener('change', (e) => wc.setAttribute('font-size', e.target.value));
+        document.getElementById('toolbarChk').addEventListener('change', (e) => e.target.checked ? wc.setAttribute('toolbar', '') : wc.removeAttribute('toolbar'));
+        document.getElementById('statsChk').addEventListener('change', (e) => e.target.checked ? wc.setAttribute('show-stats', '') : wc.removeAttribute('show-stats'));
+        document.getElementById('autoChk').addEventListener('change', (e) => {
+            if (e.target.checked) { wc.setAttribute('auto-resize', ''); wc.removeAttribute('height'); }
+            else { wc.removeAttribute('auto-resize'); wc.setAttribute('height', document.getElementById('heightSel').value); }
+        });
+
+        // Events
+        wc.addEventListener('ready', () => log('ready'));
+        wc.addEventListener('change', (e) => log(`change · ${e.detail.value.length} chars`));
+        wc.addEventListener('keydown', (e) => log(`keydown · ${e.detail.event.key}`));
+        wc.addEventListener('error', (e) => log(`error · ${e.detail.error?.message || 'unknown'}`));
+
+        // API buttons
+        document.getElementById('btnGet').addEventListener('click', () => {
+            apiOut.textContent = wc.getValue();
+        });
+        document.getElementById('btnSet').addEventListener('click', () => {
+            wc.setValue(`# Updated at ${new Date().toLocaleTimeString()}\n\n**Programmatically updated content.**`);
+        });
+        document.getElementById('btnInsert').addEventListener('click', () => {
+            const txt = document.getElementById('insertInput').value || 'Hello';
+            wc.insertText(txt);
+        });
+        document.getElementById('btnFocus').addEventListener('click', () => wc.focus());
+        document.getElementById('btnBlur').addEventListener('click', () => wc.blur());
+        document.getElementById('btnHTML').addEventListener('click', () => {
+            apiOut.textContent = wc.getHTML();
+        });
+
+        // Multiline demos
+        document.getElementById('btnMultilineAttr').addEventListener('click', () => {
+            wc.setAttribute('value', '# Attribute Multiline\\n\\n- Line 1\\n- Line 2\\n\\nDone.');
+        });
+        document.getElementById('btnMultilineText').addEventListener('click', () => {
+            // Remove value attribute to allow textContent to be used on re-init
+            wc.removeAttribute('value');
+            wc.textContent = '# TextContent Multiline\n\n- Line A\n- Line B\n\nOK';
+            // Force re-initialization to pick up new textContent
+            wc.setAttribute('toolbar', wc.hasAttribute('toolbar') ? '' : '');
+        });
+    </script>
+</body>
+</html>
+

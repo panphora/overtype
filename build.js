@@ -107,17 +107,57 @@ async function build() {
       });
       console.log('✅ Built dist/overtype.esm.js');
 
+      // Web Component Build (IIFE)
+      await esbuild.build({
+        ...baseConfig,
+        entryPoints: ['src/overtype-webcomponent.js'],
+        outfile: 'dist/overtype-webcomponent.js',
+        format: 'iife',
+        globalName: 'OverTypeEditor',
+        platform: 'browser'
+      });
+      console.log('✅ Built dist/overtype-webcomponent.js');
+
+      // Web Component Build (Minified)
+      await esbuild.build({
+        ...baseConfig,
+        entryPoints: ['src/overtype-webcomponent.js'],
+        outfile: 'dist/overtype-webcomponent.min.js',
+        format: 'iife',
+        globalName: 'OverTypeEditor',
+        minify: true,
+        sourcemap: false,
+        platform: 'browser'
+      });
+      console.log('✅ Built dist/overtype-webcomponent.min.js');
+
+      // Web Component ESM Build
+      await esbuild.build({
+        ...baseConfig,
+        entryPoints: ['src/overtype-webcomponent.js'],
+        outfile: 'dist/overtype-webcomponent.esm.js',
+        format: 'esm',
+        platform: 'browser'
+      });
+      console.log('✅ Built dist/overtype-webcomponent.esm.js');
+
       // Report sizes
       const iifeSize = fs.statSync('dist/overtype.js').size;
       const minSize = fs.statSync('dist/overtype.min.js').size;
       const cjsSize = fs.statSync('dist/overtype.cjs').size;
       const esmSize = fs.statSync('dist/overtype.esm.js').size;
+      const webcompSize = fs.statSync('dist/overtype-webcomponent.js').size;
+      const webcompMinSize = fs.statSync('dist/overtype-webcomponent.min.js').size;
+      const webcompEsmSize = fs.statSync('dist/overtype-webcomponent.esm.js').size;
 
       console.log('\n📊 Build sizes:');
-      console.log(`   IIFE (Browser): ${(iifeSize / 1024).toFixed(2)} KB`);
-      console.log(`   IIFE Minified:  ${(minSize / 1024).toFixed(2)} KB`);
-      console.log(`   CommonJS:       ${(cjsSize / 1024).toFixed(2)} KB`);
-      console.log(`   ESM:            ${(esmSize / 1024).toFixed(2)} KB`);
+      console.log(`   IIFE (Browser):     ${(iifeSize / 1024).toFixed(2)} KB`);
+      console.log(`   IIFE Minified:      ${(minSize / 1024).toFixed(2)} KB`);
+      console.log(`   CommonJS:           ${(cjsSize / 1024).toFixed(2)} KB`);
+      console.log(`   ESM:                ${(esmSize / 1024).toFixed(2)} KB`);
+      console.log(`   WebComponent IIFE:  ${(webcompSize / 1024).toFixed(2)} KB`);
+      console.log(`   WebComponent Min:   ${(webcompMinSize / 1024).toFixed(2)} KB`);
+      console.log(`   WebComponent ESM:   ${(webcompEsmSize / 1024).toFixed(2)} KB`);
       
       // Update HTML files with actual minified size
       updateFileSizes(minSize);

@@ -12,7 +12,11 @@
     ".": {
       "import": "./dist/overtype.esm.js",
       "require": "./dist/overtype.cjs",
-      "browser": "./dist/overtype.iife.min.js"
+      "browser": "./dist/overtype.min.js"
+    },
+    "./webcomponent": {
+      "import": "./dist/overtype-webcomponent.esm.js",
+      "browser": "./dist/overtype-webcomponent.min.js"
     }
   },
   "type": "module",
@@ -21,12 +25,13 @@
     "build:prod": "npm test && npm run build",
     "dev": "http-server -p 8080 -c-1",
     "watch": "node build.js --watch",
-    "test": "node test/overtype.test.js && node test/preview-mode.test.js && node test/links.test.js && node test/api-methods.test.js && node test/comprehensive-alignment.test.js && npm run test:types",
+    "test": "node test/overtype.test.js && node test/preview-mode.test.js && node test/links.test.js && node test/api-methods.test.js && node test/comprehensive-alignment.test.js && node test/webcomponent.test.js && npm run test:types",
     "test:main": "node test/overtype.test.js",
     "test:preview": "node test/preview-mode.test.js",
     "test:links": "node test/links.test.js",
     "test:api": "node test/api-methods.test.js",
     "test:alignment": "node test/comprehensive-alignment.test.js",
+    "test:webcomponent": "node test/webcomponent.test.js",
     "test:types": "tsc --noEmit test-types.ts",
     "preversion": "npm test",
     "size": "gzip-size dist/overtype.min.js",
@@ -39,7 +44,10 @@
     "lightweight",
     "ghost-caret",
     "textarea",
-    "markdown-editor"
+    "markdown-editor",
+    "web-components",
+    "custom-elements",
+    "shadow-dom"
   ],
   "author": "David Miranda",
   "license": "MIT",

@@ -83,7 +83,8 @@
     <script src="../dist/overtype.js"></script>
     <script>
         // Initialize the editor
-        const [editor] = new OverType('#editor', {
+        const OT = window.OverType?.default || window.OverType;
+        const [editor] = new OT('#editor', {
             placeholder: 'Start typing markdown...',
             value: `# Welcome to OverType!
 
@@ -125,7 +126,7 @@ Inline \`code\` also works great!
 
         function toggleTheme() {
             currentTheme = currentTheme === 'solar' ? 'cave' : 'solar';
-            OverType.setTheme(currentTheme);
+            OT.setTheme(currentTheme);
             console.log('Theme changed to:', currentTheme);
         }
 

@@ -10,46 +10,45 @@ export class LinkTooltip {
     this.tooltip = null;
     this.currentLink = null;
     this.hideTimeout = null;
-    
+
     this.init();
   }
-  
+
   init() {
     // Check for CSS anchor positioning support
-    const supportsAnchor = 
-      CSS.supports('position-anchor: --x') &&
-      CSS.supports('position-area: center');
-    
+    // Add defensive check for CSS object existence (important for testing environments)
+    const supportsAnchor = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('position-anchor: --x') && CSS.supports('position-area: center');
+
     if (!supportsAnchor) {
       // Don't show anything if not supported
       return;
     }
-    
+
     // Create tooltip element
     this.createTooltip();
-    
+
     // Listen for cursor position changes
     this.editor.textarea.addEventListener('selectionchange', () => this.checkCursorPosition());
-    this.editor.textarea.addEventListener('keyup', (e) => {
+    this.editor.textarea.addEventListener('keyup', e => {
       if (e.key.includes('Arrow') || e.key === 'Home' || e.key === 'End') {
         this.checkCursorPosition();
       }
     });
-    
+
     // Hide tooltip when typing or scrolling
     this.editor.textarea.addEventListener('input', () => this.hide());
     this.editor.textarea.addEventListener('scroll', () => this.hide());
-    
+
     // Keep tooltip visible on hover
     this.tooltip.addEventListener('mouseenter', () => this.cancelHide());
     this.tooltip.addEventListener('mouseleave', () => this.scheduleHide());
   }
-  
+
   createTooltip() {
     // Create tooltip element
     this.tooltip = document.createElement('div');
     this.tooltip.className = 'overtype-link-tooltip';
-    
+
     // Add CSS anchor positioning styles
     const tooltipStyles = document.createElement('style');
     tooltipStyles.textContent = `
@@ -85,7 +84,7 @@ export class LinkTooltip {
       }
     `;
     document.head.appendChild(tooltipStyles);
-    
+
     // Add link icon and text container
     this.tooltip.innerHTML = `
       <span style="display: flex; align-items: center; gap: 6px;">
@@ -96,9 +95,9 @@ export class LinkTooltip {
         <span class="overtype-link-tooltip-url"></span>
       </span>
     `;
-    
+
     // Click handler to open link
-    this.tooltip.addEventListener('click', (e) => {
+    this.tooltip.addEventListener('click', e => {
       e.preventDefault();
       e.stopPropagation();
       if (this.currentLink) {
@@ -106,18 +105,18 @@ export class LinkTooltip {
         this.hide();
       }
     });
-    
+
     // Append tooltip to editor container
     this.editor.container.appendChild(this.tooltip);
   }
-  
+
   checkCursorPosition() {
     const cursorPos = this.editor.textarea.selectionStart;
     const text = this.editor.textarea.value;
-    
+
     // Find if cursor is within a markdown link
     const linkInfo = this.findLinkAtPosition(text, cursorPos);
-    
+
     if (linkInfo) {
       if (!this.currentLink || this.currentLink.url !== linkInfo.url || this.currentLink.index !== linkInfo.index) {
         this.show(linkInfo);
@@ -126,17 +125,17 @@ export class LinkTooltip {
       this.scheduleHide();
     }
   }
-  
+
   findLinkAtPosition(text, position) {
     // Regex to find markdown links: [text](url)
     const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
     let match;
     let linkIndex = 0;
-    
+
     while ((match = linkRegex.exec(text)) !== null) {
       const start = match.index;
       const end = match.index + match[0].length;
-      
+
       if (position >= start && position <= end) {
         return {
           text: match[1],
@@ -148,42 +147,42 @@ export class LinkTooltip {
       }
       linkIndex++;
     }
-    
+
     return null;
   }
-  
+
   show(linkInfo) {
     this.currentLink = linkInfo;
     this.cancelHide();
-    
+
     // Update tooltip content
     const urlSpan = this.tooltip.querySelector('.overtype-link-tooltip-url');
     urlSpan.textContent = linkInfo.url;
-    
+
     // Set the CSS variable to point to the correct anchor
     this.tooltip.style.setProperty('--target-anchor', `--link-${linkInfo.index}`);
-    
+
     // Show tooltip (CSS anchor positioning handles the rest)
     this.tooltip.classList.add('visible');
   }
-  
+
   hide() {
     this.tooltip.classList.remove('visible');
     this.currentLink = null;
   }
-  
+
   scheduleHide() {
     this.cancelHide();
     this.hideTimeout = setTimeout(() => this.hide(), 300);
   }
-  
+
   cancelHide() {
     if (this.hideTimeout) {
       clearTimeout(this.hideTimeout);
       this.hideTimeout = null;
     }
   }
-  
+
   destroy() {
     this.cancelHide();
     if (this.tooltip && this.tooltip.parentNode) {
