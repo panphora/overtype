@@ -7,7 +7,16 @@
 
 import OverType from './overtype.js';
 import { generateStyles } from './styles.js';
-import { themes, getTheme } from './themes.js';
+import { getTheme } from './themes.js';
+
+// Constants for better maintainability
+const CONTAINER_CLASS = 'overtype-webcomponent-container';
+const DEFAULT_PLACEHOLDER = 'Start typing...';
+const OBSERVED_ATTRIBUTES = [
+  'value', 'theme', 'toolbar', 'height', 'min-height', 'max-height', 
+  'placeholder', 'font-size', 'line-height', 'padding', 'auto-resize', 
+  'autofocus', 'show-stats', 'smart-lists', 'readonly'
+];
 
 /**
  * OverType Editor Web Component
@@ -46,22 +55,14 @@ class OverTypeEditor extends HTMLElement {
     return str.replace(/\\r/g, '\r').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
   }
 
-  /**
-   * Encode text to be safely stored in an HTML attribute
-   * @private
-   * @param {string} str
-   * @returns {string}
-   */
-  _encodeValue(str) {
-    if (typeof str !== 'string') return '';
-    return str.replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
-  }
+  // Note: _encodeValue removed as it's currently unused
+  // Can be re-added if needed for future attribute encoding
 
   /**
    * Define observed attributes for reactive updates
    */
   static get observedAttributes() {
-    return ['value', 'theme', 'toolbar', 'height', 'min-height', 'max-height', 'placeholder', 'font-size', 'line-height', 'padding', 'auto-resize', 'autofocus', 'show-stats', 'smart-lists', 'readonly'];
+    return OBSERVED_ATTRIBUTES;
   }
 
   /**
@@ -108,7 +109,7 @@ class OverTypeEditor extends HTMLElement {
     try {
       // Create container inside shadow root
       const container = document.createElement('div');
-      container.className = 'overtype-webcomponent-container';
+      container.className = CONTAINER_CLASS;
 
       // Set container height from attributes
       const height = this.getAttribute('height');
@@ -201,7 +202,7 @@ class OverTypeEditor extends HTMLElement {
       // Allow authoring multi-line content via escaped sequences in attributes
       // and fall back to light DOM text content if attribute is absent
       value: this.getAttribute('value') !== null ? this._decodeValue(this.getAttribute('value')) : (this.textContent || '').trim(),
-      placeholder: this.getAttribute('placeholder') || 'Start typing...',
+      placeholder: this.getAttribute('placeholder') || DEFAULT_PLACEHOLDER,
       toolbar: this.hasAttribute('toolbar'),
       autofocus: this.hasAttribute('autofocus'),
       autoResize: this.hasAttribute('auto-resize'),
@@ -300,32 +301,17 @@ class OverTypeEditor extends HTMLElement {
 
       // Typography/layout style changes
       case 'font-size': {
-        // Update instance CSS var so overlay and preview reflect new size immediately
-        if (this._editor && this._editor.wrapper) {
-          this._editor.options.fontSize = value || '';
-          this._editor.wrapper.style.setProperty('--instance-font-size', this._editor.options.fontSize);
-          // Update rendered preview to keep metrics-dependent UI (e.g., stats) in sync
-          this._editor.updatePreview();
-        } else {
-          // Fallback: reinject if no instance wrapper yet
+        if (this._updateFontSize(value)) {
+          // Only reinject styles once if direct update succeeded
           this._reinjectStyles();
         }
-        // Also reinject to satisfy style text changes and theme recomputation
-        this._reinjectStyles();
         break;
       }
       case 'line-height': {
-        if (this._editor && this._editor.wrapper) {
-          const numeric = parseFloat(value);
-          const lineHeight = Number.isFinite(numeric) ? numeric : this._editor.options.lineHeight;
-          this._editor.options.lineHeight = lineHeight;
-          this._editor.wrapper.style.setProperty('--instance-line-height', String(lineHeight));
-          this._editor.updatePreview();
-        } else {
+        if (this._updateLineHeight(value)) {
+          // Only reinject styles once if direct update succeeded  
           this._reinjectStyles();
         }
-        // Ensure style tag content changes for tests and full style regeneration
-        this._reinjectStyles();
         break;
       }
       case 'padding':
@@ -347,7 +333,7 @@ class OverTypeEditor extends HTMLElement {
    * @private
    */
   _updateContainerHeight() {
-    const container = this.shadowRoot.querySelector('.overtype-webcomponent-container');
+    const container = this.shadowRoot.querySelector(`.${CONTAINER_CLASS}`);
     if (!container) return;
 
     const height = this.getAttribute('height');
@@ -357,6 +343,40 @@ class OverTypeEditor extends HTMLElement {
     container.style.height = height || '';
     container.style.minHeight = minHeight || '';
     container.style.maxHeight = maxHeight || '';
+  }
+
+  /**
+   * Update font size efficiently
+   * @private
+   * @param {string} value - New font size value
+   * @returns {boolean} True if direct update succeeded
+   */
+  _updateFontSize(value) {
+    if (this._editor && this._editor.wrapper) {
+      this._editor.options.fontSize = value || '';
+      this._editor.wrapper.style.setProperty('--instance-font-size', this._editor.options.fontSize);
+      this._editor.updatePreview();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Update line height efficiently
+   * @private
+   * @param {string} value - New line height value
+   * @returns {boolean} True if direct update succeeded
+   */
+  _updateLineHeight(value) {
+    if (this._editor && this._editor.wrapper) {
+      const numeric = parseFloat(value);
+      const lineHeight = Number.isFinite(numeric) ? numeric : this._editor.options.lineHeight;
+      this._editor.options.lineHeight = lineHeight;
+      this._editor.wrapper.style.setProperty('--instance-line-height', String(lineHeight));
+      this._editor.updatePreview();
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -504,9 +524,10 @@ class OverTypeEditor extends HTMLElement {
    * @param {string} text - Text to insert
    */
   insertText(text) {
-    if (this._editor) {
-      this._editor.insertText(text);
+    if (!this._editor || typeof text !== 'string') {
+      return;
     }
+    this._editor.insertText(text);
   }
 
   /**

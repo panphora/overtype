@@ -7,10 +7,67 @@ import * as icons from './icons.js';
 import * as markdownActions from 'markdown-actions';
 
 export class Toolbar {
-  constructor(editor) {
+  constructor(editor, buttonConfig = null) {
     this.editor = editor;
     this.container = null;
     this.buttons = {};
+    this.buttonConfig = buttonConfig;
+  }
+
+  /**
+   * Check if cursor/selection is inside a markdown link
+   * @param {HTMLTextAreaElement} textarea - The textarea element
+   * @returns {boolean} True if inside a link
+   */
+  isInsideLink(textarea) {
+    const value = textarea.value;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    // Look backwards for [ and forwards for ](
+    let insideLink = false;
+    let openBracket = -1;
+    let closeBracket = -1;
+    
+    // Find the nearest [ before cursor
+    for (let i = start - 1; i >= 0; i--) {
+      if (value[i] === '[') {
+        openBracket = i;
+        break;
+      }
+      if (value[i] === '\n') {
+        break; // Links don't span lines
+      }
+    }
+    
+    // Find the nearest ]( after cursor
+    if (openBracket >= 0) {
+      for (let i = end; i < value.length - 1; i++) {
+        if (value[i] === ']' && value[i + 1] === '(') {
+          closeBracket = i;
+          break;
+        }
+        if (value[i] === '\n') {
+          break; // Links don't span lines
+        }
+      }
+    }
+    
+    // Check if we're inside [...](...) 
+    if (openBracket >= 0 && closeBracket >= 0) {
+      // Also need to verify the ) exists after ](
+      for (let i = closeBracket + 2; i < value.length; i++) {
+        if (value[i] === ')') {
+          insideLink = true;
+          break;
+        }
+        if (value[i] === '\n' || value[i] === ' ') {
+          break; // URLs typically don't have spaces or newlines
+        }
+      }
+    }
+    
+    return insideLink;
   }
 
   /**
@@ -24,7 +81,7 @@ export class Toolbar {
     this.container.setAttribute('aria-label', 'Text formatting');
 
     // Define toolbar buttons
-    const buttonConfig = [
+    const buttonConfig = this.buttonConfig ?? [
       { name: 'bold', icon: icons.boldIcon, title: 'Bold (Ctrl+B)', action: 'toggleBold' },
       { name: 'italic', icon: icons.italicIcon, title: 'Italic (Ctrl+I)', action: 'toggleItalic' },
       { separator: true },
@@ -135,6 +192,10 @@ export class Toolbar {
           markdownActions.insertLink(textarea);
           break;
         case 'toggleCode':
+          // Don't allow code formatting inside links
+          if (this.isInsideLink(textarea)) {
+            return;
+          }
           markdownActions.toggleCode(textarea);
           break;
         case 'toggleBulletList':

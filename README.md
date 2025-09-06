@@ -1,6 +1,16 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~84KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~86KB minified with all features.
+
+## Live Examples
+
+🎮 **Try it out**: [Interactive demos on overtype.dev](https://overtype.dev)
+- [Basic Editor](https://overtype.dev/#basic-editor)
+- [With Toolbar](https://overtype.dev/#toolbar)
+- [Multiple Instances](https://overtype.dev/#multiple-instances)
+- [View Modes](https://overtype.dev/#view-modes)
+- [Custom Themes](https://overtype.dev/#custom-themes)
+- [All Markdown Features](https://overtype.dev/#markdown-features)
 
 ## Features
 
@@ -9,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~84KB minified
+- 🚀 **Lightweight** - ~86KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -25,7 +35,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~84KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~86KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -212,20 +222,26 @@ const [editor] = new OverType('#editor', {
 const markdown = editor.getValue();
 // Returns: "# Title\n\n**Bold** text with [links](https://example.com)"
 
-// Get rendered HTML for display
+// Get rendered HTML with syntax markers (for debugging/inspection)
 const html = editor.getRenderedHTML();
-// Returns basic HTML with markdown elements
+// Returns HTML with <span class="syntax-marker"> elements visible
 
-// Get HTML with post-processing (consolidated lists/code blocks)
-const processedHTML = editor.getRenderedHTML(true);
-// Returns HTML optimized for preview mode
+// Get clean HTML for export (no OverType-specific markup)
+const cleanHTML = editor.getRenderedHTML({ cleanHTML: true });
+// Returns clean HTML suitable for saving/exporting
 
-// Get the current preview element's HTML
+// Convenience method for clean HTML
+const exportHTML = editor.getCleanHTML();
+// Same as getRenderedHTML({ cleanHTML: true })
+
+// Get the current preview element's HTML (actual DOM content)
 const previewHTML = editor.getPreviewHTML();
 // Returns exactly what's shown in the editor's preview layer
 
-// Example: Create external preview
-document.getElementById('external-preview').innerHTML = editor.getRenderedHTML(true);
+// Example: Export clean HTML to server
+const htmlToSave = editor.getCleanHTML();  // No syntax markers
+// Example: Clone exact preview appearance
+document.getElementById('clone').innerHTML = editor.getPreviewHTML();
 ```
 
 ### Stats Bar
@@ -371,11 +387,12 @@ editor.getValue()
 editor.setValue(markdown)
 
 // Get rendered HTML of the current content
-editor.getRenderedHTML()           // Basic HTML rendering
-editor.getRenderedHTML(true)       // With post-processing (consolidated lists/code blocks)
+editor.getRenderedHTML()                    // With syntax markers (for debugging)
+editor.getRenderedHTML({ cleanHTML: true }) // Clean HTML without OverType markup
+editor.getCleanHTML()                       // Alias for getRenderedHTML({ cleanHTML: true })
 
 // Get the current preview element's HTML
-editor.getPreviewHTML()            // Returns exactly what's displayed in the preview
+editor.getPreviewHTML()            // Actual DOM content from preview layer
 
 // Change theme
 editor.setTheme('cave')  // Built-in theme name
@@ -477,38 +494,47 @@ Check the `examples` folder for complete examples:
 
 ## Web Component
 
-OverType also provides a native Web Component `overtype-editor` with full style isolation and a declarative API.
+OverType provides a fully-featured native Web Component `<overtype-editor>` with complete style isolation and a declarative HTML API. Perfect for modern web development with zero configuration overhead.
 
 ### Features
 
-- **🛡️ Style isolation**: Shadow DOM prevents page styles from leaking in
-- **📝 Declarative API**: Configure via HTML attributes, no manual init required
-- **🔄 Reactive props**: Attribute changes apply immediately
-- **🌐 Framework-agnostic**: Native Web Component that works everywhere
-- **🎨 Themes**: Built-in Solar (light) and Cave (dark)
-- **📱 Mobile-friendly**: Great mobile behavior and native keyboards
+- **🛡️ Complete style isolation**: Shadow DOM prevents CSS conflicts with host page
+- **📝 Declarative API**: Configure via HTML attributes, zero JavaScript required
+- **🔄 Reactive attributes**: All 15 attributes update the editor in real-time
+- **🌐 Framework-agnostic**: Native Web Component works with any framework or vanilla JS
+- **🎨 Built-in themes**: Solar (light) and Cave (dark) with perfect visual consistency
+- **📱 Mobile-optimized**: Native mobile keyboards, selections, and gestures
+- **⚡ High performance**: Efficient Shadow DOM rendering with minimal overhead
+- **🧪 Thoroughly tested**: 100% test coverage including Shadow DOM, events, and API methods
 
 ### Install & Import
 
+**NPM/Yarn Installation:**
 ```bash
 npm install overtype
+# or
+yarn add overtype
 ```
 
-ESM (recommended):
-
+**ESM Import (recommended for bundlers):**
 ```javascript
 import 'overtype/webcomponent';
+// Component is automatically registered as <overtype-editor>
 ```
 
-Via CDN:
-
+**CDN via unpkg (no build step required):**
 ```html
-<!-- IIFE (no bundler needed) -->
-<script src="https://unpkg.com/overtype/dist/overtype-webcomponent.min.js"></script>
+<!-- IIFE Minified (recommended for production) -->
+<script src="https://unpkg.com/overtype@latest/dist/overtype-webcomponent.min.js"></script>
 
-<!-- Or ESM: load module build directly -->
-<script type="module" src="https://unpkg.com/overtype/dist/overtype-webcomponent.esm.js"></script>
+<!-- ES Module -->
+<script type="module" src="https://unpkg.com/overtype@latest/dist/overtype-webcomponent.esm.js"></script>
+
+<!-- Development (unminified) -->
+<script src="https://unpkg.com/overtype@latest/dist/overtype-webcomponent.js"></script>
 ```
+
+All CDN imports automatically register the `<overtype-editor>` custom element globally.
 
 ### Minimal Usage
 
@@ -548,69 +574,91 @@ Notes:
 - The `value` attribute accepts common escaped sequences such as `\\n` (newline), `\\t` (tab), and `\\r` (carriage return).
 - When the `value` attribute is not present, the component uses its element `textContent` as the initial value.
 
-### HTML Attributes
+### HTML Attributes (15 reactive attributes)
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `value` | string | '' | Initial Markdown content (supports escaped `\\n`; falls back to element text when omitted) |
-| `theme` | 'solar'\|'cave' | 'solar' | Editor theme |
+| `theme` | 'solar' \| 'cave' | 'solar' | Editor theme (styles are isolated in Shadow DOM) |
 | `placeholder` | string | 'Start typing...' | Placeholder text |
 | `height` | string | - | Editor height (e.g. '300px') |
-| `min-height` | string | '100px' | Minimum height |
-| `max-height` | string | - | Maximum height |
-| `font-size` | string | '14px' | Font size |
-| `line-height` | string | '1.6' | Line height |
-| `padding` | string | '16px' | Padding |
-| `toolbar` | boolean | false | Show toolbar |
-| `show-stats` | boolean | false | Show stats bar |
-| `auto-resize` | boolean | false | Auto adjust height |
-| `autofocus` | boolean | false | Auto focus |
-| `readonly` | boolean | false | Read-only mode |
-| `smart-lists` | boolean | true | Smart list continuation |
+| `min-height` | string | '100px' | Minimum height (for auto-resize) |
+| `max-height` | string | - | Maximum height (for auto-resize) |
+| `font-size` | string | '14px' | Font size (monospace required) |
+| `line-height` | string | '1.6' | Line height multiplier |
+| `padding` | string | '16px' | Internal padding |
+| `toolbar` | boolean | false | Show formatting toolbar |
+| `show-stats` | boolean | false | Show word/character count bar |
+| `auto-resize` | boolean | false | Auto adjust height to content |
+| `autofocus` | boolean | false | Auto focus on connection |
+| `readonly` | boolean | false | Read-only mode (disables editing) |
+| `smart-lists` | boolean | true | Smart list continuation on Enter |
 
-### JavaScript API (on the custom element instance)
+### JavaScript API (complete custom element methods)
 
 ```javascript
 const editor = document.querySelector('overtype-editor');
 
 // Content operations
-editor.getValue();
-editor.setValue(content);
-editor.getHTML();
-editor.insertText(text);
+const content = editor.getValue();           // Get current markdown
+editor.setValue('# New content');            // Set new markdown content
+const html = editor.getHTML();               // Get rendered HTML
+editor.insertText('Added text');             // Insert text at cursor
 
-// Control
-editor.focus();
-editor.blur();
-editor.isReady();
+// Focus and state management
+editor.focus();                              // Focus the editor
+editor.blur();                               // Remove focus
+const ready = editor.isReady();              // Check if initialized
 
-// Status
-editor.getStats();
-editor.getEditor();
+// Statistics and internal access
+const stats = editor.getStats();             // Get word/char/line counts
+const internal = editor.getEditor();         // Access internal OverType instance
 ```
 
-### Events
+**Return Values:**
+- `getValue()` → `string` - Current markdown content
+- `getHTML()` → `string` - Rendered HTML
+- `isReady()` → `boolean` - Initialization state
+- `getStats()` → `{chars, words, lines, line, column}` - Document statistics
+- `getEditor()` → `OverType` - Internal editor instance (for advanced usage)
+
+### Events (4 custom events with detailed payloads)
 
 ```javascript
 const editor = document.querySelector('overtype-editor');
 
+// Content change event (fires on every content modification)
 editor.addEventListener('change', (e) => {
-  console.log('New content:', e.detail.value);
-  console.log('Editor instance:', e.detail.editor);
+  console.log('New content:', e.detail.value);      // Current markdown
+  console.log('Editor instance:', e.detail.editor); // OverType instance
+  // Event bubbles and is composed (crosses Shadow DOM boundary)
 });
 
+// Keyboard event (fires on every key press)
 editor.addEventListener('keydown', (e) => {
-  console.log('Key pressed:', e.detail.event.key);
+  console.log('Key pressed:', e.detail.event.key);  // Original KeyboardEvent
+  console.log('Editor instance:', e.detail.editor); // OverType instance
+  // Useful for custom keyboard shortcuts or input monitoring
 });
 
+// Initialization complete event (fires once when ready)
 editor.addEventListener('ready', (e) => {
-  console.log('Editor ready:', e.detail.editor);
+  console.log('Editor ready:', e.detail.editor);    // OverType instance
+  console.log('Shadow DOM initialized');
+  // Safe to call API methods after this event
 });
 
+// Initialization error event (fires on setup failure)
 editor.addEventListener('error', (e) => {
-  console.error('Initialization error:', e.detail.error);
+  console.error('Setup failed:', e.detail.error.message); // Error details
+  // Handle initialization failures gracefully
 });
 ```
+
+**Event Properties:**
+- All events include `bubbles: true` and `composed: true` for maximum compatibility
+- Events cross Shadow DOM boundaries and can be caught by parent elements
+- Each event provides relevant context in the `detail` object
 
 ### Examples
 
@@ -738,9 +786,16 @@ export class AppComponent {
 
 ### Build Files
 
-- `dist/overtype-webcomponent.js` - IIFE (dev)
-- `dist/overtype-webcomponent.min.js` - IIFE (prod, minified)
-- `dist/overtype-webcomponent.esm.js` - ES Module
+| File | Format | Size | Description |
+|------|--------|------|-------------|
+| `overtype-webcomponent.js` | IIFE | 161.87 KB | Development (unminified) |
+| `overtype-webcomponent.min.js` | IIFE | 92.53 KB | Production (minified) |
+| `overtype-webcomponent.esm.js` | ESM | 154.11 KB | ES Module (for bundlers) |
+
+**Recommended Usage:**
+- **CDN/Direct use**: `overtype-webcomponent.min.js` (92.53 KB minified)
+- **Bundlers/NPM**: Import from `overtype/webcomponent` (tree-shaking friendly)
+- **Development**: `overtype-webcomponent.js` (unminified with source maps)
 
 ### Browser Support
 
@@ -842,7 +897,7 @@ MIT
 - **Pluggable parser system** - Support for any programming language or syntax
 - **Parser registry** - Automatic language detection by file extension or MIME type  
 - **Cleaner separation** - Extracted the overlay technique without markdown-specific features
-- **Smaller footprint** - ~84KB minified (vs OverType's ~78KB)
+- **Smaller footprint** - ~86KB minified (vs OverType's ~78KB)
 
 Key components extracted from OverType to Synesthesia:
 - The transparent textarea overlay technique for perfect WYSIWYG alignment

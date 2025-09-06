@@ -1313,12 +1313,6 @@ OverType.getTheme = getTheme;
 // Set default theme
 OverType.currentTheme = solar;
 
-// Only attach to global in browser environments (not Node.js)
-if (typeof window !== 'undefined' && typeof window.document !== 'undefined') {
-  // Browser environment - attach to window
-  window.OverType = OverType;
-}
-
 // Export for module systems
 export default OverType;
 export { OverType };
