@@ -3063,12 +3063,10 @@ var _OverType = class _OverType {
     if (this.options.toolbar) {
       this.toolbar = new Toolbar(this);
       this.toolbar.create();
-      this.textarea.addEventListener("selectionchange", () => {
-        this.toolbar.updateButtonStates();
-      });
       this.textarea.addEventListener("input", () => {
         this.toolbar.updateButtonStates();
       });
+      this.toolbar.updateButtonStates();
     }
     this.initialized = true;
     if (this.options.onChange) {
@@ -3808,6 +3806,10 @@ var _OverType = class _OverType {
     if (this.shortcuts) {
       this.shortcuts.destroy();
     }
+    if (this._selectionTimeout) {
+      clearTimeout(this._selectionTimeout);
+      this._selectionTimeout = null;
+    }
     if (this.textarea) {
       this._detachInstanceEventListeners();
     }
@@ -3933,6 +3935,7 @@ var _OverType = class _OverType {
       true
     );
     document.addEventListener("selectionchange", (e) => {
+      var _a;
       const activeElement = document.activeElement;
       if (activeElement && activeElement.classList.contains("overtype-input")) {
         const wrapper = activeElement.closest(".overtype-wrapper");
@@ -3941,10 +3944,31 @@ var _OverType = class _OverType {
           if (instance.options.showStats && instance.statsBar) {
             instance._updateStats();
           }
+          if (instance.toolbar && typeof instance.toolbar.updateButtonStates === "function") {
+            instance.toolbar.updateButtonStates();
+          }
           clearTimeout(instance._selectionTimeout);
           instance._selectionTimeout = setTimeout(() => {
             instance.updatePreview();
           }, 50);
+        }
+      } else if (activeElement && activeElement.tagName && activeElement.tagName.toLowerCase() === "overtype-editor") {
+        const shadowActiveElement = (_a = activeElement.shadowRoot) == null ? void 0 : _a.activeElement;
+        if (shadowActiveElement && shadowActiveElement.classList.contains("overtype-input")) {
+          const wrapper = shadowActiveElement.closest(".overtype-wrapper");
+          const instance = wrapper == null ? void 0 : wrapper._instance;
+          if (instance) {
+            if (instance.options.showStats && instance.statsBar) {
+              instance._updateStats();
+            }
+            if (instance.toolbar && typeof instance.toolbar.updateButtonStates === "function") {
+              instance.toolbar.updateButtonStates();
+            }
+            clearTimeout(instance._selectionTimeout);
+            instance._selectionTimeout = setTimeout(() => {
+              instance.updatePreview();
+            }, 50);
+          }
         }
       }
     });

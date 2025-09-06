@@ -107,13 +107,13 @@ class OverType {
       this.toolbar = new Toolbar(this);
       this.toolbar.create();
 
-      // Update toolbar states on selection change
-      this.textarea.addEventListener('selectionchange', () => {
-        this.toolbar.updateButtonStates();
-      });
+      // Update toolbar states on input
       this.textarea.addEventListener('input', () => {
         this.toolbar.updateButtonStates();
       });
+      
+      // Initial toolbar state update
+      this.toolbar.updateButtonStates();
     }
 
     // Mark as initialized
@@ -1121,6 +1121,12 @@ class OverType {
       this.shortcuts.destroy();
     }
 
+    // Clear any pending selection timeout
+    if (this._selectionTimeout) {
+      clearTimeout(this._selectionTimeout);
+      this._selectionTimeout = null;
+    }
+
     // Detach instance listeners
     if (this.textarea) {
       this._detachInstanceEventListeners();
@@ -1281,6 +1287,8 @@ class OverType {
     // Selection change event
     document.addEventListener('selectionchange', e => {
       const activeElement = document.activeElement;
+      
+      // Handle regular OverType instances
       if (activeElement && activeElement.classList.contains('overtype-input')) {
         const wrapper = activeElement.closest('.overtype-wrapper');
         const instance = wrapper?._instance;
@@ -1289,11 +1297,44 @@ class OverType {
           if (instance.options.showStats && instance.statsBar) {
             instance._updateStats();
           }
+          
+          // Update toolbar states on selection change
+          if (instance.toolbar && typeof instance.toolbar.updateButtonStates === 'function') {
+            instance.toolbar.updateButtonStates();
+          }
+          
           // Debounce updates
           clearTimeout(instance._selectionTimeout);
           instance._selectionTimeout = setTimeout(() => {
             instance.updatePreview();
           }, 50);
+        }
+      }
+      
+      // Handle Web Component instances (Shadow DOM)
+      else if (activeElement && activeElement.tagName && activeElement.tagName.toLowerCase() === 'overtype-editor') {
+        // In Shadow DOM, we need to check shadowRoot.activeElement
+        const shadowActiveElement = activeElement.shadowRoot?.activeElement;
+        if (shadowActiveElement && shadowActiveElement.classList.contains('overtype-input')) {
+          const wrapper = shadowActiveElement.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) {
+            // Update stats bar for cursor position
+            if (instance.options.showStats && instance.statsBar) {
+              instance._updateStats();
+            }
+            
+            // Update toolbar states on selection change
+            if (instance.toolbar && typeof instance.toolbar.updateButtonStates === 'function') {
+              instance.toolbar.updateButtonStates();
+            }
+            
+            // Debounce updates
+            clearTimeout(instance._selectionTimeout);
+            instance._selectionTimeout = setTimeout(() => {
+              instance.updatePreview();
+            }, 50);
+          }
         }
       }
     });

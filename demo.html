@@ -211,14 +211,14 @@
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center;">
                     <label>Theme:
                         <select id="wc-theme-select" onchange="wcChangeTheme()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
-                            <option value="solar" selected>solar</option>
+                            <option value="solar">solar</option>
                             <option value="cave">cave</option>
                         </select>
                     </label>
                     <label>Height:
                         <select id="wc-height-select" onchange="wcChangeHeight()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
                             <option value="200px">200px</option>
-                            <option value="300px" selected>300px</option>
+                            <option value="300px">300px</option>
                             <option value="400px">400px</option>
                         </select>
                     </label>
@@ -226,16 +226,16 @@
                         <select id="wc-fontsize-select" onchange="wcChangeFontSize()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
                             <option value="12px">12px</option>
                             <option value="14px">14px</option>
-                            <option value="16px" selected>16px</option>
+                            <option value="16px">16px</option>
                             <option value="18px">18px</option>
                         </select>
                     </label>
                     <label style="display:flex; gap:6px; align-items:center;">
-                        <input id="wc-toolbar-check" type="checkbox" onchange="wcToggleToolbar()" checked>
+                        <input id="wc-toolbar-check" type="checkbox" onchange="wcToggleToolbar()">
                         Toolbar
                     </label>
                     <label style="display:flex; gap:6px; align-items:center;">
-                        <input id="wc-stats-check" type="checkbox" onchange="wcToggleStats()" checked>
+                        <input id="wc-stats-check" type="checkbox" onchange="wcToggleStats()">
                         Stats
                     </label>
                     <label style="display:flex; gap:6px; align-items:center;">
@@ -245,9 +245,10 @@
                 </div>
                 <overtype-editor 
                     id="wc-editor"
-                    value="# Web Component\n\nThis demo uses the native <overtype-editor> custom element."
+                    value="# Web Component Demo\n\nThis demo showcases the **native** `<overtype-editor>` custom element with full functionality!\n\n## Features\n\n- **Real-time** markdown editing\n- *Live* preview updates\n- `Keyboard shortcuts` support\n- Multiple themes (Solar/Cave)\n- Built-in toolbar\n- Auto-resize capability\n- Event handling\n\n## Try These Features\n\n1. **Bold text** with Cmd/Ctrl + B\n2. *Italic text* with Cmd/Ctrl + I\n3. `Inline code` with Cmd/Ctrl + K\n4. [Links](https://github.com) work great!\n5. Create lists with Cmd/Ctrl + Shift + 8\n\n### Code Blocks\n\n```javascript\n// JavaScript code with syntax highlighting\nfunction greet(name) {\n    return `Hello, ${name}!`;\n}\n\nconsole.log(greet('OverType'));\n```\n\n### Blockquotes\n\n> This is a blockquote example.\n> It can span multiple lines\n> and looks great in the preview!\n\n---\n\n**Happy editing!** 🎉\n\n*The Web Component provides the same powerful features as the regular OverType editor, but as a native HTML element.*"
                     theme="solar"
                     height="300px"
+                    font-size="16px"
                     toolbar
                     show-stats>
                 </overtype-editor>
@@ -333,11 +334,57 @@
             }
         }
 
+        // Sync controls with Web Component initial state
+        function syncControlsWithWc() {
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            
+            // Sync theme selector
+            const themeSelect = document.getElementById('wc-theme-select');
+            const currentTheme = el.getAttribute('theme');
+            if (themeSelect && currentTheme) {
+                themeSelect.value = currentTheme;
+            }
+            
+            // Sync height selector
+            const heightSelect = document.getElementById('wc-height-select');
+            const currentHeight = el.getAttribute('height');
+            if (heightSelect && currentHeight) {
+                heightSelect.value = currentHeight;
+            }
+            
+            // Sync font-size selector
+            const fontsizeSelect = document.getElementById('wc-fontsize-select');
+            const currentFontSize = el.getAttribute('font-size');
+            if (fontsizeSelect && currentFontSize) {
+                fontsizeSelect.value = currentFontSize;
+            }
+            
+            // Sync toolbar checkbox
+            const toolbarCheck = document.getElementById('wc-toolbar-check');
+            const hasToolbar = el.hasAttribute('toolbar');
+            if (toolbarCheck) toolbarCheck.checked = hasToolbar;
+            
+            // Sync stats checkbox
+            const statsCheck = document.getElementById('wc-stats-check');
+            const hasStats = el.hasAttribute('show-stats');
+            if (statsCheck) statsCheck.checked = hasStats;
+            
+            // Sync auto-resize checkbox
+            const autoResizeCheck = document.getElementById('wc-autoresize-check');
+            const hasAutoResize = el.hasAttribute('auto-resize');
+            if (autoResizeCheck) autoResizeCheck.checked = hasAutoResize;
+        }
+
         // Listen to WC events for live output
         function setupWcEvents() {
             const el = document.getElementById('wc-editor');
             const out = document.getElementById('wc-output');
             if (!el || !out) return;
+            
+            // Sync controls first
+            syncControlsWithWc();
+            
             el.addEventListener('ready', () => { out.textContent = 'Ready'; });
             el.addEventListener('change', (e) => {
                 const stats = el.getStats?.();
@@ -477,6 +524,7 @@ const editor = new OverType('#editor', {
             // Keep Web Component in sync
             const wc = document.getElementById('wc-editor');
             wc?.setAttribute('theme', newTheme);
+            // Sync the selector control
             const sel = document.getElementById('wc-theme-select');
             if (sel) sel.value = newTheme;
         }
