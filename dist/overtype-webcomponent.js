@@ -1,5 +1,5 @@
 /**
- * OverType v1.2.3
+ * OverType v1.2.4
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author Demo User
@@ -155,6 +155,17 @@ var OverTypeEditor = (() => {
       return html;
     }
     /**
+     * Parse strikethrough text
+     * Supports both single (~) and double (~~) tildes, but rejects 3+ tildes
+     * @param {string} html - HTML with potential strikethrough markdown
+     * @returns {string} HTML with strikethrough styling
+     */
+    static parseStrikethrough(html) {
+      html = html.replace(new RegExp("(?<!~)~~(?!~)(.+?)(?<!~)~~(?!~)", "g"), '<del><span class="syntax-marker">~~</span>$1<span class="syntax-marker">~~</span></del>');
+      html = html.replace(new RegExp("(?<!~)~(?!~)(.+?)(?<!~)~(?!~)", "g"), '<del><span class="syntax-marker">~</span>$1<span class="syntax-marker">~</span></del>');
+      return html;
+    }
+    /**
      * Parse inline code
      * @param {string} html - HTML with potential code markdown
      * @returns {string} HTML with code styling
@@ -170,7 +181,13 @@ var OverTypeEditor = (() => {
     static sanitizeUrl(url) {
       const trimmed = url.trim();
       const lower = trimmed.toLowerCase();
-      const safeProtocols = ["http://", "https://", "mailto:", "ftp://", "ftps://"];
+      const safeProtocols = [
+        "http://",
+        "https://",
+        "mailto:",
+        "ftp://",
+        "ftps://"
+      ];
       const hasSafeProtocol = safeProtocols.some((protocol) => lower.startsWith(protocol));
       const isRelative = trimmed.startsWith("/") || trimmed.startsWith("#") || trimmed.startsWith("?") || trimmed.startsWith(".") || !trimmed.includes(":") && !trimmed.includes("//");
       if (hasSafeProtocol || isRelative) {
@@ -210,6 +227,7 @@ var OverTypeEditor = (() => {
         sanctuaries.set(placeholder, match);
         return placeholder;
       });
+      html = this.parseStrikethrough(html);
       html = this.parseBold(html);
       html = this.parseItalic(html);
       sanctuaries.forEach((content, placeholder) => {
@@ -346,6 +364,17 @@ var OverTypeEditor = (() => {
             container.insertBefore(currentList, child);
             listType = newType;
           }
+          const indentationNodes = [];
+          for (const node of child.childNodes) {
+            if (node.nodeType === 3 && node.textContent.match(/^\u00A0+$/)) {
+              indentationNodes.push(node.cloneNode(true));
+            } else if (node === listItem) {
+              break;
+            }
+          }
+          indentationNodes.forEach((node) => {
+            listItem.insertBefore(node, listItem.firstChild);
+          });
           currentList.appendChild(listItem);
           child.remove();
         } else {
@@ -363,15 +392,35 @@ var OverTypeEditor = (() => {
     static postProcessHTMLManual(html) {
       let processed = html;
       processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-        const items = match.match(/<li class="bullet-list">.*?<\/li>/gs) || [];
-        if (items.length > 0) {
+        const divs = match.match(/<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
+        if (divs.length > 0) {
+          const items = divs.map((div) => {
+            const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+            const listItemMatch = div.match(/<li class="bullet-list">.*?<\/li>/);
+            if (indentMatch && listItemMatch) {
+              const indentation = indentMatch[1];
+              const listItem = listItemMatch[0];
+              return listItem.replace(/<li class="bullet-list">/, `<li class="bullet-list">${indentation}`);
+            }
+            return listItemMatch ? listItemMatch[0] : "";
+          }).filter(Boolean);
           return "<ul>" + items.join("") + "</ul>";
         }
         return match;
       });
       processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-        const items = match.match(/<li class="ordered-list">.*?<\/li>/gs) || [];
-        if (items.length > 0) {
+        const divs = match.match(/<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>/gs) || [];
+        if (divs.length > 0) {
+          const items = divs.map((div) => {
+            const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+            const listItemMatch = div.match(/<li class="ordered-list">.*?<\/li>/);
+            if (indentMatch && listItemMatch) {
+              const indentation = indentMatch[1];
+              const listItem = listItemMatch[0];
+              return listItem.replace(/<li class="ordered-list">/, `<li class="ordered-list">${indentation}`);
+            }
+            return listItemMatch ? listItemMatch[0] : "";
+          }).filter(Boolean);
           return "<ol>" + items.join("") + "</ol>";
         }
         return match;
@@ -380,9 +429,7 @@ var OverTypeEditor = (() => {
       processed = processed.replace(codeBlockRegex, (match, openFence, content, closeFence) => {
         const lines = content.match(/<div>(.*?)<\/div>/gs) || [];
         const codeContent = lines.map((line) => {
-          const inner = line.replace(/<div>(.*?)<\/div>/s, "$1");
-          const isOnlyNbsp = /^(&nbsp;)*$/.test(inner.trim());
-          const text = isOnlyNbsp ? "" : inner.replace(/&nbsp;/g, " ");
+          const text = line.replace(/<div>(.*?)<\/div>/s, "$1").replace(/&nbsp;/g, " ");
           return text;
         }).join("\n");
         const lang = openFence.slice(3).trim();
@@ -1915,6 +1962,14 @@ ${blockSuffix}` : suffix;
       font-style: italic !important;
     }
 
+    /* Strikethrough text */
+    .overtype-wrapper .overtype-preview del {
+      color: var(--del, #ee964b) !important;
+      text-decoration: line-through !important;
+      text-decoration-color: var(--del, #ee964b) !important;
+      text-decoration-thickness: 1px !important;
+    }
+
     /* Inline code */
     .overtype-wrapper .overtype-preview code {
       background: var(--code-bg, rgba(244, 211, 94, 0.4)) !important;
@@ -2058,10 +2113,10 @@ ${blockSuffix}` : suffix;
       height: 8px !important;
       background: #4caf50 !important;
       border-radius: 50% !important;
-      animation: pulse 2s infinite !important;
+      animation: overtype-pulse 2s infinite !important;
     }
     
-    @keyframes pulse {
+    @keyframes overtype-pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.6; transform: scale(1.2); }
     }
@@ -2069,19 +2124,19 @@ ${blockSuffix}` : suffix;
 
     /* Toolbar Styles */
     .overtype-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 4px;
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
       padding: 8px !important; /* Override reset */
       background: var(--toolbar-bg, var(--bg-primary, #f8f9fa)) !important; /* Override reset */
       overflow-x: auto !important; /* Allow horizontal scrolling */
       overflow-y: hidden !important; /* Hide vertical overflow */
-      -webkit-overflow-scrolling: touch;
-      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch !important;
+      flex-shrink: 0 !important;
       height: auto !important;
       grid-row: 1 !important; /* Always first row in grid */
       position: relative !important; /* Override reset */
-      z-index: 100; /* Ensure toolbar is above wrapper */
+      z-index: 100 !important; /* Ensure toolbar is above wrapper */
       scrollbar-width: thin; /* Thin scrollbar on Firefox */
     }
     
@@ -2463,20 +2518,67 @@ ${blockSuffix}` : suffix;
 
   // src/toolbar.js
   var Toolbar = class {
-    constructor(editor) {
+    constructor(editor, buttonConfig = null) {
       this.editor = editor;
       this.container = null;
       this.buttons = {};
+      this.buttonConfig = buttonConfig;
+    }
+    /**
+     * Check if cursor/selection is inside a markdown link
+     * @param {HTMLTextAreaElement} textarea - The textarea element
+     * @returns {boolean} True if inside a link
+     */
+    isInsideLink(textarea) {
+      const value = textarea.value;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      let insideLink = false;
+      let openBracket = -1;
+      let closeBracket = -1;
+      for (let i = start - 1; i >= 0; i--) {
+        if (value[i] === "[") {
+          openBracket = i;
+          break;
+        }
+        if (value[i] === "\n") {
+          break;
+        }
+      }
+      if (openBracket >= 0) {
+        for (let i = end; i < value.length - 1; i++) {
+          if (value[i] === "]" && value[i + 1] === "(") {
+            closeBracket = i;
+            break;
+          }
+          if (value[i] === "\n") {
+            break;
+          }
+        }
+      }
+      if (openBracket >= 0 && closeBracket >= 0) {
+        for (let i = closeBracket + 2; i < value.length; i++) {
+          if (value[i] === ")") {
+            insideLink = true;
+            break;
+          }
+          if (value[i] === "\n" || value[i] === " ") {
+            break;
+          }
+        }
+      }
+      return insideLink;
     }
     /**
      * Create and attach toolbar to editor
      */
     create() {
+      var _a;
       this.container = document.createElement("div");
       this.container.className = "overtype-toolbar";
       this.container.setAttribute("role", "toolbar");
       this.container.setAttribute("aria-label", "Text formatting");
-      const buttonConfig = [
+      const buttonConfig = (_a = this.buttonConfig) != null ? _a : [
         { name: "bold", icon: boldIcon, title: "Bold (Ctrl+B)", action: "toggleBold" },
         { name: "italic", icon: italicIcon, title: "Italic (Ctrl+I)", action: "toggleItalic" },
         { separator: true },
@@ -2570,6 +2672,9 @@ ${blockSuffix}` : suffix;
             insertLink(textarea);
             break;
           case "toggleCode":
+            if (this.isInsideLink(textarea)) {
+              return;
+            }
             toggleCode(textarea);
             break;
           case "toggleBulletList":
@@ -2785,29 +2890,29 @@ ${blockSuffix}` : suffix;
           position: absolute;
           position-anchor: var(--target-anchor, --link-0);
           position-area: block-end center;
-          margin-top: 8px;
+          margin-top: 8px !important;
           
-          background: #333;
-          color: white;
-          padding: 6px 10px;
-          border-radius: 16px;
-          font-size: 12px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          display: none;
-          z-index: 10000;
-          cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          max-width: 300px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          background: #333 !important;
+          color: white !important;
+          padding: 6px 10px !important;
+          border-radius: 16px !important;
+          font-size: 12px !important;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+          display: none !important;
+          z-index: 10000 !important;
+          cursor: pointer !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+          max-width: 300px !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
           
           position-try: most-width block-end inline-end, flip-inline, block-start center;
           position-visibility: anchors-visible;
         }
         
         .overtype-link-tooltip.visible {
-          display: flex;
+          display: flex !important;
         }
       }
     `;
@@ -3856,12 +3961,28 @@ ${blockSuffix}` : suffix;
   OverType.themes = { solar, cave: getTheme("cave") };
   OverType.getTheme = getTheme;
   OverType.currentTheme = solar;
-  if (typeof window !== "undefined" && typeof window.document !== "undefined") {
-    window.OverType = OverType;
-  }
   var overtype_default = OverType;
 
   // src/overtype-webcomponent.js
+  var CONTAINER_CLASS = "overtype-webcomponent-container";
+  var DEFAULT_PLACEHOLDER = "Start typing...";
+  var OBSERVED_ATTRIBUTES = [
+    "value",
+    "theme",
+    "toolbar",
+    "height",
+    "min-height",
+    "max-height",
+    "placeholder",
+    "font-size",
+    "line-height",
+    "padding",
+    "auto-resize",
+    "autofocus",
+    "show-stats",
+    "smart-lists",
+    "readonly"
+  ];
   var OverTypeEditor = class extends HTMLElement {
     constructor() {
       super();
@@ -3885,22 +4006,13 @@ ${blockSuffix}` : suffix;
         return "";
       return str.replace(/\\r/g, "\r").replace(/\\n/g, "\n").replace(/\\t/g, "	");
     }
-    /**
-     * Encode text to be safely stored in an HTML attribute
-     * @private
-     * @param {string} str
-     * @returns {string}
-     */
-    _encodeValue(str) {
-      if (typeof str !== "string")
-        return "";
-      return str.replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t");
-    }
+    // Note: _encodeValue removed as it's currently unused
+    // Can be re-added if needed for future attribute encoding
     /**
      * Define observed attributes for reactive updates
      */
     static get observedAttributes() {
-      return ["value", "theme", "toolbar", "height", "min-height", "max-height", "placeholder", "font-size", "line-height", "padding", "auto-resize", "autofocus", "show-stats", "smart-lists", "readonly"];
+      return OBSERVED_ATTRIBUTES;
     }
     /**
      * Component connected to DOM - initialize editor
@@ -3939,7 +4051,7 @@ ${blockSuffix}` : suffix;
         return;
       try {
         const container = document.createElement("div");
-        container.className = "overtype-webcomponent-container";
+        container.className = CONTAINER_CLASS;
         const height = this.getAttribute("height");
         const minHeight = this.getAttribute("min-height");
         const maxHeight = this.getAttribute("max-height");
@@ -4011,7 +4123,7 @@ ${blockSuffix}` : suffix;
         // Allow authoring multi-line content via escaped sequences in attributes
         // and fall back to light DOM text content if attribute is absent
         value: this.getAttribute("value") !== null ? this._decodeValue(this.getAttribute("value")) : (this.textContent || "").trim(),
-        placeholder: this.getAttribute("placeholder") || "Start typing...",
+        placeholder: this.getAttribute("placeholder") || DEFAULT_PLACEHOLDER,
         toolbar: this.hasAttribute("toolbar"),
         autofocus: this.hasAttribute("autofocus"),
         autoResize: this.hasAttribute("auto-resize"),
@@ -4099,27 +4211,15 @@ ${blockSuffix}` : suffix;
           this._reinitializeEditor();
           break;
         case "font-size": {
-          if (this._editor && this._editor.wrapper) {
-            this._editor.options.fontSize = value || "";
-            this._editor.wrapper.style.setProperty("--instance-font-size", this._editor.options.fontSize);
-            this._editor.updatePreview();
-          } else {
+          if (this._updateFontSize(value)) {
             this._reinjectStyles();
           }
-          this._reinjectStyles();
           break;
         }
         case "line-height": {
-          if (this._editor && this._editor.wrapper) {
-            const numeric = parseFloat(value);
-            const lineHeight = Number.isFinite(numeric) ? numeric : this._editor.options.lineHeight;
-            this._editor.options.lineHeight = lineHeight;
-            this._editor.wrapper.style.setProperty("--instance-line-height", String(lineHeight));
-            this._editor.updatePreview();
-          } else {
+          if (this._updateLineHeight(value)) {
             this._reinjectStyles();
           }
-          this._reinjectStyles();
           break;
         }
         case "padding":
@@ -4139,7 +4239,7 @@ ${blockSuffix}` : suffix;
      * @private
      */
     _updateContainerHeight() {
-      const container = this.shadowRoot.querySelector(".overtype-webcomponent-container");
+      const container = this.shadowRoot.querySelector(`.${CONTAINER_CLASS}`);
       if (!container)
         return;
       const height = this.getAttribute("height");
@@ -4148,6 +4248,38 @@ ${blockSuffix}` : suffix;
       container.style.height = height || "";
       container.style.minHeight = minHeight || "";
       container.style.maxHeight = maxHeight || "";
+    }
+    /**
+     * Update font size efficiently
+     * @private
+     * @param {string} value - New font size value
+     * @returns {boolean} True if direct update succeeded
+     */
+    _updateFontSize(value) {
+      if (this._editor && this._editor.wrapper) {
+        this._editor.options.fontSize = value || "";
+        this._editor.wrapper.style.setProperty("--instance-font-size", this._editor.options.fontSize);
+        this._editor.updatePreview();
+        return true;
+      }
+      return false;
+    }
+    /**
+     * Update line height efficiently
+     * @private
+     * @param {string} value - New line height value
+     * @returns {boolean} True if direct update succeeded
+     */
+    _updateLineHeight(value) {
+      if (this._editor && this._editor.wrapper) {
+        const numeric = parseFloat(value);
+        const lineHeight = Number.isFinite(numeric) ? numeric : this._editor.options.lineHeight;
+        this._editor.options.lineHeight = lineHeight;
+        this._editor.wrapper.style.setProperty("--instance-line-height", String(lineHeight));
+        this._editor.updatePreview();
+        return true;
+      }
+      return false;
     }
     /**
      * Re-inject styles (useful for theme changes)
@@ -4269,9 +4401,10 @@ ${blockSuffix}` : suffix;
      * @param {string} text - Text to insert
      */
     insertText(text) {
-      if (this._editor) {
-        this._editor.insertText(text);
+      if (!this._editor || typeof text !== "string") {
+        return;
       }
+      this._editor.insertText(text);
     }
     /**
      * Focus the editor
