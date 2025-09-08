@@ -108,10 +108,7 @@ class OverType {
         this.toolbar = new Toolbar(this, toolbarButtons);
         this.toolbar.create();
 
-        // Update toolbar states on selection change
-        this.textarea.addEventListener('selectionchange', () => {
-          this.toolbar.updateButtonStates();
-        });
+        // Note: selectionchange only works on document level, handled in global listeners
         this.textarea.addEventListener('input', () => {
           this.toolbar.updateButtonStates();
         });
@@ -1227,11 +1224,22 @@ class OverType {
             if (instance.options.showStats && instance.statsBar) {
               instance._updateStats();
             }
-            // Debounce updates
-            clearTimeout(instance._selectionTimeout);
-            instance._selectionTimeout = setTimeout(() => {
-              instance.updatePreview();
-            }, 50);
+            // Update toolbar button states if toolbar exists
+            if (instance.toolbar && instance.toolbar.updateButtonStates) {
+              instance.toolbar.updateButtonStates();
+            }
+            // Update link tooltip position if it exists
+            if (instance.linkTooltip && instance.linkTooltip.checkCursorPosition) {
+              instance.linkTooltip.checkCursorPosition();
+            }
+            // Only update preview if showing active line raw (which depends on cursor position)
+            if (instance.options.showActiveLineRaw) {
+              // Debounce updates
+              clearTimeout(instance._selectionTimeout);
+              instance._selectionTimeout = setTimeout(() => {
+                instance.updatePreview();
+              }, 50);
+            }
           }
         }
       });

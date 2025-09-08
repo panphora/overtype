@@ -28,8 +28,7 @@ export class LinkTooltip {
     // Create tooltip element
     this.createTooltip();
     
-    // Listen for cursor position changes
-    this.editor.textarea.addEventListener('selectionchange', () => this.checkCursorPosition());
+    // Note: selectionchange is handled at document level in global listeners
     this.editor.textarea.addEventListener('keyup', (e) => {
       if (e.key.includes('Arrow') || e.key === 'Home' || e.key === 'End') {
         this.checkCursorPosition();
