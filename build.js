@@ -1,6 +1,7 @@
 import esbuild from 'esbuild';
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 
 // Read package.json for version
 const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
@@ -32,7 +33,19 @@ const baseConfig = {
 
 // Check for watch mode
 const isWatch = process.argv.includes('--watch');
-
+const iifeBaseConfig = {
+  ...baseConfig,
+  format: 'iife',
+  globalName: 'OverType',
+  platform: 'browser',
+  footer: {
+    js: `
+if (typeof window !== "undefined" && typeof window.document !== "undefined") {
+  window.OverType = OverType.default ? OverType.default : OverType;
+}
+    `
+  }
+};
 async function build() {
   try {
     // Clean dist directory
@@ -47,9 +60,7 @@ async function build() {
         ...baseConfig,
         entryPoints: ['src/overtype.js'],
         outfile: 'dist/overtype.js',
-        format: 'iife',
-        globalName: 'OverType',
-        platform: 'browser',
+        ...iifeBaseConfig,
         logLevel: 'info'
       });
 
@@ -61,9 +72,7 @@ async function build() {
         ...baseConfig,
         entryPoints: ['src/overtype.js'],
         outfile: 'dist/overtype.js',
-        format: 'iife',
-        globalName: 'OverType',
-        platform: 'browser'
+        ...iifeBaseConfig
       });
       console.log('✅ Built dist/overtype.js');
 
@@ -72,11 +81,9 @@ async function build() {
         ...baseConfig,
         entryPoints: ['src/overtype.js'],
         outfile: 'dist/overtype.min.js',
-        format: 'iife',
-        globalName: 'OverType',
+        ...iifeBaseConfig,
         minify: true,
         sourcemap: false,
-        platform: 'browser'
       });
       console.log('✅ Built dist/overtype.min.js');
 
@@ -114,6 +121,26 @@ async function build() {
       
       // Update HTML files with actual minified size
       updateFileSizes(minSize);
+      
+      // Test TypeScript definitions before copying
+      const typesSource = path.join(process.cwd(), 'src', 'overtype.d.ts');
+      const typesDest = path.join(process.cwd(), 'dist', 'overtype.d.ts');
+      if (fs.existsSync(typesSource)) {
+        // Test the TypeScript definitions
+        console.log('🔍 Testing TypeScript definitions...');
+        try {
+          execSync('npx tsc --noEmit test-types.ts', { stdio: 'inherit' });
+          console.log('✅ TypeScript definitions test passed');
+        } catch (error) {
+          console.error('❌ TypeScript definitions test failed');
+          console.error('   Run "npx tsc --noEmit test-types.ts" to see the errors');
+          process.exit(1);
+        }
+        
+        // Copy to dist after successful test
+        fs.copyFileSync(typesSource, typesDest);
+        console.log('✅ Copied TypeScript definitions to dist/overtype.d.ts');
+      }
       
       console.log('\n✨ Build complete!');
     }

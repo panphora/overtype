@@ -1,6 +1,16 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~82KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~84KB minified with all features.
+
+## Live Examples
+
+🎮 **Try it out**: [Interactive demos on overtype.dev](https://overtype.dev)
+- [Basic Editor](https://overtype.dev/#basic-editor)
+- [With Toolbar](https://overtype.dev/#toolbar)
+- [Multiple Instances](https://overtype.dev/#multiple-instances)
+- [View Modes](https://overtype.dev/#view-modes)
+- [Custom Themes](https://overtype.dev/#custom-themes)
+- [All Markdown Features](https://overtype.dev/#markdown-features)
 
 ## Features
 
@@ -9,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~82KB minified
+- 🚀 **Lightweight** - ~84KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -25,7 +35,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~82KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~84KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -212,20 +222,26 @@ const [editor] = new OverType('#editor', {
 const markdown = editor.getValue();
 // Returns: "# Title\n\n**Bold** text with [links](https://example.com)"
 
-// Get rendered HTML for display
+// Get rendered HTML with syntax markers (for debugging/inspection)
 const html = editor.getRenderedHTML();
-// Returns basic HTML with markdown elements
+// Returns HTML with <span class="syntax-marker"> elements visible
 
-// Get HTML with post-processing (consolidated lists/code blocks)
-const processedHTML = editor.getRenderedHTML(true);
-// Returns HTML optimized for preview mode
+// Get clean HTML for export (no OverType-specific markup)
+const cleanHTML = editor.getRenderedHTML({ cleanHTML: true });
+// Returns clean HTML suitable for saving/exporting
 
-// Get the current preview element's HTML
+// Convenience method for clean HTML
+const exportHTML = editor.getCleanHTML();
+// Same as getRenderedHTML({ cleanHTML: true })
+
+// Get the current preview element's HTML (actual DOM content)
 const previewHTML = editor.getPreviewHTML();
 // Returns exactly what's shown in the editor's preview layer
 
-// Example: Create external preview
-document.getElementById('external-preview').innerHTML = editor.getRenderedHTML(true);
+// Example: Export clean HTML to server
+const htmlToSave = editor.getCleanHTML();  // No syntax markers
+// Example: Clone exact preview appearance
+document.getElementById('clone').innerHTML = editor.getPreviewHTML();
 ```
 
 ### Stats Bar
@@ -371,11 +387,12 @@ editor.getValue()
 editor.setValue(markdown)
 
 // Get rendered HTML of the current content
-editor.getRenderedHTML()           // Basic HTML rendering
-editor.getRenderedHTML(true)       // With post-processing (consolidated lists/code blocks)
+editor.getRenderedHTML()                    // With syntax markers (for debugging)
+editor.getRenderedHTML({ cleanHTML: true }) // Clean HTML without OverType markup
+editor.getCleanHTML()                       // Alias for getRenderedHTML({ cleanHTML: true })
 
 // Get the current preview element's HTML
-editor.getPreviewHTML()            // Returns exactly what's displayed in the preview
+editor.getPreviewHTML()            // Actual DOM content from preview layer
 
 // Change theme
 editor.setTheme('cave')  // Built-in theme name
@@ -566,7 +583,7 @@ MIT
 - **Pluggable parser system** - Support for any programming language or syntax
 - **Parser registry** - Automatic language detection by file extension or MIME type  
 - **Cleaner separation** - Extracted the overlay technique without markdown-specific features
-- **Smaller footprint** - ~82KB minified (vs OverType's ~78KB)
+- **Smaller footprint** - ~84KB minified (vs OverType's ~78KB)
 
 Key components extracted from OverType to Synesthesia:
 - The transparent textarea overlay technique for perfect WYSIWYG alignment
@@ -581,3 +598,7 @@ If you need a markdown editor with toolbar and formatting features, use OverType
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+---
+
+Ready for another radical idea?  
+[Let's remove every layer of the web application stack.](https://hyperclay.com)

@@ -27,7 +27,6 @@ export class MarkdownParser {
   static setCodeHighlighter(highlighter) {
     this.codeHighlighter = highlighter;
   }
-
   /**
    * Escape HTML special characters
    * @param {string} text - Raw text to escape
@@ -151,6 +150,20 @@ export class MarkdownParser {
   }
 
   /**
+   * Parse strikethrough text
+   * Supports both single (~) and double (~~) tildes, but rejects 3+ tildes
+   * @param {string} html - HTML with potential strikethrough markdown
+   * @returns {string} HTML with strikethrough styling
+   */
+  static parseStrikethrough(html) {
+    // Double tilde strikethrough: ~~text~~ (but not if part of 3+ tildes)
+    html = html.replace(/(?<!~)~~(?!~)(.+?)(?<!~)~~(?!~)/g, '<del><span class="syntax-marker">~~</span>$1<span class="syntax-marker">~~</span></del>');
+    // Single tilde strikethrough: ~text~ (but not if part of 2+ tildes on either side)
+    html = html.replace(/(?<!~)~(?!~)(.+?)(?<!~)~(?!~)/g, '<del><span class="syntax-marker">~</span>$1<span class="syntax-marker">~</span></del>');
+    return html;
+  }
+
+  /**
    * Parse inline code
    * @param {string} html - HTML with potential code markdown
    * @returns {string} HTML with code styling
@@ -257,6 +270,7 @@ export class MarkdownParser {
     });
 
     // Process other inline elements on text with placeholders
+    html = this.parseStrikethrough(html);
     html = this.parseBold(html);
     html = this.parseItalic(html);
 
@@ -482,6 +496,22 @@ export class MarkdownParser {
           listType = newType;
         }
 
+        // Extract and preserve indentation from the div before moving the list item
+        const indentationNodes = [];
+        for (const node of child.childNodes) {
+          if (node.nodeType === 3 && node.textContent.match(/^\u00A0+$/)) {
+            // This is a text node containing only non-breaking spaces (indentation)
+            indentationNodes.push(node.cloneNode(true));
+          } else if (node === listItem) {
+            break; // Stop when we reach the list item
+          }
+        }
+
+        // Add indentation to the list item
+        indentationNodes.forEach(node => {
+          listItem.insertBefore(node, listItem.firstChild);
+        });
+
         // Move the list item to the current list
         currentList.appendChild(listItem);
 
@@ -508,8 +538,22 @@ export class MarkdownParser {
 
     // Process unordered lists
     processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const items = match.match(/<li class="bullet-list">.*?<\/li>/gs) || [];
-      if (items.length > 0) {
+      const divs = match.match(/<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
+      if (divs.length > 0) {
+        const items = divs.map(div => {
+          // Extract indentation and list item
+          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const listItemMatch = div.match(/<li class="bullet-list">.*?<\/li>/);
+
+          if (indentMatch && listItemMatch) {
+            const indentation = indentMatch[1];
+            const listItem = listItemMatch[0];
+            // Insert indentation at the start of the list item content
+            return listItem.replace(/<li class="bullet-list">/, `<li class="bullet-list">${indentation}`);
+          }
+          return listItemMatch ? listItemMatch[0] : '';
+        }).filter(Boolean);
+
         return '<ul>' + items.join('') + '</ul>';
       }
       return match;
@@ -517,8 +561,22 @@ export class MarkdownParser {
 
     // Process ordered lists
     processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const items = match.match(/<li class="ordered-list">.*?<\/li>/gs) || [];
-      if (items.length > 0) {
+      const divs = match.match(/<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>/gs) || [];
+      if (divs.length > 0) {
+        const items = divs.map(div => {
+          // Extract indentation and list item
+          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const listItemMatch = div.match(/<li class="ordered-list">.*?<\/li>/);
+
+          if (indentMatch && listItemMatch) {
+            const indentation = indentMatch[1];
+            const listItem = listItemMatch[0];
+            // Insert indentation at the start of the list item content
+            return listItem.replace(/<li class="ordered-list">/, `<li class="ordered-list">${indentation}`);
+          }
+          return listItemMatch ? listItemMatch[0] : '';
+        }).filter(Boolean);
+
         return '<ol>' + items.join('') + '</ol>';
       }
       return match;

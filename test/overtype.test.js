@@ -86,6 +86,22 @@ console.log('\n📝 Parser Tests\n');
   });
 })();
 
+// Test: Strikethrough text
+(() => {
+  const tests = [
+    { input: '~~strikethrough text~~', expected: '<div><del><span class="syntax-marker">~~</span>strikethrough text<span class="syntax-marker">~~</span></del></div>' },
+    { input: '~strikethrough text~', expected: '<div><del><span class="syntax-marker">~</span>strikethrough text<span class="syntax-marker">~</span></del></div>' },
+    { input: '~~Hi~~ Hello, ~there~ world!', expected: '<div><del><span class="syntax-marker">~~</span>Hi<span class="syntax-marker">~~</span></del> Hello, <del><span class="syntax-marker">~</span>there<span class="syntax-marker">~</span></del> world!</div>' },
+    { input: '~~~not strikethrough~~~', expected: '<div>~~~not strikethrough~~~</div>' },
+    { input: 'This will ~~~not~~~ strike.', expected: '<div>This will ~~~not~~~ strike.</div>' }
+  ];
+  
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(htmlEqual(actual, test.expected), `Strikethrough: ${test.input}`, `Expected: ${test.expected}, Got: ${actual}`);
+  });
+})();
+
 // Test: Inline code
 (() => {
   const input = '`code`';
@@ -261,6 +277,16 @@ This is **bold** and *italic*.
       input: '__bold `code` and `more_code` bold__', 
       expected: '<div><strong><span class="syntax-marker">__</span>bold <code><span class="syntax-marker">`</span>code<span class="syntax-marker">`</span></code> and <code><span class="syntax-marker">`</span>more_code<span class="syntax-marker">`</span></code> bold<span class="syntax-marker">__</span></strong></div>',
       description: 'Should bold text spanning multiple code blocks'
+    },
+    { 
+      input: '~~strike `code_here` more strike~~', 
+      expected: '<div><del><span class="syntax-marker">~~</span>strike <code><span class="syntax-marker">`</span>code_here<span class="syntax-marker">`</span></code> more strike<span class="syntax-marker">~~</span></del></div>',
+      description: 'Should strikethrough text that spans across code blocks'
+    },
+    { 
+      input: '~strike `with_underscores` still strike~', 
+      expected: '<div><del><span class="syntax-marker">~</span>strike <code><span class="syntax-marker">`</span>with_underscores<span class="syntax-marker">`</span></code> still strike<span class="syntax-marker">~</span></del></div>',
+      description: 'Should handle single tilde strikethrough spanning code'
     }
   ];
 
@@ -309,6 +335,11 @@ This is **bold** and *italic*.
       expected: '<div><em><span class="syntax-marker">*</span>italic<span class="syntax-marker">*</span></em> <code><span class="syntax-marker">`</span>code_here<span class="syntax-marker">`</span></code> <strong><span class="syntax-marker">**</span>bold <code><span class="syntax-marker">`</span>spanning_code<span class="syntax-marker">`</span></code> bold<span class="syntax-marker">**</span></strong></div>',
       description: 'Should handle multiple different formatting types with code'
     },
+    { 
+      input: '~~strike~~ `code_here` **bold `spanning_code` bold**', 
+      expected: '<div><del><span class="syntax-marker">~~</span>strike<span class="syntax-marker">~~</span></del> <code><span class="syntax-marker">`</span>code_here<span class="syntax-marker">`</span></code> <strong><span class="syntax-marker">**</span>bold <code><span class="syntax-marker">`</span>spanning_code<span class="syntax-marker">`</span></code> bold<span class="syntax-marker">**</span></strong></div>',
+      description: 'Should handle strikethrough with other formatting types and code'
+    }
     // TODO: Known issue - inline code inside link text gets replaced with placeholder
     // This is a complex issue with the placeholder system that needs to be fixed later
     // {
@@ -351,6 +382,16 @@ This is **bold** and *italic*.
       input: '`[not_a_link](url)`',
       expected: '<div><code><span class="syntax-marker">`</span>[not_a_link](url)<span class="syntax-marker">`</span></code></div>',
       description: 'Should not process link markers inside code'
+    },
+    {
+      input: '`~~not_strikethrough~~`',
+      expected: '<div><code><span class="syntax-marker">`</span>~~not_strikethrough~~<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not process strikethrough markers inside code'
+    },
+    {
+      input: '`~also_not_strikethrough~`',
+      expected: '<div><code><span class="syntax-marker">`</span>~also_not_strikethrough~<span class="syntax-marker">`</span></code></div>',
+      description: 'Should not process single tilde strikethrough markers inside code'
     }
   ];
 
@@ -404,6 +445,17 @@ console.log('\n🔧 Integration Tests\n');
   assert(actual.includes('<em>'), 'Complex: italic', 'Should parse italic');
   assert(actual.includes('<code>'), 'Complex: code', 'Should parse code');
   assert(actual.includes('<a href="url"'), 'Complex: link', 'Should parse link');
+})();
+
+// Test: Complex nested markdown with strikethrough
+(() => {
+  const input = '## This has **bold**, *italic*, ~~strikethrough~~, `code`, and formatting!';
+  const actual = MarkdownParser.parseLine(input);
+  assert(actual.includes('<h2>'), 'Complex with strikethrough: header', 'Should parse header');
+  assert(actual.includes('<strong>'), 'Complex with strikethrough: bold', 'Should parse bold');
+  assert(actual.includes('<em>'), 'Complex with strikethrough: italic', 'Should parse italic');
+  assert(actual.includes('<del>'), 'Complex with strikethrough: strikethrough', 'Should parse strikethrough');
+  assert(actual.includes('<code>'), 'Complex with strikethrough: code', 'Should parse code');
 })();
 
 // Test: XSS prevention

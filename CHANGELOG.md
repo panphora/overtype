@@ -5,6 +5,41 @@ All notable changes to OverType will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.2.4] - 2025-09-04
+
+### Fixed
+- **Issue #48: Code formatting inside links** - Code button now disabled when cursor is inside a link
+  - Added `isInsideLink()` detection to toolbar to prevent placeholder issues
+  - Prevents Unicode placeholders from appearing when trying to format code within link text
+- **Issue #47: Tailwind CSS animation conflict** - Renamed keyframe to avoid clashes
+  - Changed `@keyframes pulse` to `@keyframes overtype-pulse` 
+  - Fixes conflict with Tailwind's `animate-pulse` utility class
+- **Issue #45: HTML output methods confusion** - Methods now have distinct purposes
+  - `getRenderedHTML()` returns HTML with syntax markers (for debugging)
+  - `getRenderedHTML({ cleanHTML: true })` returns clean HTML without OverType markup
+  - `getCleanHTML()` added as convenience alias for clean HTML
+  - `getPreviewHTML()` returns actual DOM content from preview layer
+- **Issue #43: TypeScript support** - Added comprehensive TypeScript definitions
+  - TypeScript definitions included in package (`dist/overtype.d.ts`)
+  - Added `types` field to package.json
+  - Definitions automatically tested during build process
+  - Full type support for all OverType features including themes, options, and methods
+- **Toolbar configuration** - Made toolbar button config more robust
+  - Fixed missing semicolon in toolbar.js
+  - Added proper fallback for undefined buttonConfig
+
+### Added  
+- TypeScript definition testing integrated into build process
+  - `test-types.ts` validates all type definitions
+  - Build fails if TypeScript definitions have errors
+  - Added `test:types` npm script for standalone testing
+
+### Changed
+- Link tooltip styles now use `!important` to prevent CSS reset overrides
+  - Ensures tooltip remains visible even with aggressive parent styles
+
 ## [1.2.3] - 2025-08-23
 
 ### Added
