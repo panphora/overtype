@@ -2,6 +2,8 @@
 // Project: https://github.com/panphora/overtype
 // Definitions generated from JSDoc comments and implementation
 
+/// <reference lib="es2015" />
+
 export interface Theme {
   name: string;
   colors: {
