@@ -1,16 +1,16 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~84KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~85KB minified with all features.
 
 ## Live Examples
 
 🎮 **Try it out**: [Interactive demos on overtype.dev](https://overtype.dev)
-- [Basic Editor](https://overtype.dev/#basic-editor)
-- [With Toolbar](https://overtype.dev/#toolbar)
-- [Multiple Instances](https://overtype.dev/#multiple-instances)
-- [View Modes](https://overtype.dev/#view-modes)
-- [Custom Themes](https://overtype.dev/#custom-themes)
-- [All Markdown Features](https://overtype.dev/#markdown-features)
+- [Basic Editor](https://overtype.dev/#basic-editor) - Minimal setup with live preview
+- [With Toolbar](https://overtype.dev/#toolbar) - Full formatting toolbar
+- [Multiple Instances](https://overtype.dev/demo.html#multiple-instances) - Several editors on one page
+- [View Modes](https://overtype.dev/demo.html#view-modes) - Preview synchronization
+- [Themes](https://overtype.dev/demo.html#themes) - Light/dark theme switching
+- [All Features](https://overtype.dev/demo.html#markdown-features) - Complete markdown showcase
 
 ## Features
 
@@ -19,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~84KB minified
+- 🚀 **Lightweight** - ~85KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -35,7 +35,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~84KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~85KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -574,31 +574,21 @@ Special thanks to:
 
 MIT
 
-## Related Projects
-
-### Synesthesia
-
-[Synesthesia](https://github.com/panphora/synesthesia) is a lightweight syntax highlighting editor library that extracted and refined the core textarea overlay technique from OverType. While OverType is focused on markdown editing with toolbar features, Synesthesia provides a more generalized code editing solution with:
-
-- **Pluggable parser system** - Support for any programming language or syntax
-- **Parser registry** - Automatic language detection by file extension or MIME type  
-- **Cleaner separation** - Extracted the overlay technique without markdown-specific features
-- **Smaller footprint** - ~84KB minified (vs OverType's ~78KB)
-
-Key components extracted from OverType to Synesthesia:
-- The transparent textarea overlay technique for perfect WYSIWYG alignment
-- Theme system with CSS variable support
-- DOM persistence and recovery mechanisms  
-- Auto-resize functionality
-- Event delegation for efficient multi-instance support
-
-If you need a markdown editor with toolbar and formatting features, use OverType. If you need a lightweight code editor with custom syntax highlighting, check out Synesthesia.
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-Ready for another radical idea?  
-[Let's remove every layer of the web application stack.](https://hyperclay.com)
+Built with the radical idea that sometimes dumb ideas work.
+
+---
+
+**Ready for another radical idea?**  
+Let's remove every layer of the web application stack.
+
+### Hyperclay
+
+[Hyperclay](https://hyperclay.com) by @panphora allows you to make a web app in a single, portable, self-updating, vanilla HTML file. No frameworks, no build steps, no deployment pipelines. Just a single HTML file that persists its own state and can be edited live.
+
+Think of it as a Google Document for interactive code, where the UI, logic, and data all live in one self-modifying file. Share apps instantly, edit them directly, use them offline.

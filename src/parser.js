@@ -144,8 +144,13 @@ export class MarkdownParser {
    * @returns {string} HTML with italic styling
    */
   static parseItalic(html) {
+    // Single asterisk - must not be adjacent to other asterisks
     html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
-    html = html.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
+    
+    // Single underscore - must be at word boundaries to avoid matching inside words
+    // This prevents matching underscores in the middle of words like "bold_with_underscore"
+    html = html.replace(/(?<=^|\s)_(?!_)(.+?)(?<!_)_(?!_)(?=\s|$)/g, '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
+    
     return html;
   }
 
@@ -234,51 +239,159 @@ export class MarkdownParser {
   }
 
   /**
+   * Identify and protect sanctuaries (code and links) before parsing
+   * @param {string} text - Text with potential markdown
+   * @returns {Object} Object with protected text and sanctuary map
+   */
+  static identifyAndProtectSanctuaries(text) {
+    const sanctuaries = new Map();
+    let sanctuaryCounter = 0;
+    let protectedText = text;
+    
+    // Create a map to track protected regions (URLs should not be processed)
+    const protectedRegions = [];
+    
+    // First, find all links and mark their URL regions as protected
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let linkMatch;
+    while ((linkMatch = linkRegex.exec(text)) !== null) {
+      // Calculate the exact position of the URL part
+      // linkMatch.index is the start of the match
+      // We need to find where "](" starts, then add 2 to get URL start
+      const bracketPos = linkMatch.index + linkMatch[0].indexOf('](');
+      const urlStart = bracketPos + 2;
+      const urlEnd = urlStart + linkMatch[2].length;
+      protectedRegions.push({ start: urlStart, end: urlEnd });
+    }
+    
+    // Now protect inline code, but skip if it's inside a protected region (URL)
+    const codeRegex = /(?<!`)(`+)(?!`)((?:(?!\1).)+?)(\1)(?!`)/g;
+    let codeMatch;
+    const codeMatches = [];
+    
+    while ((codeMatch = codeRegex.exec(text)) !== null) {
+      const codeStart = codeMatch.index;
+      const codeEnd = codeMatch.index + codeMatch[0].length;
+      
+      // Check if this code is inside a protected URL region
+      const inProtectedRegion = protectedRegions.some(region => 
+        codeStart >= region.start && codeEnd <= region.end
+      );
+      
+      if (!inProtectedRegion) {
+        codeMatches.push({
+          match: codeMatch[0],
+          index: codeMatch.index,
+          openTicks: codeMatch[1],
+          content: codeMatch[2],
+          closeTicks: codeMatch[3]
+        });
+      }
+    }
+    
+    // Replace code matches from end to start to preserve indices
+    codeMatches.sort((a, b) => b.index - a.index);
+    codeMatches.forEach(codeInfo => {
+      const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
+      sanctuaries.set(placeholder, {
+        type: 'code',
+        original: codeInfo.match,
+        openTicks: codeInfo.openTicks,
+        content: codeInfo.content,
+        closeTicks: codeInfo.closeTicks
+      });
+      protectedText = protectedText.substring(0, codeInfo.index) + 
+                     placeholder + 
+                     protectedText.substring(codeInfo.index + codeInfo.match.length);
+    });
+    
+    // Then protect links - they can contain sanctuary placeholders for code but not raw code
+    protectedText = protectedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+      const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
+      sanctuaries.set(placeholder, {
+        type: 'link',
+        original: match,
+        linkText,
+        url
+      });
+      return placeholder;
+    });
+    
+    return { protectedText, sanctuaries };
+  }
+  
+  /**
+   * Restore and transform sanctuaries back to HTML
+   * @param {string} html - HTML with sanctuary placeholders
+   * @param {Map} sanctuaries - Map of sanctuaries to restore
+   * @returns {string} HTML with sanctuaries restored and transformed
+   */
+  static restoreAndTransformSanctuaries(html, sanctuaries) {
+    // Sort sanctuary placeholders by position to restore in order
+    const placeholders = Array.from(sanctuaries.keys()).sort((a, b) => {
+      const indexA = html.indexOf(a);
+      const indexB = html.indexOf(b);
+      return indexA - indexB;
+    });
+    
+    placeholders.forEach(placeholder => {
+      const sanctuary = sanctuaries.get(placeholder);
+      let replacement;
+      
+      if (sanctuary.type === 'code') {
+        // Transform code sanctuary to HTML
+        replacement = `<code><span class="syntax-marker">${sanctuary.openTicks}</span>${this.escapeHtml(sanctuary.content)}<span class="syntax-marker">${sanctuary.closeTicks}</span></code>`;
+      } else if (sanctuary.type === 'link') {
+        // For links, we need to process the link text for markdown
+        let processedLinkText = sanctuary.linkText;
+        
+        // First restore any sanctuary placeholders that were already in the link text
+        // (e.g., inline code that was protected before the link)
+        sanctuaries.forEach((innerSanctuary, innerPlaceholder) => {
+          if (processedLinkText.includes(innerPlaceholder)) {
+            if (innerSanctuary.type === 'code') {
+              const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${this.escapeHtml(innerSanctuary.content)}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
+              processedLinkText = processedLinkText.replace(innerPlaceholder, codeHtml);
+            }
+          }
+        });
+        
+        // Now parse other markdown in the link text (bold, italic, etc)
+        processedLinkText = this.parseStrikethrough(processedLinkText);
+        processedLinkText = this.parseBold(processedLinkText);
+        processedLinkText = this.parseItalic(processedLinkText);
+        
+        // Transform link sanctuary to HTML
+        // URL should NOT be processed for markdown - use it as-is
+        const anchorName = `--link-${this.linkIndex++}`;
+        const safeUrl = this.sanitizeUrl(sanctuary.url);
+        replacement = `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">](${this.escapeHtml(sanctuary.url)})</span></a>`;
+      }
+      
+      html = html.replace(placeholder, replacement);
+    });
+    
+    return html;
+  }
+  
+  /**
    * Parse all inline elements in correct order
    * @param {string} text - Text with potential inline markdown
    * @returns {string} HTML with all inline styling
    */
   static parseInlineElements(text) {
-    let html = text;
-    // Order matters: parse code first
-    html = this.parseInlineCode(html);
-
-    // Use placeholders to protect inline code while preserving formatting spans
-    // We use Unicode Private Use Area (U+E000-U+F8FF) as placeholders because:
-    // 1. These characters are reserved for application-specific use
-    // 2. They'll never appear in user text
-    // 3. They maintain single-character width (important for alignment)
-    // 4. They're invisible if accidentally rendered
-    const sanctuaries = new Map();
-
-    // Protect code blocks
-    html = html.replace(/(<code>.*?<\/code>)/g, (match) => {
-      const placeholder = `\uE000${sanctuaries.size}\uE001`;
-      sanctuaries.set(placeholder, match);
-      return placeholder;
-    });
-
-    // Parse links AFTER protecting code but BEFORE bold/italic
-    // This ensures link URLs don't get processed as markdown
-    html = this.parseLinks(html);
-
-    // Protect entire link elements (not just the URL part)
-    html = html.replace(/(<a[^>]*>.*?<\/a>)/g, (match) => {
-      const placeholder = `\uE000${sanctuaries.size}\uE001`;
-      sanctuaries.set(placeholder, match);
-      return placeholder;
-    });
-
-    // Process other inline elements on text with placeholders
+    // Step 1: Identify and protect sanctuaries (code and links)
+    const { protectedText, sanctuaries } = this.identifyAndProtectSanctuaries(text);
+    
+    // Step 2: Parse other inline elements on protected text
+    let html = protectedText;
     html = this.parseStrikethrough(html);
     html = this.parseBold(html);
     html = this.parseItalic(html);
-
-    // Restore all sanctuaries
-    sanctuaries.forEach((content, placeholder) => {
-      html = html.replace(placeholder, content);
-    });
-
+    
+    // Step 3: Restore and transform sanctuaries
+    html = this.restoreAndTransformSanctuaries(html, sanctuaries);
+    
     return html;
   }
 

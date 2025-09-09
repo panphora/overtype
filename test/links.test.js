@@ -178,9 +178,11 @@ console.log('\n✨ Link Text Formatting\n');
   
   assert(
     parsed.includes('href="https://example.com"') &&
-    parsed.includes('**Bold Link**'),
+    parsed.includes('<strong>') &&
+    parsed.includes('Bold Link') &&
+    parsed.includes('</strong>'),
     'Link with bold text',
-    `Should preserve bold markers in link text. Got: ${parsed}`
+    `Should parse bold formatting inside link text. Got: ${parsed}`
   );
 })();
 

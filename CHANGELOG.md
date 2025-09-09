@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.6] - 2025-09-08
+
+### Fixed
+- **Re-enabled code button inside links** - Now that the sanctuary pattern properly handles inline code within link text, the code button works correctly without Unicode placeholder issues
+- **Removed unnecessary code** - Deleted the `isInsideLink` function that was no longer needed, reducing bundle size
+
+### Changed
+- **README update** - Replaced Synesthesia section with Hyperclay information
+
+## [1.2.5] - 2025-09-08
+
+### Fixed
+- **URL formatting protection** - Markdown formatting characters in URLs are now preserved as literal text
+  - Implemented "protected regions" strategy for URL portions of links
+  - Backticks, asterisks, underscores, and tildes in URLs remain unchanged
+  - Link text can still contain formatted content (bold, italic, code, etc.)
+  - Fixes issue where `[Link](https://example.com/`path`/file)` would break the URL
+- **Italic underscore handling** - Underscores now require word boundaries for italic formatting
+  - Prevents false matches in words like `bold_with_underscore`
+  - Single underscores only create italic at word boundaries
+
+### Added
+- Comprehensive sanctuary parsing test suite for URL protection
+- Release process documentation in contrib_docs/
+
 ## [1.2.4] - 2025-09-04
 
 ### Fixed

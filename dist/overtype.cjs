@@ -1,5 +1,5 @@
 /**
- * OverType v1.2.4
+ * OverType v1.2.6
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author Demo User
@@ -152,7 +152,7 @@ var MarkdownParser = class {
    */
   static parseItalic(html) {
     html = html.replace(new RegExp("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)", "g"), '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
-    html = html.replace(new RegExp("(?<!_)_(?!_)(.+?)(?<!_)_(?!_)", "g"), '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
+    html = html.replace(new RegExp("(?<=^|\\s)_(?!_)(.+?)(?<!_)_(?!_)(?=\\s|$)", "g"), '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
     return html;
   }
   /**
@@ -209,31 +209,116 @@ var MarkdownParser = class {
     });
   }
   /**
+   * Identify and protect sanctuaries (code and links) before parsing
+   * @param {string} text - Text with potential markdown
+   * @returns {Object} Object with protected text and sanctuary map
+   */
+  static identifyAndProtectSanctuaries(text) {
+    const sanctuaries = /* @__PURE__ */ new Map();
+    let sanctuaryCounter = 0;
+    let protectedText = text;
+    const protectedRegions = [];
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let linkMatch;
+    while ((linkMatch = linkRegex.exec(text)) !== null) {
+      const bracketPos = linkMatch.index + linkMatch[0].indexOf("](");
+      const urlStart = bracketPos + 2;
+      const urlEnd = urlStart + linkMatch[2].length;
+      protectedRegions.push({ start: urlStart, end: urlEnd });
+    }
+    const codeRegex = new RegExp("(?<!`)(`+)(?!`)((?:(?!\\1).)+?)(\\1)(?!`)", "g");
+    let codeMatch;
+    const codeMatches = [];
+    while ((codeMatch = codeRegex.exec(text)) !== null) {
+      const codeStart = codeMatch.index;
+      const codeEnd = codeMatch.index + codeMatch[0].length;
+      const inProtectedRegion = protectedRegions.some(
+        (region) => codeStart >= region.start && codeEnd <= region.end
+      );
+      if (!inProtectedRegion) {
+        codeMatches.push({
+          match: codeMatch[0],
+          index: codeMatch.index,
+          openTicks: codeMatch[1],
+          content: codeMatch[2],
+          closeTicks: codeMatch[3]
+        });
+      }
+    }
+    codeMatches.sort((a, b) => b.index - a.index);
+    codeMatches.forEach((codeInfo) => {
+      const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
+      sanctuaries.set(placeholder, {
+        type: "code",
+        original: codeInfo.match,
+        openTicks: codeInfo.openTicks,
+        content: codeInfo.content,
+        closeTicks: codeInfo.closeTicks
+      });
+      protectedText = protectedText.substring(0, codeInfo.index) + placeholder + protectedText.substring(codeInfo.index + codeInfo.match.length);
+    });
+    protectedText = protectedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+      const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
+      sanctuaries.set(placeholder, {
+        type: "link",
+        original: match,
+        linkText,
+        url
+      });
+      return placeholder;
+    });
+    return { protectedText, sanctuaries };
+  }
+  /**
+   * Restore and transform sanctuaries back to HTML
+   * @param {string} html - HTML with sanctuary placeholders
+   * @param {Map} sanctuaries - Map of sanctuaries to restore
+   * @returns {string} HTML with sanctuaries restored and transformed
+   */
+  static restoreAndTransformSanctuaries(html, sanctuaries) {
+    const placeholders = Array.from(sanctuaries.keys()).sort((a, b) => {
+      const indexA = html.indexOf(a);
+      const indexB = html.indexOf(b);
+      return indexA - indexB;
+    });
+    placeholders.forEach((placeholder) => {
+      const sanctuary = sanctuaries.get(placeholder);
+      let replacement;
+      if (sanctuary.type === "code") {
+        replacement = `<code><span class="syntax-marker">${sanctuary.openTicks}</span>${this.escapeHtml(sanctuary.content)}<span class="syntax-marker">${sanctuary.closeTicks}</span></code>`;
+      } else if (sanctuary.type === "link") {
+        let processedLinkText = sanctuary.linkText;
+        sanctuaries.forEach((innerSanctuary, innerPlaceholder) => {
+          if (processedLinkText.includes(innerPlaceholder)) {
+            if (innerSanctuary.type === "code") {
+              const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${this.escapeHtml(innerSanctuary.content)}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
+              processedLinkText = processedLinkText.replace(innerPlaceholder, codeHtml);
+            }
+          }
+        });
+        processedLinkText = this.parseStrikethrough(processedLinkText);
+        processedLinkText = this.parseBold(processedLinkText);
+        processedLinkText = this.parseItalic(processedLinkText);
+        const anchorName = `--link-${this.linkIndex++}`;
+        const safeUrl = this.sanitizeUrl(sanctuary.url);
+        replacement = `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">](${this.escapeHtml(sanctuary.url)})</span></a>`;
+      }
+      html = html.replace(placeholder, replacement);
+    });
+    return html;
+  }
+  /**
    * Parse all inline elements in correct order
    * @param {string} text - Text with potential inline markdown
    * @returns {string} HTML with all inline styling
    */
   static parseInlineElements(text) {
-    let html = text;
-    html = this.parseInlineCode(html);
-    const sanctuaries = /* @__PURE__ */ new Map();
-    html = html.replace(/(<code>.*?<\/code>)/g, (match) => {
-      const placeholder = `\uE000${sanctuaries.size}\uE001`;
-      sanctuaries.set(placeholder, match);
-      return placeholder;
-    });
-    html = this.parseLinks(html);
-    html = html.replace(/(<a[^>]*>.*?<\/a>)/g, (match) => {
-      const placeholder = `\uE000${sanctuaries.size}\uE001`;
-      sanctuaries.set(placeholder, match);
-      return placeholder;
-    });
+    const { protectedText, sanctuaries } = this.identifyAndProtectSanctuaries(text);
+    let html = protectedText;
     html = this.parseStrikethrough(html);
     html = this.parseBold(html);
     html = this.parseItalic(html);
-    sanctuaries.forEach((content, placeholder) => {
-      html = html.replace(placeholder, content);
-    });
+    html = this.restoreAndTransformSanctuaries(html, sanctuaries);
     return html;
   }
   /**
@@ -2524,51 +2609,6 @@ var Toolbar = class {
     this.buttonConfig = buttonConfig;
   }
   /**
-   * Check if cursor/selection is inside a markdown link
-   * @param {HTMLTextAreaElement} textarea - The textarea element
-   * @returns {boolean} True if inside a link
-   */
-  isInsideLink(textarea) {
-    const value = textarea.value;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    let insideLink = false;
-    let openBracket = -1;
-    let closeBracket = -1;
-    for (let i = start - 1; i >= 0; i--) {
-      if (value[i] === "[") {
-        openBracket = i;
-        break;
-      }
-      if (value[i] === "\n") {
-        break;
-      }
-    }
-    if (openBracket >= 0) {
-      for (let i = end; i < value.length - 1; i++) {
-        if (value[i] === "]" && value[i + 1] === "(") {
-          closeBracket = i;
-          break;
-        }
-        if (value[i] === "\n") {
-          break;
-        }
-      }
-    }
-    if (openBracket >= 0 && closeBracket >= 0) {
-      for (let i = closeBracket + 2; i < value.length; i++) {
-        if (value[i] === ")") {
-          insideLink = true;
-          break;
-        }
-        if (value[i] === "\n" || value[i] === " ") {
-          break;
-        }
-      }
-    }
-    return insideLink;
-  }
-  /**
    * Create and attach toolbar to editor
    */
   create() {
@@ -2671,9 +2711,6 @@ var Toolbar = class {
           insertLink(textarea);
           break;
         case "toggleCode":
-          if (this.isInsideLink(textarea)) {
-            return;
-          }
           toggleCode(textarea);
           break;
         case "toggleBulletList":

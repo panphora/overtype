@@ -74,22 +74,31 @@ The container uses CSS Grid for layout control, enabling proper toolbar and stat
 
 **Processing Pipeline:**
 1. HTML entity escaping
-2. Code block protection (fence detection)
-3. Inline code protection
-4. Link sanctuary creation
-5. Bold/italic parsing (with special underscore handling)
-6. Link restoration and rendering
+2. Protected region identification (URL portions of links)
+3. Selective inline code protection (excluding URL regions)
+4. Link sanctuary creation with preserved URLs
+5. Bold/italic parsing (with word-boundary underscore handling)
+6. Link restoration with separate text/URL processing
 7. List item detection
 8. Header transformation
 9. Post-processing (list consolidation, code block formatting)
 
+**Protected Regions Strategy:**
+The parser uses a "protected regions" approach for URLs to prevent markdown processing:
+- First pass identifies all link URLs and marks their byte positions as protected
+- Inline code detection skips any patterns within protected regions
+- URLs are restored verbatim while link text receives full markdown processing
+- This ensures special characters in URLs (`**`, `_`, `` ` ``, `~`) remain literal
+
 **Edge Cases Handled:**
 - Nested formatting (bold within italic, links with formatting)
 - Underscores in code not triggering emphasis
-- URLs containing markdown characters
+- URLs containing markdown characters (protected region strategy)
+- Underscores requiring word boundaries for italic (prevents `word_with_underscore` issues)
 - Mixed list types and indentation levels
 - Code blocks with markdown-like content
 - XSS attack vectors in URLs
+- Inline code within link text but not URLs
 
 ### 3. Style System
 

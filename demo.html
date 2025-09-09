@@ -157,7 +157,7 @@
 
     <div class="demo-container">
         <!-- Main Editor with Toolbar -->
-        <div class="demo-section">
+        <div class="demo-section" id="multiple-instances">
             <div class="demo-header">
                 <h2>Main Editor</h2>
                 <div class="demo-controls">
@@ -169,7 +169,7 @@
         </div>
 
         <!-- Preview Editor -->
-        <div class="demo-section">
+        <div class="demo-section" id="view-modes">
             <div class="demo-header">
                 <h2>Live Preview</h2>
                 <div class="demo-controls">
@@ -191,7 +191,7 @@
         </div>
 
         <!-- Code Editor -->
-        <div class="demo-section">
+        <div class="demo-section" id="markdown-features">
             <div class="demo-header">
                 <h2>Code Editor</h2>
             </div>
@@ -200,9 +200,11 @@
     </div>
 
     <!-- Theme Toggle -->
-    <button class="theme-toggle" onclick="toggleTheme()">
-        Toggle Theme
-    </button>
+    <div id="themes" style="text-align: center; padding: 20px;">
+        <button class="theme-toggle" id="custom-themes" onclick="toggleTheme()">
+            Toggle Theme
+        </button>
+    </div>
 
     <script src="dist/overtype.min.js"></script>
     <script>
