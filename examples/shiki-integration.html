@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType + Shiki.js Integration</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+
+        .editor-container {
+            height: 600px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            background: #4a90e2;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover { background: #357abd; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .status.loading { background: #fff3cd; border-color: #ffeaa7; }
+        .status.ready { background: #d4edda; border-color: #c3e6cb; }
+        .status.error { background: #f8d7da; border-color: #f5c6cb; }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .info h3 { margin-top: 0; color: #333; }
+        .info code {
+            background: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <h1>OverType + Shiki.js Integration</h1>
+    <p class="subtitle">Real-time syntax highlighting powered by Shiki's TextMate grammar engine</p>
+
+    <div id="editor" class="editor-container"></div>
+
+    <div class="controls">
+        <button onclick="setAdvancedExample()">Load Advanced Example</button>
+        <button onclick="setWebExample()">Load Web Example</button>
+        <button onclick="setDataExample()">Load Data Science Example</button>
+    </div>
+
+    <div id="status" class="status">Initializing Shiki syntax highlighter...</div>
+
+    <div class="info">
+        <h3>About This Integration</h3>
+        <p>This example demonstrates how to integrate <strong>Shiki.js</strong> with OverType for professional-grade syntax highlighting:</p>
+        <ul>
+            <li><strong>TextMate Grammars</strong>: Uses the same syntax highlighting as VS Code</li>
+            <li><strong>Multiple Themes</strong>: Supports dozens of color themes</li>
+            <li><strong>Language Support</strong>: 100+ programming languages</li>
+            <li><strong>Real-time</strong>: Highlights code as you type</li>
+            <li><strong>Preserves Alignment</strong>: Maintains perfect character positioning</li>
+        </ul>
+        <p><strong>Implementation:</strong> The integration uses OverType's <code>setCodeHighlighter</code> API to provide a custom highlighting function that calls Shiki's core tokenizer.</p>
+    </div>
+
+    <script type="module">
+        import { OverType } from "../dist/overtype.esm.js"
+        import { codeToHtml } from 'https://esm.sh/shiki@3.0.0';
+
+        window.codeToHtml = codeToHtml;
+
+        let highlighter = null;
+        let shikiEnabled = false;
+
+        // Initialize editor with sample content
+        const [editor] = new OverType('#editor', {
+            placeholder: 'Initialize Shiki to see syntax highlighting...',
+            value: `# Shiki.js Integration Demo
+
+Once Shiki is loaded, all code blocks will be highlighted with VS Code quality syntax highlighting.
+
+## JavaScript/TypeScript
+
+\`\`\`typescript
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    active: boolean;
+}
+
+class UserService {
+    private users: User[] = [];
+
+    async createUser(userData: Omit<User, 'id'>): Promise<User> {
+        const newUser: User = {
+            id: Date.now(),
+            ...userData
+        };
+
+        this.users.push(newUser);
+        await this.saveToDatabase(newUser);
+
+        return newUser;
+    }
+
+    findUserByEmail(email: string): User | undefined {
+        return this.users.find(user =>
+            user.email.toLowerCase() === email.toLowerCase() && user.active
+        );
+    }
+
+    private async saveToDatabase(user: User): Promise<void> {
+        // Simulate async database operation
+        return new Promise(resolve => setTimeout(resolve, 100));
+    }
+}
+
+export { UserService, User };
+\`\`\`
+
+## Python
+
+\`\`\`python
+from typing import List, Optional, Dict, Any
+import asyncio
+import json
+
+class DataProcessor:
+    def __init__(self, config: Dict[str, Any]):
+        self.config = config
+        self.processed_count = 0
+
+    async def process_batch(self, items: List[Dict]) -> List[Dict]:
+        """
+        Process a batch of items asynchronously
+        """
+        tasks = [self.process_item(item) for item in items]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Filter out exceptions
+        valid_results = [
+            result for result in results
+            if not isinstance(result, Exception)
+        ]
+
+        self.processed_count += len(valid_results)
+        return valid_results
+
+    async def process_item(self, item: Dict) -> Optional[Dict]:
+        # Simulate async processing
+        await asyncio.sleep(0.01)
+
+        if not item.get('valid', True):
+            raise ValueError(f"Invalid item: {item}")
+
+        return {
+            'id': item['id'],
+            'processed_data': item['data'].upper(),
+            'timestamp': time.time()
+        }
+
+# Usage example
+async def main():
+    processor = DataProcessor({'batch_size': 100})
+
+    sample_data = [
+        {'id': i, 'data': f'item_{i}', 'valid': True}
+        for i in range(50)
+    ]
+
+    results = await processor.process_batch(sample_data)
+    print(f"Processed {len(results)} items")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+\`\`\`
+
+## Rust
+
+\`\`\`rust
+use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use tokio::time::{sleep, Duration};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Config {
+    pub max_connections: usize,
+    pub timeout_ms: u64,
+    pub retry_attempts: u8,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            max_connections: 100,
+            timeout_ms: 5000,
+            retry_attempts: 3,
+        }
+    }
+}
+
+pub struct ConnectionPool {
+    config: Config,
+    active_connections: HashMap<String, Connection>,
+}
+
+impl ConnectionPool {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            active_connections: HashMap::new(),
+        }
+    }
+
+    pub async fn get_connection(&mut self, endpoint: &str) -> Result<&Connection, PoolError> {
+        if let Some(conn) = self.active_connections.get(endpoint) {
+            if conn.is_healthy().await {
+                return Ok(conn);
+            }
+        }
+
+        let conn = self.create_connection(endpoint).await?;
+        self.active_connections.insert(endpoint.to_string(), conn);
+
+        Ok(self.active_connections.get(endpoint).unwrap())
+    }
+
+    async fn create_connection(&self, endpoint: &str) -> Result<Connection, PoolError> {
+        for attempt in 1..=self.config.retry_attempts {
+            match Connection::connect(endpoint, self.config.timeout_ms).await {
+                Ok(conn) => return Ok(conn),
+                Err(e) if attempt == self.config.retry_attempts => return Err(e.into()),
+                Err(_) => sleep(Duration::from_millis(100 * attempt as u64)).await,
+            }
+        }
+
+        unreachable!()
+    }
+}
+\`\`\``,
+            onChange: (value, instance) => {
+                // Debounce highlighting for performance
+                clearTimeout(window.highlightTimeout);
+                window.highlightTimeout = setTimeout(() => {
+                    if (shikiEnabled && highlighter) {
+                        instance.updatePreview();
+                    }
+                }, 150);
+            }
+        });
+
+        async function initializeShiki() {
+            const statusDiv = document.getElementById('status');
+
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = 'Loading Shiki highlighter...';
+
+            try {
+                // Test Shiki 3.0 - no initialization needed
+                await window.codeToHtml('console.log("test")', {
+                    lang: 'javascript',
+                    theme: 'github-light'
+                });
+
+                statusDiv.className = 'status ready';
+                statusDiv.textContent = 'Shiki 3.0 loaded and syntax highlighting enabled!';
+
+                console.log('Shiki 3.0 loaded and ready');
+
+                // Automatically enable Shiki after successful initialization
+                enableShiki();
+
+            } catch (error) {
+                console.error('Failed to load Shiki:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Failed to load Shiki: ' + error.message;
+            }
+        }
+
+        // Shiki 3.0 highlighter function
+        async function shikiHighlighter(code, language) {
+            try {
+                // Map common language aliases
+                const languageMap = {
+                    'js': 'javascript',
+                    'ts': 'typescript',
+                    'py': 'python',
+                    'rs': 'rust',
+                    'sh': 'bash',
+                    'yml': 'yaml'
+                };
+
+                const normalizedLang = languageMap[language] || language || 'text';
+
+                // Get current theme - could be made configurable
+                const theme = 'github-light'; // Could sync with OverType theme
+
+                // Highlight the code using Shiki 3.0 API
+                const highlighted = await window.codeToHtml(code, {
+                    lang: normalizedLang,
+                    theme: theme
+                });
+
+                // Extract just the inner HTML from the pre>code element
+                // Shiki returns full HTML, we just need the content
+                const match = highlighted.match(/<code[^>]*>([\s\S]*?)<\/code>/);
+                return match ? match[1] : code;
+
+            } catch (error) {
+                console.warn('Shiki highlighting error for language:', language, error);
+                return code; // Fallback to plain text
+            }
+        }
+
+        // Wrapper for synchronous usage (with caching)
+        const highlightCache = new Map();
+        
+        function syncShikiHighlighter(code, language) {
+            const cacheKey = `${language}:${code.substring(0, 100)}`;
+            
+            if (highlightCache.has(cacheKey)) {
+                return highlightCache.get(cacheKey);
+            }
+            
+            // Start async highlighting
+            shikiHighlighter(code, language).then(result => {
+                highlightCache.set(cacheKey, result);
+                // Force re-render if this was a cache miss
+                if (shikiEnabled) {
+                    setTimeout(() => {
+                        OverType.setCodeHighlighter(syncShikiHighlighter);
+                    }, 10);
+                }
+            });
+            
+            // Return unhighlighted code while async highlighting is in progress
+            return code;
+        }
+
+        function enableShiki() {
+            const statusDiv = document.getElementById('status');
+
+            // Enable Shiki
+            OverType.setCodeHighlighter(syncShikiHighlighter);
+            shikiEnabled = true;
+            statusDiv.className = 'status ready';
+            statusDiv.textContent = 'Shiki 3.0 highlighting enabled - code blocks will be highlighted as you type';
+
+            console.log('Shiki highlighting enabled');
+        }
+
+        function setAdvancedExample() {
+            const content = `# Advanced Development Examples
+
+## React with Hooks and Context
+
+\`\`\`typescript
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { WebSocketService } from './websocket-service';
+
+interface AppState {
+    user: User | null;
+    notifications: Notification[];
+    isConnected: boolean;
+    theme: 'light' | 'dark';
+}
+
+type AppAction =
+    | { type: 'SET_USER'; payload: User }
+    | { type: 'ADD_NOTIFICATION'; payload: Notification }
+    | { type: 'SET_CONNECTION_STATUS'; payload: boolean }
+    | { type: 'TOGGLE_THEME' };
+
+const AppContext = createContext<{
+    state: AppState;
+    dispatch: React.Dispatch<AppAction>;
+} | null>(null);
+
+function appReducer(state: AppState, action: AppAction): AppState {
+    switch (action.type) {
+        case 'SET_USER':
+            return { ...state, user: action.payload };
+        case 'ADD_NOTIFICATION':
+            return {
+                ...state,
+                notifications: [...state.notifications, action.payload]
+            };
+        case 'SET_CONNECTION_STATUS':
+            return { ...state, isConnected: action.payload };
+        case 'TOGGLE_THEME':
+            return {
+                ...state,
+                theme: state.theme === 'light' ? 'dark' : 'light'
+            };
+        default:
+            return state;
+    }
+}
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [state, dispatch] = useReducer(appReducer, {
+        user: null,
+        notifications: [],
+        isConnected: false,
+        theme: 'light'
+    });
+
+    useEffect(() => {
+        const ws = new WebSocketService('ws://localhost:8080');
+
+        ws.on('connect', () => {
+            dispatch({ type: 'SET_CONNECTION_STATUS', payload: true });
+        });
+
+        ws.on('notification', (notification: Notification) => {
+            dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+        });
+
+        return () => ws.disconnect();
+    }, []);
+
+    return (
+        <AppContext.Provider value={{ state, dispatch }}>
+            {children}
+        </AppContext.Provider>
+    );
+};
+
+export const useApp = () => {
+    const context = useContext(AppContext);
+    if (!context) {
+        throw new Error('useApp must be used within AppProvider');
+    }
+    return context;
+};
+\`\`\`
+
+## Advanced Python: Machine Learning Pipeline
+
+\`\`\`python
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score, GridSearchCV
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+import joblib
+from typing import Dict, List, Tuple, Optional
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class MLPipeline:
+    """
+    Advanced machine learning pipeline with preprocessing,
+    model selection, and hyperparameter tuning
+    """
+
+    def __init__(self, config: Dict):
+        self.config = config
+        self.preprocessor = None
+        self.model = None
+        self.best_model = None
+
+    def create_preprocessor(self, X: pd.DataFrame) -> ColumnTransformer:
+        """Create preprocessing pipeline based on column types"""
+        numeric_features = X.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_features = X.select_dtypes(include=['object']).columns.tolist()
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', StandardScaler(), numeric_features),
+                ('cat', LabelEncoder(), categorical_features)
+            ],
+            remainder='passthrough'
+        )
+
+        logger.info(f"Created preprocessor with {len(numeric_features)} numeric and {len(categorical_features)} categorical features")
+        return preprocessor
+
+    def tune_hyperparameters(self, X: pd.DataFrame, y: pd.Series) -> Dict:
+        """Perform hyperparameter tuning using grid search"""
+
+        models = {
+            'random_forest': {
+                'model': RandomForestClassifier(random_state=42),
+                'params': {
+                    'model__n_estimators': [100, 200, 300],
+                    'model__max_depth': [10, 20, None],
+                    'model__min_samples_split': [2, 5, 10]
+                }
+            },
+            'gradient_boosting': {
+                'model': GradientBoostingClassifier(random_state=42),
+                'params': {
+                    'model__n_estimators': [100, 200],
+                    'model__learning_rate': [0.01, 0.1, 0.2],
+                    'model__max_depth': [3, 5, 7]
+                }
+            }
+        }
+
+        best_score = 0
+        best_model_name = None
+        best_params = None
+
+        for name, model_config in models.items():
+            logger.info(f"Tuning {name}...")
+
+            pipeline = Pipeline([
+                ('preprocessor', self.preprocessor),
+                ('model', model_config['model'])
+            ])
+
+            grid_search = GridSearchCV(
+                pipeline,
+                model_config['params'],
+                cv=5,
+                scoring='accuracy',
+                n_jobs=-1
+            )
+
+            grid_search.fit(X, y)
+
+            if grid_search.best_score_ > best_score:
+                best_score = grid_search.best_score_
+                best_model_name = name
+                best_params = grid_search.best_params_
+                self.best_model = grid_search.best_estimator_
+
+        logger.info(f"Best model: {best_model_name} with score: {best_score:.4f}")
+        return {
+            'model': best_model_name,
+            'score': best_score,
+            'params': best_params
+        }
+
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> Dict:
+        """Fit the complete pipeline"""
+        logger.info("Starting ML pipeline training...")
+
+        # Create preprocessor
+        self.preprocessor = self.create_preprocessor(X)
+
+        # Tune hyperparameters
+        results = self.tune_hyperparameters(X, y)
+
+        # Final cross-validation
+        cv_scores = cross_val_score(self.best_model, X, y, cv=5, scoring='accuracy')
+        results['cv_mean'] = cv_scores.mean()
+        results['cv_std'] = cv_scores.std()
+
+        logger.info(f"Cross-validation: {cv_scores.mean():.4f} (+/- {cv_scores.std() * 2:.4f})")
+
+        return results
+
+    def save_model(self, filepath: str):
+        """Save the trained model"""
+        if self.best_model is None:
+            raise ValueError("No trained model to save")
+
+        joblib.dump(self.best_model, filepath)
+        logger.info(f"Model saved to {filepath}")
+
+# Usage example
+if __name__ == "__main__":
+    # Load data
+    data = pd.read_csv('training_data.csv')
+    X = data.drop('target', axis=1)
+    y = data['target']
+
+    # Initialize and train pipeline
+    config = {
+        'test_size': 0.2,
+        'random_state': 42,
+        'cv_folds': 5
+    }
+
+    pipeline = MLPipeline(config)
+    results = pipeline.fit(X, y)
+
+    print("Training Results:", results)
+    pipeline.save_model('best_model.joblib')
+\`\`\``;
+
+            editor.setValue(content);
+        }
+
+        function setWebExample() {
+            const content = `# Web Development Stack
+
+## Modern Express.js API with Middleware
+
+\`\`\`javascript
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
+
+const app = express();
+
+// Security middleware
+app.use(helmet());
+app.use(cors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || 'http://localhost:3000',
+    credentials: true
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP'
+});
+app.use('/api/', limiter);
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Custom middleware for logging
+const requestLogger = (req, res, next) => {
+    const start = Date.now();
+
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        console.log(
+            \`\${new Date().toISOString()} - \${req.method} \${req.originalUrl} - \${res.statusCode} - \${duration}ms\`
+        );
+    });
+
+    next();
+};
+
+app.use(requestLogger);
+
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ error: 'Access token required' });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ error: 'Invalid or expired token' });
+        }
+        req.user = user;
+        next();
+    });
+};
+
+// Validation middleware
+const validateUser = [
+    body('email').isEmail().normalizeEmail(),
+    body('password').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)/),
+    body('name').trim().isLength({ min: 2, max: 50 }),
+];
+
+const handleValidationErrors = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            error: 'Validation failed',
+            details: errors.array()
+        });
+    }
+    next();
+};
+
+// Routes
+app.post('/api/auth/register', validateUser, handleValidationErrors, async (req, res) => {
+    try {
+        const { email, password, name } = req.body;
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(409).json({ error: 'User already exists' });
+        }
+
+        // Hash password
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        // Create user
+        const user = new User({
+            email,
+            password: hashedPassword,
+            name,
+            createdAt: new Date()
+        });
+
+        await user.save();
+
+        // Generate JWT
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        res.status(201).json({
+            message: 'User created successfully',
+            token,
+            user: {
+                id: user._id,
+                email: user.email,
+                name: user.name
+            }
+        });
+
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+app.get('/api/users/profile', authenticateToken, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({ user });
+    } catch (error) {
+        console.error('Profile fetch error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({
+        error: 'Something went wrong',
+        ...(process.env.NODE_ENV === 'development' && { details: err.message })
+    });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+    res.status(404).json({ error: 'Endpoint not found' });
+});
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+    console.log(\`Server running on port \${PORT}\`);
+});
+\`\`\`
+
+## Vue 3 Composition API Component
+
+\`\`\`vue
+<template>
+  <div class="user-dashboard">
+    <header class="dashboard-header">
+      <h1>Welcome, {{ user.name }}</h1>
+      <button @click="toggleTheme" class="theme-toggle">
+        {{ isDarkMode ? '☀️' : '🌙' }}
+      </button>
+    </header>
+
+    <div class="dashboard-content">
+      <div class="stats-grid">
+        <StatCard
+          v-for="stat in stats"
+          :key="stat.id"
+          :title="stat.title"
+          :value="stat.value"
+          :trend="stat.trend"
+          :loading="loading"
+        />
+      </div>
+
+      <div class="chart-section">
+        <h2>Activity Chart</h2>
+        <ChartComponent
+          :data="chartData"
+          :options="chartOptions"
+          @data-point-click="handleDataPointClick"
+        />
+      </div>
+
+      <div class="recent-activity">
+        <h2>Recent Activity</h2>
+        <TransitionGroup name="list" tag="ul">
+          <li
+            v-for="activity in recentActivities"
+            :key="activity.id"
+            class="activity-item"
+            @click="viewActivity(activity)"
+          >
+            <div class="activity-icon">{{ activity.icon }}</div>
+            <div class="activity-details">
+              <span class="activity-title">{{ activity.title }}</span>
+              <span class="activity-time">{{ formatTime(activity.timestamp) }}</span>
+            </div>
+          </li>
+        </TransitionGroup>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user';
+import { useTheme } from '@/composables/useTheme';
+import StatCard from '@/components/StatCard.vue';
+import ChartComponent from '@/components/Chart.vue';
+import type { Activity, Stats, ChartData } from '@/types';
+
+interface Props {
+  userId?: string;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  userId: ''
+});
+
+const emit = defineEmits<{
+  activitySelected: [activity: Activity];
+  statsUpdated: [stats: Stats[]];
+}>();
+
+const router = useRouter();
+const userStore = useUserStore();
+const { isDarkMode, toggleTheme } = useTheme();
+
+// Reactive state
+const loading = ref(true);
+const stats = ref<Stats[]>([]);
+const chartData = ref<ChartData | null>(null);
+const recentActivities = ref<Activity[]>([]);
+
+// Computed properties
+const user = computed(() => userStore.currentUser);
+const chartOptions = computed(() => ({
+  responsive: true,
+  plugins: {
+    legend: {
+      position: 'top' as const,
+    },
+    title: {
+      display: true,
+      text: 'User Activity Over Time'
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: true,
+      grid: {
+        color: isDarkMode.value ? '#374151' : '#e5e7eb'
+      }
+    },
+    x: {
+      grid: {
+        color: isDarkMode.value ? '#374151' : '#e5e7eb'
+      }
+    }
+  }
+}));
+
+// Methods
+const fetchDashboardData = async () => {
+  try {
+    loading.value = true;
+
+    const [statsData, chartResponse, activitiesData] = await Promise.all([
+      fetch('/api/stats').then(res => res.json()),
+      fetch('/api/chart-data').then(res => res.json()),
+      fetch('/api/activities').then(res => res.json())
+    ]);
+
+    stats.value = statsData;
+    chartData.value = chartResponse;
+    recentActivities.value = activitiesData;
+
+    emit('statsUpdated', stats.value);
+  } catch (error) {
+    console.error('Failed to fetch dashboard data:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleDataPointClick = (dataPoint: any) => {
+  console.log('Data point clicked:', dataPoint);
+  // Handle chart interaction
+};
+
+const viewActivity = (activity: Activity) => {
+  emit('activitySelected', activity);
+  router.push(\`/activity/\${activity.id}\`);
+};
+
+const formatTime = (timestamp: string) => {
+  return new Date(timestamp).toLocaleString();
+};
+
+// Lifecycle hooks
+onMounted(() => {
+  fetchDashboardData();
+});
+
+// Watchers
+watch(() => props.userId, (newUserId) => {
+  if (newUserId) {
+    fetchDashboardData();
+  }
+}, { immediate: true });
+
+// Auto-refresh data every 5 minutes
+setInterval(fetchDashboardData, 5 * 60 * 1000);
+<\/script>
+
+<style scoped>
+.user-dashboard {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.chart-section, .recent-activity {
+  background: var(--card-background);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.activity-item:hover {
+  background: var(--hover-background);
+}
+
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+</style>
+\`\`\``;
+
+            editor.setValue(content);
+        }
+
+        function setDataExample() {
+            const content = `# Data Science & Analytics
+
+## Advanced Pandas Data Processing
+
+\`\`\`python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+import warnings
+warnings.filterwarnings('ignore')
+
+class AdvancedDataAnalyzer:
+    """
+    Comprehensive data analysis toolkit with preprocessing,
+    visualization, and modeling capabilities
+    """
+
+    def __init__(self, data: pd.DataFrame):
+        self.data = data.copy()
+        self.processed_data = None
+        self.model = None
+        self.feature_importance = None
+
+    def exploratory_data_analysis(self) -> dict:
+        """Perform comprehensive EDA"""
+        print("🔍 Performing Exploratory Data Analysis...")
+
+        # Basic info
+        analysis_results = {
+            'shape': self.data.shape,
+            'dtypes': self.data.dtypes.to_dict(),
+            'missing_values': self.data.isnull().sum().to_dict(),
+            'numeric_summary': self.data.describe().to_dict(),
+            'categorical_summary': {}
+        }
+
+        # Categorical analysis
+        categorical_cols = self.data.select_dtypes(include=['object']).columns
+        for col in categorical_cols:
+            analysis_results['categorical_summary'][col] = {
+                'unique_count': self.data[col].nunique(),
+                'top_values': self.data[col].value_counts().head().to_dict()
+            }
+
+        # Correlation analysis
+        numeric_cols = self.data.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) > 1:
+            correlation_matrix = self.data[numeric_cols].corr()
+            analysis_results['high_correlations'] = self._find_high_correlations(correlation_matrix)
+
+        return analysis_results
+
+    def _find_high_correlations(self, corr_matrix: pd.DataFrame, threshold: float = 0.8) -> list:
+        """Find pairs of highly correlated features"""
+        high_corr_pairs = []
+        for i in range(len(corr_matrix.columns)):
+            for j in range(i+1, len(corr_matrix.columns)):
+                corr_value = abs(corr_matrix.iloc[i, j])
+                if corr_value > threshold:
+                    high_corr_pairs.append({
+                        'feature1': corr_matrix.columns[i],
+                        'feature2': corr_matrix.columns[j],
+                        'correlation': round(corr_value, 3)
+                    })
+        return high_corr_pairs
+
+    def advanced_preprocessing(self, target_column: str) -> pd.DataFrame:
+        """Advanced data preprocessing pipeline"""
+        print("🔧 Starting advanced preprocessing...")
+
+        df = self.data.copy()
+
+        # Handle missing values intelligently
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        categorical_cols = df.select_dtypes(include=['object']).columns
+
+        # Numeric columns - use median for skewed, mean for normal
+        for col in numeric_cols:
+            if col != target_column and df[col].isnull().sum() > 0:
+                if abs(df[col].skew()) > 1:  # Highly skewed
+                    fill_value = df[col].median()
+                    print(f"Filling {col} with median: {fill_value}")
+                else:
+                    fill_value = df[col].mean()
+                    print(f"Filling {col} with mean: {fill_value}")
+                df[col].fillna(fill_value, inplace=True)
+
+        # Categorical columns - use mode or create 'Unknown' category
+        for col in categorical_cols:
+            if df[col].isnull().sum() > 0:
+                if df[col].nunique() < 10:  # Low cardinality
+                    fill_value = df[col].mode()[0]
+                    print(f"Filling {col} with mode: {fill_value}")
+                else:  # High cardinality
+                    fill_value = 'Unknown'
+                    print(f"Filling {col} with 'Unknown'")
+                df[col].fillna(fill_value, inplace=True)
+
+        # Feature engineering
+        df = self._create_engineered_features(df)
+
+        # Encode categorical variables
+        label_encoders = {}
+        for col in categorical_cols:
+            if col in df.columns:  # Check if column still exists
+                le = LabelEncoder()
+                df[f"{col}_encoded"] = le.fit_transform(df[col].astype(str))
+                label_encoders[col] = le
+                print(f"Encoded {col}: {le.classes_[:5]}...")  # Show first 5 classes
+
+        # Detect and handle outliers using IQR method
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            if col != target_column:
+                Q1 = df[col].quantile(0.25)
+                Q3 = df[col].quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - 1.5 * IQR
+                upper_bound = Q3 + 1.5 * IQR
+
+                outliers_count = len(df[(df[col] < lower_bound) | (df[col] > upper_bound)])
+                if outliers_count > 0:
+                    print(f"Found {outliers_count} outliers in {col}")
+                    # Cap outliers instead of removing them
+                    df[col] = np.clip(df[col], lower_bound, upper_bound)
+
+        self.processed_data = df
+        self.label_encoders = label_encoders
+        return df
+
+    def _create_engineered_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Create engineered features based on domain knowledge"""
+        print("⚙️ Creating engineered features...")
+
+        # Date features if datetime columns exist
+        date_columns = df.select_dtypes(include=['datetime64']).columns
+        for col in date_columns:
+            df[f"{col}_year"] = df[col].dt.year
+            df[f"{col}_month"] = df[col].dt.month
+            df[f"{col}_day"] = df[col].dt.day
+            df[f"{col}_dayofweek"] = df[col].dt.dayofweek
+            df[f"{col}_quarter"] = df[col].dt.quarter
+            print(f"Created date features for {col}")
+
+        # Interaction features for numeric columns
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) >= 2:
+            # Create polynomial features for top 3 numeric columns
+            for i, col1 in enumerate(numeric_cols[:3]):
+                for j, col2 in enumerate(numeric_cols[i+1:4], i+1):
+                    if col1 != col2:
+                        df[f"{col1}_{col2}_product"] = df[col1] * df[col2]
+                        df[f"{col1}_{col2}_ratio"] = np.where(
+                            df[col2] != 0, df[col1] / df[col2], 0
+                        )
+
+        # Binning continuous variables
+        for col in numeric_cols[:3]:  # Bin top 3 numeric columns
+            if df[col].nunique() > 10:  # Only if sufficient unique values
+                df[f"{col}_binned"] = pd.cut(df[col], bins=5, labels=False)
+                print(f"Created bins for {col}")
+
+        return df
+
+    def train_predictive_model(self, target_column: str, test_size: float = 0.2):
+        """Train a predictive model with feature selection"""
+        print("🤖 Training predictive model...")
+
+        if self.processed_data is None:
+            raise ValueError("Data must be preprocessed first")
+
+        df = self.processed_data.copy()
+
+        # Prepare features and target
+        feature_cols = df.select_dtypes(include=[np.number]).columns
+        feature_cols = [col for col in feature_cols if col != target_column]
+
+        X = df[feature_cols]
+        y = df[target_column]
+
+        # Split the data
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=42
+        )
+
+        # Scale features
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
+        # Train Random Forest model
+        self.model = RandomForestRegressor(
+            n_estimators=100,
+            max_depth=10,
+            min_samples_split=5,
+            min_samples_leaf=2,
+            random_state=42,
+            n_jobs=-1
+        )
+
+        self.model.fit(X_train_scaled, y_train)
+
+        # Make predictions
+        y_train_pred = self.model.predict(X_train_scaled)
+        y_test_pred = self.model.predict(X_test_scaled)
+
+        # Calculate metrics
+        train_rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
+        test_rmse = np.sqrt(mean_squared_error(y_test, y_test_pred))
+        train_r2 = r2_score(y_train, y_train_pred)
+        test_r2 = r2_score(y_test, y_test_pred)
+
+        # Feature importance
+        self.feature_importance = pd.DataFrame({
+            'feature': feature_cols,
+            'importance': self.model.feature_importances_
+        }).sort_values('importance', ascending=False)
+
+        results = {
+            'train_rmse': train_rmse,
+            'test_rmse': test_rmse,
+            'train_r2': train_r2,
+            'test_r2': test_r2,
+            'feature_importance': self.feature_importance.head(10),
+            'model': self.model,
+            'scaler': scaler
+        }
+
+        print(f"Model Performance:")
+        print(f"  Train RMSE: {train_rmse:.4f}")
+        print(f"  Test RMSE: {test_rmse:.4f}")
+        print(f"  Train R²: {train_r2:.4f}")
+        print(f"  Test R²: {test_r2:.4f}")
+
+        return results
+
+    def create_interactive_visualizations(self):
+        """Create interactive visualizations using Plotly"""
+        print("📊 Creating interactive visualizations...")
+
+        if self.processed_data is None:
+            raise ValueError("Data must be preprocessed first")
+
+        df = self.processed_data
+        numeric_cols = df.select_dtypes(include=[np.number]).columns[:5]
+
+        # Correlation heatmap
+        fig_corr = go.Figure(data=go.Heatmap(
+            z=df[numeric_cols].corr().values,
+            x=numeric_cols,
+            y=numeric_cols,
+            colorscale='RdYlBu',
+            text=df[numeric_cols].corr().round(2).values,
+            texttemplate="%{text}",
+            textfont={"size": 10},
+        ))
+
+        fig_corr.update_layout(
+            title="Feature Correlation Heatmap",
+            width=600, height=500
+        )
+
+        # Feature importance plot (if model is trained)
+        fig_importance = None
+        if self.feature_importance is not None:
+            fig_importance = px.bar(
+                self.feature_importance.head(10),
+                x='importance',
+                y='feature',
+                orientation='h',
+                title='Top 10 Feature Importance',
+                labels={'importance': 'Importance Score', 'feature': 'Features'}
+            )
+
+        # Distribution plots
+        fig_dist = go.Figure()
+        for col in numeric_cols[:3]:  # Show top 3 numeric columns
+            fig_dist.add_trace(go.Histogram(
+                x=df[col],
+                name=col,
+                opacity=0.7,
+                nbinsx=30
+            ))
+
+        fig_dist.update_layout(
+            title="Distribution of Numeric Features",
+            xaxis_title="Value",
+            yaxis_title="Frequency",
+            barmode='overlay'
+        )
+
+        return {
+            'correlation_heatmap': fig_corr,
+            'feature_importance': fig_importance,
+            'distributions': fig_dist
+        }
+
+# Usage Example
+if __name__ == "__main__":
+    # Load sample dataset (replace with your data)
+    # For demonstration, creating synthetic data
+    np.random.seed(42)
+    n_samples = 1000
+
+    sample_data = pd.DataFrame({
+        'feature_1': np.random.normal(100, 15, n_samples),
+        'feature_2': np.random.exponential(2, n_samples),
+        'feature_3': np.random.randint(1, 100, n_samples),
+        'category_1': np.random.choice(['A', 'B', 'C', 'D'], n_samples),
+        'category_2': np.random.choice(['X', 'Y', 'Z'], n_samples),
+        'date_column': pd.date_range('2020-01-01', periods=n_samples, freq='D'),
+        'target': np.random.normal(50, 10, n_samples)
+    })
+
+    # Add some missing values for demonstration
+    sample_data.loc[np.random.choice(sample_data.index, 50, replace=False), 'feature_1'] = np.nan
+    sample_data.loc[np.random.choice(sample_data.index, 30, replace=False), 'category_1'] = np.nan
+
+    # Initialize analyzer
+    analyzer = AdvancedDataAnalyzer(sample_data)
+
+    # Perform EDA
+    eda_results = analyzer.exploratory_data_analysis()
+    print("EDA Results:", eda_results['shape'])
+
+    # Preprocess data
+    processed_df = analyzer.advanced_preprocessing('target')
+
+    # Train model
+    model_results = analyzer.train_predictive_model('target')
+
+    # Create visualizations
+    plots = analyzer.create_interactive_visualizations()
+
+    print("\\n🎉 Analysis complete! Model trained with R² score:",
+          f"{model_results['test_r2']:.4f}")
+\`\`\`
+
+## SQL Advanced Analytics
+
+\`\`\`sql
+-- Advanced SQL Analytics: Customer Segmentation and Cohort Analysis
+WITH customer_metrics AS (
+    -- Calculate comprehensive customer metrics
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        c.email,
+        c.registration_date,
+
+        -- Recency (days since last order)
+        COALESCE(
+            DATE_DIFF(CURRENT_DATE, MAX(o.order_date), DAY),
+            999
+        ) AS recency_days,
+
+        -- Frequency (number of orders)
+        COUNT(DISTINCT o.order_id) AS order_frequency,
+
+        -- Monetary (total spend)
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_spend,
+
+        -- Average order value
+        COALESCE(
+            SUM(oi.quantity * oi.unit_price) / NULLIF(COUNT(DISTINCT o.order_id), 0),
+            0
+        ) AS avg_order_value,
+
+        -- Customer lifetime (days since registration)
+        DATE_DIFF(CURRENT_DATE, c.registration_date, DAY) AS customer_lifetime_days,
+
+        -- Favorite category
+        (
+            SELECT pc.category_name
+            FROM order_items oi2
+            JOIN orders o2 ON oi2.order_id = o2.order_id
+            JOIN products p ON oi2.product_id = p.product_id
+            JOIN product_categories pc ON p.category_id = pc.category_id
+            WHERE o2.customer_id = c.customer_id
+            GROUP BY pc.category_name
+            ORDER BY SUM(oi2.quantity) DESC
+            LIMIT 1
+        ) AS favorite_category,
+
+        -- Seasonal purchase pattern
+        CASE
+            WHEN EXTRACT(MONTH FROM MAX(o.order_date)) IN (12, 1, 2) THEN 'Winter'
+            WHEN EXTRACT(MONTH FROM MAX(o.order_date)) IN (3, 4, 5) THEN 'Spring'
+            WHEN EXTRACT(MONTH FROM MAX(o.order_date)) IN (6, 7, 8) THEN 'Summer'
+            ELSE 'Fall'
+        END AS last_purchase_season
+
+    FROM customers c
+    LEFT JOIN orders o ON c.customer_id = o.customer_id
+    LEFT JOIN order_items oi ON o.order_id = oi.order_id
+    WHERE c.registration_date >= '2020-01-01'  -- Focus on recent customers
+    GROUP BY c.customer_id, c.first_name, c.last_name, c.email, c.registration_date
+),
+
+rfm_scores AS (
+    -- Calculate RFM scores using quartiles
+    SELECT *,
+        -- Recency Score (lower days = higher score)
+        CASE
+            WHEN recency_days <= 30 THEN 4
+            WHEN recency_days <= 90 THEN 3
+            WHEN recency_days <= 180 THEN 2
+            ELSE 1
+        END AS recency_score,
+
+        -- Frequency Score
+        CASE
+            WHEN order_frequency >= 10 THEN 4
+            WHEN order_frequency >= 5 THEN 3
+            WHEN order_frequency >= 2 THEN 2
+            ELSE 1
+        END AS frequency_score,
+
+        -- Monetary Score
+        CASE
+            WHEN total_spend >= 1000 THEN 4
+            WHEN total_spend >= 500 THEN 3
+            WHEN total_spend >= 100 THEN 2
+            ELSE 1
+        END AS monetary_score
+
+    FROM customer_metrics
+),
+
+customer_segments AS (
+    -- Define customer segments based on RFM scores
+    SELECT *,
+        CASE
+            WHEN recency_score = 4 AND frequency_score >= 3 AND monetary_score >= 3
+                THEN 'Champions'
+            WHEN recency_score >= 3 AND frequency_score >= 2 AND monetary_score >= 2
+                THEN 'Loyal Customers'
+            WHEN recency_score >= 3 AND frequency_score <= 2 AND monetary_score <= 2
+                THEN 'Potential Loyalists'
+            WHEN recency_score >= 2 AND frequency_score <= 2 AND monetary_score >= 3
+                THEN 'Big Spenders'
+            WHEN recency_score >= 3 AND frequency_score <= 1
+                THEN 'New Customers'
+            WHEN recency_score = 2 AND frequency_score >= 2
+                THEN 'At Risk'
+            WHEN recency_score = 1 AND frequency_score >= 3 AND monetary_score >= 3
+                THEN 'Cannot Lose Them'
+            WHEN recency_score = 1 AND frequency_score >= 2
+                THEN 'Hibernating'
+            ELSE 'Lost'
+        END AS customer_segment,
+
+        -- Customer value tier
+        CASE
+            WHEN total_spend >= 1000 THEN 'High Value'
+            WHEN total_spend >= 250 THEN 'Medium Value'
+            ELSE 'Low Value'
+        END AS value_tier
+
+    FROM rfm_scores
+),
+
+cohort_analysis AS (
+    -- Monthly cohort analysis
+    SELECT
+        DATE_TRUNC(c.registration_date, MONTH) AS cohort_month,
+        DATE_DIFF(
+            DATE_TRUNC(o.order_date, MONTH),
+            DATE_TRUNC(c.registration_date, MONTH),
+            MONTH
+        ) AS period_number,
+        COUNT(DISTINCT c.customer_id) AS customers_in_period
+
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    WHERE c.registration_date >= '2022-01-01'
+    GROUP BY cohort_month, period_number
+),
+
+cohort_sizes AS (
+    -- Get initial cohort sizes
+    SELECT
+        cohort_month,
+        COUNT(DISTINCT customer_id) AS cohort_size
+    FROM customers
+    WHERE registration_date >= '2022-01-01'
+    GROUP BY DATE_TRUNC(registration_date, MONTH)
+),
+
+retention_rates AS (
+    -- Calculate retention rates
+    SELECT
+        ca.cohort_month,
+        ca.period_number,
+        ca.customers_in_period,
+        cs.cohort_size,
+        ROUND(
+            100.0 * ca.customers_in_period / cs.cohort_size, 2
+        ) AS retention_rate
+    FROM cohort_analysis ca
+    JOIN cohort_sizes cs ON ca.cohort_month = cs.cohort_month
+)
+
+-- Final comprehensive analysis
+SELECT
+    '=== CUSTOMER SEGMENTATION SUMMARY ===' AS analysis_type,
+    customer_segment,
+    COUNT(*) AS segment_size,
+    ROUND(AVG(total_spend), 2) AS avg_spend,
+    ROUND(AVG(order_frequency), 1) AS avg_orders,
+    ROUND(AVG(recency_days), 1) AS avg_recency_days,
+    ROUND(AVG(customer_lifetime_days), 0) AS avg_lifetime_days,
+
+    -- Recommended actions
+    CASE customer_segment
+        WHEN 'Champions' THEN 'Reward them. They can become early adopters for new products.'
+        WHEN 'Loyal Customers' THEN 'Upsell higher value products. Ask for reviews.'
+        WHEN 'Potential Loyalists' THEN 'Offer membership or loyalty program.'
+        WHEN 'New Customers' THEN 'Provide on-boarding support, special offers.'
+        WHEN 'At Risk' THEN 'Send personalized emails, offer discounts.'
+        WHEN 'Cannot Lose Them' THEN 'Win them back via renewals, helpful products.'
+        WHEN 'Hibernating' THEN 'Offer other products and special discounts.'
+        ELSE 'Revive interest with reach out campaign, ignore otherwise.'
+    END AS recommended_action
+
+FROM customer_segments
+GROUP BY customer_segment
+ORDER BY segment_size DESC
+
+UNION ALL
+
+-- Category performance analysis
+SELECT
+    '=== TOP CATEGORIES BY SEGMENT ===' AS analysis_type,
+    CONCAT(customer_segment, ' - ', favorite_category) AS segment_category,
+    COUNT(*) AS customers,
+    NULL AS avg_spend,
+    NULL AS avg_orders,
+    NULL AS avg_recency_days,
+    NULL AS avg_lifetime_days,
+    'Focus marketing efforts on these category preferences' AS recommended_action
+FROM customer_segments
+WHERE favorite_category IS NOT NULL
+GROUP BY customer_segment, favorite_category
+HAVING COUNT(*) >= 10  -- Only show significant patterns
+ORDER BY customers DESC
+LIMIT 20;
+
+-- Separate query for retention analysis visualization
+SELECT
+    cohort_month,
+    period_number,
+    retention_rate,
+
+    -- Create a readable period label
+    CASE period_number
+        WHEN 0 THEN 'Month 0 (Registration)'
+        WHEN 1 THEN 'Month 1'
+        WHEN 2 THEN 'Month 2'
+        WHEN 3 THEN 'Month 3'
+        WHEN 6 THEN 'Month 6'
+        WHEN 12 THEN 'Month 12'
+        ELSE CONCAT('Month ', period_number)
+    END AS period_label,
+
+    -- Retention health indicator
+    CASE
+        WHEN period_number = 1 AND retention_rate >= 50 THEN 'Excellent'
+        WHEN period_number = 1 AND retention_rate >= 30 THEN 'Good'
+        WHEN period_number = 1 AND retention_rate >= 20 THEN 'Average'
+        WHEN period_number = 3 AND retention_rate >= 25 THEN 'Good'
+        WHEN period_number = 6 AND retention_rate >= 15 THEN 'Good'
+        ELSE 'Needs Attention'
+    END AS retention_health
+
+FROM retention_rates
+WHERE period_number IN (0, 1, 2, 3, 6, 12)  -- Focus on key periods
+ORDER BY cohort_month, period_number;
+\`\`\``;
+
+            editor.setValue(content);
+        }
+
+        // Expose functions to global scope for onclick handlers
+        window.setAdvancedExample = setAdvancedExample;
+        window.setWebExample = setWebExample;
+        window.setDataExample = setDataExample;
+
+        console.log('Shiki integration example loaded');
+        
+        // Automatically initialize Shiki when the page loads
+        initializeShiki();
+    </script>
+</body>
+</html>

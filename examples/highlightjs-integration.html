@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType + highlight.js Integration</title>
+
+    <!-- Highlight.js CSS Theme -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css" id="hljs-theme">
+
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+
+        .editor-container {
+            height: 600px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button, select {
+            padding: 8px 16px;
+            border: none;
+            background: #4a90e2;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        select {
+            background: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        button:hover { background: #357abd; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .status.ready { background: #d4edda; border-color: #c3e6cb; }
+        .status.error { background: #f8d7da; border-color: #f5c6cb; }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .info h3 { margin-top: 0; color: #333; }
+        .info code {
+            background: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        .theme-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .feature {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #4a90e2;
+        }
+
+        .feature h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .feature p {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>OverType + highlight.js Integration</h1>
+    <p class="subtitle">Real-time syntax highlighting with highlight.js auto-detection and 180+ languages</p>
+
+    <div id="editor" class="editor-container"></div>
+
+    <div class="controls">
+        <div class="theme-selector">
+            <label for="themeSelect">Theme:</label>
+            <select id="themeSelect">
+                <option value="github">GitHub</option>
+                <option value="github-dark">GitHub Dark</option>
+                <option value="vs2015">VS2015</option>
+                <option value="atom-one-dark">Atom One Dark</option>
+                <option value="atom-one-light">Atom One Light</option>
+                <option value="monokai-sublime">Monokai</option>
+                <option value="stackoverflow-light">Stack Overflow Light</option>
+                <option value="stackoverflow-dark">Stack Overflow Dark</option>
+            </select>
+        </div>
+        <button onclick="loadWebDevExample()">Web Dev Example</button>
+        <button onclick="loadSystemsExample()">Systems Example</button>
+        <button onclick="loadDataExample()">Data Example</button>
+    </div>
+
+    <div id="status" class="status">Initializing highlight.js syntax highlighting...</div>
+
+    <div class="info">
+        <h3>About highlight.js Integration</h3>
+        <p>This example demonstrates OverType's integration with <strong>highlight.js</strong>, a popular syntax highlighting library:</p>
+
+        <div class="features">
+            <div class="feature">
+                <h4>🎨 Themes</h4>
+                <p>Choose from dozens of color themes to match your design</p>
+            </div>
+            <div class="feature">
+                <h4>🔍 Auto-Detection</h4>
+                <p>Automatically detects language when not specified</p>
+            </div>
+            <div class="feature">
+                <h4>📚 180+ Languages</h4>
+                <p>Supports virtually every programming language</p>
+            </div>
+            <div class="feature">
+                <h4>⚡ Performance</h4>
+                <p>Fast highlighting with minimal overhead</p>
+            </div>
+            <div class="feature">
+                <h4>🔧 Easy Setup</h4>
+                <p>Simple CDN integration, no build process required</p>
+            </div>
+            <div class="feature">
+                <h4>📱 Universal</h4>
+                <p>Works in all modern browsers and environments</p>
+            </div>
+        </div>
+
+        <h3>Implementation</h3>
+        <p>The integration uses OverType's <code>setCodeHighlighter</code> API with highlight.js's programmatic API for real-time highlighting as you type.</p>
+    </div>
+
+    <!-- Load highlight.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+    <!-- Additional languages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/kotlin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/swift.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/ruby.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/scala.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/dockerfile.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/nginx.min.js"></script>
+
+    <script type="module">
+        import { OverType } from "../dist/overtype.esm.js"
+
+        let highlightingEnabled = false;
+        let currentTheme = 'github';
+
+        // Initialize editor with sample content
+        const [editor] = new OverType('#editor', {
+            placeholder: 'Initialize highlight.js to see syntax highlighting...',
+            value: `# highlight.js Integration Demo
+
+Once highlight.js is loaded, all code blocks will be highlighted with auto language detection.
+
+## JavaScript/Node.js
+
+\`\`\`javascript
+// Express.js API with async/await
+const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// Async route handler with error handling
+app.get('/api/users/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await getUserById(id);
+
+        if (!user) {
+            return res.status(404).json({
+                error: 'User not found',
+                code: 'USER_NOT_FOUND'
+            });
+        }
+
+        res.json({
+            user: {
+                ...user,
+                // Remove sensitive fields
+                password: undefined,
+                resetToken: undefined
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(\`Server running on port \${PORT}\`);
+});
+\`\`\`
+
+## Python
+
+\`\`\`python
+# Data processing with pandas and asyncio
+import pandas as pd
+import asyncio
+import aiohttp
+from typing import List, Dict, Optional
+
+class AsyncDataProcessor:
+    def __init__(self, api_base_url: str, concurrency_limit: int = 10):
+        self.api_base_url = api_base_url
+        self.semaphore = asyncio.Semaphore(concurrency_limit)
+        self.session: Optional[aiohttp.ClientSession] = None
+
+    async def __aenter__(self):
+        self.session = aiohttp.ClientSession()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            await self.session.close()
+
+    async def process_batch(self, items: List[Dict]) -> pd.DataFrame:
+        """Process a batch of items concurrently"""
+        tasks = [self.process_item(item) for item in items]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Filter successful results
+        valid_results = [
+            result for result in results
+            if not isinstance(result, Exception)
+        ]
+
+        return pd.DataFrame(valid_results)
+
+    async def process_item(self, item: Dict) -> Dict:
+        async with self.semaphore:
+            url = f"{self.api_base_url}/process"
+
+            async with self.session.post(url, json=item) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return {
+                        'id': item['id'],
+                        'processed_at': pd.Timestamp.now(),
+                        'result': data['result'],
+                        'confidence': data.get('confidence', 0.0)
+                    }
+                else:
+                    raise aiohttp.ClientError(f"API error: {response.status}")
+
+# Usage
+async def main():
+    items = [{'id': i, 'data': f'item_{i}'} for i in range(100)]
+
+    async with AsyncDataProcessor('https://api.example.com') as processor:
+        df = await processor.process_batch(items)
+        print(f"Processed {len(df)} items successfully")
+
+        # Save to CSV
+        df.to_csv('processed_data.csv', index=False)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+\`\`\`
+
+## Go
+
+\`\`\`go
+// Concurrent web scraper with channels and goroutines
+package main
+
+import (
+    "context"
+    "fmt"
+    "io"
+    "net/http"
+    "sync"
+    "time"
+)
+
+type Result struct {
+    URL     string
+    Content string
+    Error   error
+    Duration time.Duration
+}
+
+type Scraper struct {
+    client      *http.Client
+    concurrency int
+    timeout     time.Duration
+}
+
+func NewScraper(concurrency int, timeout time.Duration) *Scraper {
+    return &Scraper{
+        client: &http.Client{
+            Timeout: timeout,
+        },
+        concurrency: concurrency,
+        timeout:     timeout,
+    }
+}
+
+func (s *Scraper) ScrapeURLs(ctx context.Context, urls []string) <-chan Result {
+    results := make(chan Result, len(urls))
+    work := make(chan string, len(urls))
+
+    // Send work to channel
+    go func() {
+        defer close(work)
+        for _, url := range urls {
+            select {
+            case work <- url:
+            case <-ctx.Done():
+                return
+            }
+        }
+    }()
+
+    // Start workers
+    var wg sync.WaitGroup
+    for i := 0; i < s.concurrency; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            s.worker(ctx, work, results)
+        }()
+    }
+
+    // Close results channel when all workers are done
+    go func() {
+        wg.Wait()
+        close(results)
+    }()
+
+    return results
+}
+
+func (s *Scraper) worker(ctx context.Context, work <-chan string, results chan<- Result) {
+    for url := range work {
+        select {
+        case <-ctx.Done():
+            return
+        default:
+            result := s.scrapeURL(ctx, url)
+            select {
+            case results <- result:
+            case <-ctx.Done():
+                return
+            }
+        }
+    }
+}
+
+func (s *Scraper) scrapeURL(ctx context.Context, url string) Result {
+    start := time.Now()
+
+    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+    if err != nil {
+        return Result{URL: url, Error: err, Duration: time.Since(start)}
+    }
+
+    resp, err := s.client.Do(req)
+    if err != nil {
+        return Result{URL: url, Error: err, Duration: time.Since(start)}
+    }
+    defer resp.Body.Close()
+
+    content, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return Result{URL: url, Error: err, Duration: time.Since(start)}
+    }
+
+    return Result{
+        URL:      url,
+        Content:  string(content),
+        Duration: time.Since(start),
+    }
+}
+
+func main() {
+    urls := []string{
+        "https://example.com",
+        "https://httpbin.org/json",
+        "https://jsonplaceholder.typicode.com/posts/1",
+    }
+
+    scraper := NewScraper(3, 10*time.Second)
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    results := scraper.ScrapeURLs(ctx, urls)
+
+    for result := range results {
+        if result.Error != nil {
+            fmt.Printf("Error scraping %s: %v (took %v)\n",
+                result.URL, result.Error, result.Duration)
+        } else {
+            fmt.Printf("Successfully scraped %s (%d bytes, took %v)\n",
+                result.URL, len(result.Content), result.Duration)
+        }
+    }
+}
+\`\`\``,
+            onChange: (value, instance) => {
+                // Debounce highlighting for performance
+                clearTimeout(window.highlightTimeout);
+                if (highlightingEnabled) {
+                    window.highlightTimeout = setTimeout(() => {
+                        instance.updatePreview();
+                    }, 150);
+                }
+            }
+        });
+
+        function initializeHighlightJs() {
+            const statusDiv = document.getElementById('status');
+
+            try {
+                // Configure highlight.js
+                hljs.configure({
+                    ignoreUnescapedHTML: true,  // Important for our use case
+                    throwUnescapedHTML: false
+                });
+
+                statusDiv.className = 'status ready';
+                statusDiv.textContent = 'highlight.js loaded and syntax highlighting enabled!';
+
+                console.log('highlight.js loaded with languages:', hljs.listLanguages());
+
+                // Automatically enable highlighting after successful initialization
+                enableHighlighting();
+
+            } catch (error) {
+                console.error('Failed to initialize highlight.js:', error);
+                statusDiv.className = 'status error';
+                statusDiv.textContent = 'Failed to initialize highlight.js: ' + error.message;
+            }
+        }
+
+        // highlight.js highlighter function
+        function highlightJsHighlighter(code, language) {
+            try {
+                // Map common language aliases
+                const languageMap = {
+                    'js': 'javascript',
+                    'ts': 'typescript',
+                    'py': 'python',
+                    'rs': 'rust',
+                    'sh': 'bash',
+                    'yml': 'yaml',
+                    'dockerfile': 'docker'
+                };
+
+                const normalizedLang = languageMap[language] || language;
+
+                // If language is specified and supported, use it
+                if (normalizedLang && hljs.getLanguage(normalizedLang)) {
+                    const result = hljs.highlight(code, { language: normalizedLang });
+                    return result.value;
+                } else if (normalizedLang) {
+                    // If language specified but not supported, try auto-detection
+                    console.warn('Language not supported by highlight.js:', normalizedLang);
+                }
+
+                // Auto-detect language if not specified or not supported
+                const result = hljs.highlightAuto(code);
+
+                // Log detected language for debugging
+                if (result.language) {
+                    console.log('Auto-detected language:', result.language, 'for code starting with:', code.substring(0, 50));
+                }
+
+                return result.value;
+
+            } catch (error) {
+                console.error('highlight.js highlighting error:', error);
+                // Return escaped HTML as fallback
+                return hljs.util.escapeHtml(code);
+            }
+        }
+
+        function enableHighlighting() {
+            const statusDiv = document.getElementById('status');
+
+            // Enable highlighting
+            OverType.setCodeHighlighter(highlightJsHighlighter);
+            highlightingEnabled = true;
+            statusDiv.className = 'status ready';
+            statusDiv.textContent = 'highlight.js highlighting enabled - code blocks will be highlighted as you type';
+
+            console.log('highlight.js highlighting enabled');
+        }
+
+        function changeTheme() {
+            const themeSelect = document.getElementById('themeSelect');
+            const newTheme = themeSelect.value;
+            const themeLink = document.getElementById('hljs-theme');
+
+            // If same theme, no-op
+            if (currentTheme === newTheme) return;
+
+            // Swap CSS with cache-busting and wait for load, then re-render
+            const href = `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/${newTheme}.min.css`;
+
+            // Create a new link to avoid missing 'load' on same element
+            const newLink = document.createElement('link');
+            newLink.rel = 'stylesheet';
+            newLink.id = 'hljs-theme-temp';
+            newLink.href = href + `?v=${Date.now()}`; // bust cache when theme switching rapidly
+
+            newLink.addEventListener('load', () => {
+                // Replace old link with the loaded one
+                themeLink.replaceWith(newLink);
+                newLink.id = 'hljs-theme';
+                currentTheme = newTheme;
+
+                // Re-apply highlighter and refresh preview to ensure classes/styles apply
+                if (highlightingEnabled) {
+                    OverType.setCodeHighlighter(highlightJsHighlighter);
+                    // Debounced immediate refresh of preview
+                    try { editor.updatePreview(); } catch (_) {}
+                }
+
+                console.log('Changed theme to:', newTheme);
+            }, { once: true });
+
+            // Append to head to start loading
+            document.head.appendChild(newLink);
+        }
+
+        function loadWebDevExample() {
+            const content = `# Web Development Stack
+
+## React with TypeScript and Hooks
+
+\`\`\`typescript
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  avatar?: string;
+}
+
+interface ApiResponse<T> {
+  data: T;
+  success: boolean;
+  message?: string;
+}
+
+const UserManagement: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await axios.get<ApiResponse<User[]>>('/api/users');
+
+      if (response.data.success) {
+        setUsers(response.data.data);
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch users');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching users:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const deleteUser = async (userId: number) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(\`/api/users/\${userId}\`);
+      setUsers(prev => prev.filter(user => user.id !== userId));
+    } catch (err) {
+      setError('Failed to delete user');
+      console.error('Error deleting user:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  if (loading) {
+    return <div className="loading-spinner">Loading users...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <p className="error-message">{error}</p>
+        <button onClick={fetchUsers} className="retry-button">
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="user-management">
+      <h2>User Management</h2>
+      <div className="user-grid">
+        {users.map(user => (
+          <div key={user.id} className="user-card">
+            {user.avatar && (
+              <img
+                src={user.avatar}
+                alt={\`\${user.name}'s avatar\`}
+                className="user-avatar"
+              />
+            )}
+            <h3>{user.name}</h3>
+            <p className="user-email">{user.email}</p>
+            <div className="user-actions">
+              <button onClick={() => deleteUser(user.id)}>
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default UserManagement;
+\`\`\`
+
+## CSS with Modern Features
+
+\`\`\`css
+/* Modern CSS with Grid, Flexbox, and Custom Properties */
+:root {
+  --primary-color: #007acc;
+  --secondary-color: #f0f8ff;
+  --text-color: #333;
+  --border-radius: clamp(4px, 1vw, 8px);
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+}
+
+.user-management {
+  container-type: inline-size;
+  padding: var(--spacing-lg);
+}
+
+.user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+}
+
+.user-card {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.user-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: var(--spacing-sm);
+}
+
+.user-email {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.user-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+/* Container Queries for responsive design */
+@container (max-width: 600px) {
+  .user-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #4db8ff;
+    --secondary-color: #1a1a1a;
+    --text-color: #f0f0f0;
+  }
+
+  .user-card {
+    background: #2a2a2a;
+    color: var(--text-color);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .user-card {
+    border: 2px solid var(--primary-color);
+  }
+}
+\`\`\`
+
+## Vue 3 Composition API
+
+\`\`\`vue
+<template>
+  <div class="product-catalog">
+    <SearchFilters
+      v-model:search="searchQuery"
+      v-model:category="selectedCategory"
+      v-model:priceRange="priceRange"
+      :categories="categories"
+      @reset="resetFilters"
+    />
+
+    <div class="product-grid">
+      <TransitionGroup name="product" tag="div">
+        <ProductCard
+          v-for="product in filteredProducts"
+          :key="product.id"
+          :product="product"
+          @add-to-cart="addToCart"
+          @toggle-favorite="toggleFavorite"
+        />
+      </TransitionGroup>
+    </div>
+
+    <LoadingSpinner v-if="loading" />
+    <EmptyState v-else-if="filteredProducts.length === 0" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
+import { useProductStore } from '@/stores/product';
+import { useCartStore } from '@/stores/cart';
+import { useFavoritesStore } from '@/stores/favorites';
+import type { Product, Category, PriceRange } from '@/types';
+
+// Store composables
+const productStore = useProductStore();
+const cartStore = useCartStore();
+const favoritesStore = useFavoritesStore();
+
+// Reactive state
+const searchQuery = ref('');
+const selectedCategory = ref<string | null>(null);
+const priceRange = ref<PriceRange>({ min: 0, max: 1000 });
+const loading = ref(true);
+
+// Computed properties
+const products = computed(() => productStore.products);
+const categories = computed(() => productStore.categories);
+
+const filteredProducts = computed(() => {
+  let filtered = products.value;
+
+  // Search filter
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(product =>
+      product.name.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query) ||
+      product.tags?.some(tag => tag.toLowerCase().includes(query))
+    );
+  }
+
+  // Category filter
+  if (selectedCategory.value) {
+    filtered = filtered.filter(product =>
+      product.categoryId === selectedCategory.value
+    );
+  }
+
+  // Price range filter
+  filtered = filtered.filter(product =>
+    product.price >= priceRange.value.min &&
+    product.price <= priceRange.value.max
+  );
+
+  return filtered.sort((a, b) => {
+    // Sort by favorites first, then by name
+    const aFav = favoritesStore.isFavorite(a.id);
+    const bFav = favoritesStore.isFavorite(b.id);
+
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+
+    return a.name.localeCompare(b.name);
+  });
+});
+
+// Methods
+const addToCart = (product: Product, quantity: number = 1) => {
+  cartStore.addItem(product, quantity);
+};
+
+const toggleFavorite = (product: Product) => {
+  favoritesStore.toggle(product.id);
+};
+
+const resetFilters = () => {
+  searchQuery.value = '';
+  selectedCategory.value = null;
+  priceRange.value = { min: 0, max: 1000 };
+};
+
+// Watchers
+watch([searchQuery, selectedCategory, priceRange], () => {
+  // Analytics tracking
+  productStore.trackFilterUsage({
+    search: searchQuery.value,
+    category: selectedCategory.value,
+    priceRange: priceRange.value
+  });
+}, { deep: true });
+
+// Lifecycle
+onMounted(async () => {
+  try {
+    await Promise.all([
+      productStore.fetchProducts(),
+      productStore.fetchCategories()
+    ]);
+  } catch (error) {
+    console.error('Failed to load catalog data:', error);
+  } finally {
+    loading.value = false;
+  }
+});
+<\/script>
+
+<style scoped>
+.product-catalog {
+  padding: 2rem;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+/* Transition animations */
+.product-enter-active,
+.product-leave-active {
+  transition: all 0.5s ease;
+}
+
+.product-enter-from,
+.product-leave-to {
+  opacity: 0;
+  transform: scale(0.8) translateY(20px);
+}
+
+.product-move {
+  transition: transform 0.5s ease;
+}
+</style>
+\`\`\`\`;
+
+            editor.setValue(content);
+        }
+
+        function loadSystemsExample() {
+            const content = \`# Systems Programming
+
+## Rust Systems Programming
+
+\`\`\`rust
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
+use std::time::{Duration, Instant};
+use tokio::sync::mpsc;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetricPoint {
+    timestamp: u64,
+    value: f64,
+    labels: HashMap<String, String>,
+}
+
+#[derive(Debug)]
+pub struct MetricsCollector {
+    metrics: Arc<RwLock<HashMap<String, Vec<MetricPoint>>>>,
+    aggregators: Arc<Mutex<Vec<Box<dyn Aggregator + Send>>>>,
+}
+
+pub trait Aggregator: Send + Sync {
+    fn aggregate(&self, metrics: &[MetricPoint]) -> Option<f64>;
+    fn name(&self) -> &'static str;
+}
+
+pub struct AverageAggregator;
+pub struct MaxAggregator;
+pub struct P95Aggregator;
+
+impl Aggregator for AverageAggregator {
+    fn aggregate(&self, metrics: &[MetricPoint]) -> Option<f64> {
+        if metrics.is_empty() {
+            return None;
+        }
+        let sum: f64 = metrics.iter().map(|m| m.value).sum();
+        Some(sum / metrics.len() as f64)
+    }
+
+    fn name(&self) -> &'static str {
+        "average"
+    }
+}
+
+impl Aggregator for MaxAggregator {
+    fn aggregate(&self, metrics: &[MetricPoint]) -> Option<f64> {
+        metrics.iter().map(|m| m.value).fold(None, |acc, val| {
+            Some(acc.map_or(val, |acc_val| acc_val.max(val)))
+        })
+    }
+
+    fn name(&self) -> &'static str {
+        "max"
+    }
+}
+
+impl Aggregator for P95Aggregator {
+    fn aggregate(&self, metrics: &[MetricPoint]) -> Option<f64> {
+        if metrics.is_empty() {
+            return None;
+        }
+
+        let mut values: Vec<f64> = metrics.iter().map(|m| m.value).collect();
+        values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+        let index = ((values.len() as f64) * 0.95) as usize;
+        values.get(index.min(values.len() - 1)).copied()
+    }
+
+    fn name(&self) -> &'static str {
+        "p95"
+    }
+}
+
+impl MetricsCollector {
+    pub fn new() -> Self {
+        Self {
+            metrics: Arc::new(RwLock::new(HashMap::new())),
+            aggregators: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+
+    pub fn add_aggregator(&self, aggregator: Box<dyn Aggregator + Send>) {
+        let mut aggregators = self.aggregators.lock().unwrap();
+        aggregators.push(aggregator);
+    }
+
+    pub fn record_metric(&self, name: String, point: MetricPoint) -> Result<(), Box<dyn std::error::Error>> {
+        let mut metrics = self.metrics.write().map_err(|_| "Lock poisoned")?;
+        metrics.entry(name).or_insert_with(Vec::new).push(point);
+        Ok(())
+    }
+
+    pub async fn start_collection_loop(&self, mut receiver: mpsc::Receiver<(String, MetricPoint)>) {
+        let metrics = Arc::clone(&self.metrics);
+
+        tokio::spawn(async move {
+            while let Some((name, point)) = receiver.recv().await {
+                if let Ok(mut metrics_map) = metrics.write() {
+                    metrics_map.entry(name).or_insert_with(Vec::new).push(point);
+                }
+            }
+        });
+    }
+
+    pub fn aggregate_metrics(&self, metric_name: &str, window: Duration) -> HashMap<String, f64> {
+        let mut results = HashMap::new();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let window_start = now - window.as_secs();
+
+        if let Ok(metrics) = self.metrics.read() {
+            if let Some(metric_points) = metrics.get(metric_name) {
+                let windowed_points: Vec<MetricPoint> = metric_points
+                    .iter()
+                    .filter(|point| point.timestamp >= window_start)
+                    .cloned()
+                    .collect();
+
+                if let Ok(aggregators) = self.aggregators.lock() {
+                    for aggregator in aggregators.iter() {
+                        if let Some(value) = aggregator.aggregate(&windowed_points) {
+                            results.insert(aggregator.name().to_string(), value);
+                        }
+                    }
+                }
+            }
+        }
+
+        results
+    }
+
+    pub fn cleanup_old_metrics(&self, retention: Duration) {
+        let cutoff = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() - retention.as_secs();
+
+        if let Ok(mut metrics) = self.metrics.write() {
+            for (_, points) in metrics.iter_mut() {
+                points.retain(|point| point.timestamp >= cutoff);
+            }
+
+            // Remove empty metric series
+            metrics.retain(|_, points| !points.is_empty());
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let collector = Arc::new(MetricsCollector::new());
+
+    // Add aggregators
+    collector.add_aggregator(Box::new(AverageAggregator));
+    collector.add_aggregator(Box::new(MaxAggregator));
+    collector.add_aggregator(Box::new(P95Aggregator));
+
+    // Create metrics channel
+    let (sender, receiver) = mpsc::channel(1000);
+
+    // Start collection loop
+    collector.start_collection_loop(receiver).await;
+
+    // Simulate metric collection
+    let collector_clone = Arc::clone(&collector);
+    let sender_clone = sender.clone();
+
+    tokio::spawn(async move {
+        let mut counter = 0;
+        loop {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs();
+
+            let metric = MetricPoint {
+                timestamp: now,
+                value: (counter as f64 * 1.5) + (rand::random::<f64>() * 10.0),
+                labels: {
+                    let mut labels = HashMap::new();
+                    labels.insert("service".to_string(), "api".to_string());
+                    labels.insert("instance".to_string(), format!("host-{}", counter % 3));
+                    labels
+                },
+            };
+
+            if sender_clone.send(("response_time".to_string(), metric)).await.is_err() {
+                break;
+            }
+
+            counter += 1;
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
+    // Periodic aggregation and cleanup
+    let collector_clone = Arc::clone(&collector);
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(10));
+
+        loop {
+            interval.tick().await;
+
+            // Aggregate metrics
+            let aggregated = collector_clone.aggregate_metrics(
+                "response_time",
+                Duration::from_secs(60)
+            );
+
+            println!("Aggregated metrics: {:?}", aggregated);
+
+            // Cleanup old metrics
+            collector_clone.cleanup_old_metrics(Duration::from_secs(300));
+        }
+    });
+
+    // Keep the main thread alive
+    tokio::time::sleep(Duration::from_secs(30)).await;
+    println!("Metrics collection completed");
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_average_aggregator() {
+        let aggregator = AverageAggregator;
+        let metrics = vec![
+            MetricPoint { timestamp: 1, value: 10.0, labels: HashMap::new() },
+            MetricPoint { timestamp: 2, value: 20.0, labels: HashMap::new() },
+            MetricPoint { timestamp: 3, value: 30.0, labels: HashMap::new() },
+        ];
+
+        let result = aggregator.aggregate(&metrics);
+        assert_eq!(result, Some(20.0));
+    }
+
+    #[tokio::test]
+    async fn test_metrics_collection() {
+        let collector = MetricsCollector::new();
+        collector.add_aggregator(Box::new(AverageAggregator));
+
+        let metric = MetricPoint {
+            timestamp: 1,
+            value: 42.0,
+            labels: HashMap::new(),
+        };
+
+        collector.record_metric("test_metric".to_string(), metric).unwrap();
+
+        let aggregated = collector.aggregate_metrics(
+            "test_metric",
+            Duration::from_secs(60)
+        );
+
+        assert!(aggregated.contains_key("average"));
+        assert_eq!(aggregated["average"], 42.0);
+    }
+}
+\`\`\`
+
+## C++ High-Performance Computing
+
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <memory>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+#include <chrono>
+#include <algorithm>
+#include <numeric>
+#include <future>
+#include <queue>
+
+template<typename T>
+class ThreadSafeQueue {
+private:
+    mutable std::mutex mtx_;
+    std::queue<T> queue_;
+    std::condition_variable condition_;
+
+public:
+    ThreadSafeQueue() = default;
+
+    ThreadSafeQueue(const ThreadSafeQueue& other) {
+        std::lock_guard<std::mutex> lock(other.mtx_);
+        queue_ = other.queue_;
+    }
+
+    ThreadSafeQueue& operator=(const ThreadSafeQueue&) = delete;
+
+    void push(T item) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        queue_.push(std::move(item));
+        condition_.notify_one();
+    }
+
+    bool try_pop(T& item) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        if (queue_.empty()) {
+            return false;
+        }
+        item = std::move(queue_.front());
+        queue_.pop();
+        return true;
+    }
+
+    std::shared_ptr<T> try_pop() {
+        std::lock_guard<std::mutex> lock(mtx_);
+        if (queue_.empty()) {
+            return std::shared_ptr<T>();
+        }
+        auto res = std::make_shared<T>(std::move(queue_.front()));
+        queue_.pop();
+        return res;
+    }
+
+    void wait_and_pop(T& item) {
+        std::unique_lock<std::mutex> lock(mtx_);
+        while (queue_.empty()) {
+            condition_.wait(lock);
+        }
+        item = std::move(queue_.front());
+        queue_.pop();
+    }
+
+    std::shared_ptr<T> wait_and_pop() {
+        std::unique_lock<std::mutex> lock(mtx_);
+        while (queue_.empty()) {
+            condition_.wait(lock);
+        }
+        auto res = std::make_shared<T>(std::move(queue_.front()));
+        queue_.pop();
+        return res;
+    }
+
+    bool empty() const {
+        std::lock_guard<std::mutex> lock(mtx_);
+        return queue_.empty();
+    }
+
+    size_t size() const {
+        std::lock_guard<std::mutex> lock(mtx_);
+        return queue_.size();
+    }
+};
+
+class ThreadPool {
+private:
+    std::vector<std::thread> workers_;
+    ThreadSafeQueue<std::function<void()>> tasks_;
+    std::atomic<bool> stopping_{false};
+
+public:
+    explicit ThreadPool(size_t num_threads) {
+        for (size_t i = 0; i < num_threads; ++i) {
+            workers_.emplace_back([this] {
+                while (!stopping_.load()) {
+                    std::function<void()> task;
+                    if (tasks_.try_pop(task)) {
+                        task();
+                    } else {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    }
+                }
+            });
+        }
+    }
+
+    ~ThreadPool() {
+        stopping_.store(true);
+        for (auto& worker : workers_) {
+            if (worker.joinable()) {
+                worker.join();
+            }
+        }
+    }
+
+    template<typename F, typename... Args>
+    auto submit(F&& f, Args&&... args)
+        -> std::future<typename std::result_of<F(Args...)>::type> {
+
+        using return_type = typename std::result_of<F(Args...)>::type;
+
+        auto task = std::make_shared<std::packaged_task<return_type()>>(
+            std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+        );
+
+        std::future<return_type> result = task->get_future();
+
+        if (stopping_.load()) {
+            throw std::runtime_error("ThreadPool is stopping");
+        }
+
+        tasks_.push([task]() { (*task)(); });
+        return result;
+    }
+
+    size_t num_threads() const {
+        return workers_.size();
+    }
+};
+
+// Matrix multiplication with parallel processing
+template<typename T>
+class Matrix {
+private:
+    std::vector<std::vector<T>> data_;
+    size_t rows_, cols_;
+
+public:
+    Matrix(size_t rows, size_t cols) : rows_(rows), cols_(cols) {
+        data_.resize(rows, std::vector<T>(cols, T{}));
+    }
+
+    Matrix(std::initializer_list<std::initializer_list<T>> init) {
+        rows_ = init.size();
+        cols_ = init.begin()->size();
+        data_.reserve(rows_);
+
+        for (const auto& row : init) {
+            data_.emplace_back(row);
+        }
+    }
+
+    T& operator()(size_t row, size_t col) {
+        return data_[row][col];
+    }
+
+    const T& operator()(size_t row, size_t col) const {
+        return data_[row][col];
+    }
+
+    size_t rows() const { return rows_; }
+    size_t cols() const { return cols_; }
+
+    Matrix<T> parallel_multiply(const Matrix<T>& other, ThreadPool& pool) const {
+        if (cols_ != other.rows_) {
+            throw std::invalid_argument("Matrix dimensions don't match for multiplication");
+        }
+
+        Matrix<T> result(rows_, other.cols_);
+        std::vector<std::future<void>> futures;
+
+        // Divide work among threads
+        size_t num_threads = pool.num_threads();
+        size_t rows_per_thread = (rows_ + num_threads - 1) / num_threads;
+
+        for (size_t t = 0; t < num_threads; ++t) {
+            size_t start_row = t * rows_per_thread;
+            size_t end_row = std::min(start_row + rows_per_thread, rows_);
+
+            if (start_row < end_row) {
+                futures.push_back(pool.submit([this, &other, &result, start_row, end_row]() {
+                    for (size_t i = start_row; i < end_row; ++i) {
+                        for (size_t j = 0; j < other.cols_; ++j) {
+                            T sum = T{};
+                            for (size_t k = 0; k < cols_; ++k) {
+                                sum += data_[i][k] * other(k, j);
+                            }
+                            result(i, j) = sum;
+                        }
+                    }
+                }));
+            }
+        }
+
+        // Wait for all tasks to complete
+        for (auto& future : futures) {
+            future.get();
+        }
+
+        return result;
+    }
+
+    void print() const {
+        for (size_t i = 0; i < rows_; ++i) {
+            for (size_t j = 0; j < cols_; ++j) {
+                std::cout << data_[i][j] << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+};
+
+// Benchmark function
+template<typename Func>
+auto benchmark(const std::string& name, Func&& func) {
+    auto start = std::chrono::high_resolution_clock::now();
+    auto result = func();
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    std::cout << name << " took: " << duration.count() << " microseconds" << std::endl;
+
+    return result;
+}
+
+int main() {
+    const size_t matrix_size = 100;
+    const size_t num_threads = std::thread::hardware_concurrency();
+
+    std::cout << "Using " << num_threads << " threads" << std::endl;
+
+    ThreadPool pool(num_threads);
+
+    // Create large random matrices
+    Matrix<double> A(matrix_size, matrix_size);
+    Matrix<double> B(matrix_size, matrix_size);
+
+    // Initialize with random values
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0.0, 10.0);
+
+    for (size_t i = 0; i < matrix_size; ++i) {
+        for (size_t j = 0; j < matrix_size; ++j) {
+            A(i, j) = dis(gen);
+            B(i, j) = dis(gen);
+        }
+    }
+
+    // Benchmark parallel multiplication
+    auto result = benchmark("Parallel matrix multiplication", [&]() {
+        return A.parallel_multiply(B, pool);
+    });
+
+    std::cout << "Matrix multiplication completed successfully!" << std::endl;
+    std::cout << "Result matrix size: " << result.rows() << "x" << result.cols() << std::endl;
+
+    return 0;
+}
+\`\`\`\`;
+
+            editor.setValue(content);
+        }
+
+        function loadDataExample() {
+            const content = \`# Data Science & Analytics
+
+## SQL Advanced Analytics
+
+\`\`\`sql
+-- Advanced Customer Segmentation and Cohort Analysis
+WITH customer_metrics AS (
+    SELECT
+        c.customer_id,
+        c.first_name,
+        c.last_name,
+        c.email,
+        c.registration_date,
+        c.country,
+        c.acquisition_channel,
+
+        -- Recency (days since last order)
+        COALESCE(
+            DATEDIFF(CURRENT_DATE, MAX(o.order_date)),
+            999
+        ) AS recency_days,
+
+        -- Frequency (number of orders)
+        COUNT(DISTINCT o.order_id) AS order_frequency,
+
+        -- Monetary (total spend)
+        COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_spend,
+
+        -- Average order value
+        COALESCE(
+            SUM(oi.quantity * oi.unit_price) / NULLIF(COUNT(DISTINCT o.order_id), 0),
+            0
+        ) AS avg_order_value,
+
+        -- Customer lifetime value indicators
+        DATEDIFF(CURRENT_DATE, c.registration_date) AS customer_lifetime_days,
+
+        -- Seasonal behavior
+        CASE
+            WHEN EXTRACT(MONTH FROM MAX(o.order_date)) IN (12, 1, 2) THEN 'Winter'
+            WHEN EXTRACT(MONTH FROM MAX(o.order_date)) IN (3, 4, 5) THEN 'Spring'
+            WHEN EXTRACT(MONTH FROM MAX(o.order_date)) IN (6, 7, 8) THEN 'Summer'
+            ELSE 'Fall'
+        END AS preferred_season,
+
+        -- Favorite product category
+        (
+            SELECT pc.category_name
+            FROM order_items oi2
+            JOIN orders o2 ON oi2.order_id = o2.order_id
+            JOIN products p ON oi2.product_id = p.product_id
+            JOIN product_categories pc ON p.category_id = pc.category_id
+            WHERE o2.customer_id = c.customer_id
+            GROUP BY pc.category_name
+            ORDER BY SUM(oi2.quantity * oi2.unit_price) DESC
+            LIMIT 1
+        ) AS favorite_category,
+
+        -- Purchase pattern consistency
+        STDDEV(DATEDIFF(o.order_date, LAG(o.order_date) OVER (PARTITION BY c.customer_id ORDER BY o.order_date))) AS order_interval_stddev
+
+    FROM customers c
+    LEFT JOIN orders o ON c.customer_id = o.customer_id
+    LEFT JOIN order_items oi ON o.order_id = oi.order_id
+    WHERE c.registration_date >= '2020-01-01'
+    GROUP BY c.customer_id, c.first_name, c.last_name, c.email, c.registration_date, c.country, c.acquisition_channel
+),
+
+rfm_quartiles AS (
+    -- Calculate quartiles for RFM scoring
+    SELECT
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY recency_days) AS recency_q1,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY recency_days) AS recency_q2,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY recency_days) AS recency_q3,
+
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY order_frequency) AS frequency_q1,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY order_frequency) AS frequency_q2,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY order_frequency) AS frequency_q3,
+
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY total_spend) AS monetary_q1,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY total_spend) AS monetary_q2,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY total_spend) AS monetary_q3
+    FROM customer_metrics
+),
+
+rfm_scores AS (
+    -- Calculate RFM scores using quartiles
+    SELECT cm.*,
+        -- Recency Score (lower days = higher score)
+        CASE
+            WHEN cm.recency_days <= rq.recency_q1 THEN 4
+            WHEN cm.recency_days <= rq.recency_q2 THEN 3
+            WHEN cm.recency_days <= rq.recency_q3 THEN 2
+            ELSE 1
+        END AS recency_score,
+
+        -- Frequency Score
+        CASE
+            WHEN cm.order_frequency >= rq.frequency_q3 THEN 4
+            WHEN cm.order_frequency >= rq.frequency_q2 THEN 3
+            WHEN cm.order_frequency >= rq.frequency_q1 THEN 2
+            ELSE 1
+        END AS frequency_score,
+
+        -- Monetary Score
+        CASE
+            WHEN cm.total_spend >= rq.monetary_q3 THEN 4
+            WHEN cm.total_spend >= rq.monetary_q2 THEN 3
+            WHEN cm.total_spend >= rq.monetary_q1 THEN 2
+            ELSE 1
+        END AS monetary_score
+
+    FROM customer_metrics cm
+    CROSS JOIN rfm_quartiles rq
+),
+
+customer_segments AS (
+    -- Advanced customer segmentation based on RFM and behavioral patterns
+    SELECT *,
+        -- RFM-based segments
+        CASE
+            WHEN recency_score = 4 AND frequency_score >= 3 AND monetary_score >= 3
+                THEN 'Champions'
+            WHEN recency_score >= 3 AND frequency_score >= 2 AND monetary_score >= 2
+                THEN 'Loyal Customers'
+            WHEN recency_score >= 3 AND frequency_score <= 2 AND monetary_score <= 2
+                THEN 'Potential Loyalists'
+            WHEN recency_score >= 2 AND frequency_score <= 2 AND monetary_score >= 3
+                THEN 'Big Spenders'
+            WHEN recency_score >= 3 AND frequency_score <= 1
+                THEN 'New Customers'
+            WHEN recency_score = 2 AND frequency_score >= 2
+                THEN 'At Risk'
+            WHEN recency_score = 1 AND frequency_score >= 3 AND monetary_score >= 3
+                THEN 'Cannot Lose Them'
+            WHEN recency_score = 1 AND frequency_score >= 2
+                THEN 'Hibernating'
+            ELSE 'Lost'
+        END AS rfm_segment,
+
+        -- Value-based tiers
+        CASE
+            WHEN total_spend >= 2000 THEN 'VIP'
+            WHEN total_spend >= 1000 THEN 'High Value'
+            WHEN total_spend >= 500 THEN 'Medium Value'
+            WHEN total_spend >= 100 THEN 'Standard'
+            ELSE 'Low Value'
+        END AS value_tier,
+
+        -- Behavioral segments
+        CASE
+            WHEN order_interval_stddev <= 7 AND order_frequency >= 3 THEN 'Regular'
+            WHEN avg_order_value >= (SELECT AVG(avg_order_value) * 1.5 FROM customer_metrics) THEN 'High AOV'
+            WHEN customer_lifetime_days <= 90 THEN 'Recent'
+            WHEN customer_lifetime_days >= 365 THEN 'Veteran'
+            ELSE 'Occasional'
+        END AS behavioral_segment
+
+    FROM rfm_scores
+),
+
+cohort_analysis AS (
+    -- Monthly cohort analysis for retention tracking
+    SELECT
+        DATE_TRUNC('month', c.registration_date) AS cohort_month,
+        DATE_DIFF('month', DATE_TRUNC('month', c.registration_date), DATE_TRUNC('month', o.order_date)) AS period_number,
+        COUNT(DISTINCT c.customer_id) AS customers_in_period,
+        SUM(oi.quantity * oi.unit_price) AS revenue_in_period
+
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    JOIN order_items oi ON o.order_id = oi.order_id
+    WHERE c.registration_date >= '2022-01-01'
+    GROUP BY cohort_month, period_number
+),
+
+cohort_sizes AS (
+    -- Initial cohort sizes for retention calculation
+    SELECT
+        DATE_TRUNC('month', registration_date) AS cohort_month,
+        COUNT(DISTINCT customer_id) AS cohort_size,
+        SUM(CASE WHEN total_spend > 0 THEN 1 ELSE 0 END) AS paying_customers
+    FROM customer_metrics
+    WHERE registration_date >= '2022-01-01'
+    GROUP BY DATE_TRUNC('month', registration_date)
+)
+
+-- Main analysis output
+SELECT
+    'Customer Segmentation Summary' AS analysis_type,
+    rfm_segment AS segment,
+    COUNT(*) AS customer_count,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage,
+    ROUND(AVG(total_spend), 2) AS avg_total_spend,
+    ROUND(AVG(avg_order_value), 2) AS avg_order_value,
+    ROUND(AVG(order_frequency), 1) AS avg_order_frequency,
+    ROUND(AVG(recency_days), 1) AS avg_recency_days,
+
+    -- Business impact metrics
+    SUM(total_spend) AS segment_total_revenue,
+    ROUND(SUM(total_spend) * 100.0 / SUM(SUM(total_spend)) OVER (), 2) AS revenue_percentage,
+
+    -- Recommended actions
+    CASE rfm_segment
+        WHEN 'Champions' THEN 'Reward loyalty, early access to new products, referral programs'
+        WHEN 'Loyal Customers' THEN 'Upsell premium products, loyalty program, exclusive offers'
+        WHEN 'Potential Loyalists' THEN 'Membership programs, personalized recommendations'
+        WHEN 'New Customers' THEN 'Onboarding sequence, welcome offers, education content'
+        WHEN 'Big Spenders' THEN 'VIP treatment, premium support, exclusive products'
+        WHEN 'At Risk' THEN 'Win-back campaigns, satisfaction surveys, special discounts'
+        WHEN 'Cannot Lose Them' THEN 'Personal outreach, significant offers, feedback calls'
+        WHEN 'Hibernating' THEN 'Reactivation campaigns, product updates, surveys'
+        ELSE 'Low-cost acquisition attempts, re-engagement surveys'
+    END AS recommended_action
+
+FROM customer_segments
+GROUP BY rfm_segment
+
+UNION ALL
+
+-- Channel performance analysis
+SELECT
+    'Channel Performance' AS analysis_type,
+    CONCAT(acquisition_channel, ' - ', value_tier) AS segment,
+    COUNT(*) AS customer_count,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (PARTITION BY acquisition_channel), 2) AS percentage,
+    ROUND(AVG(total_spend), 2) AS avg_total_spend,
+    ROUND(AVG(avg_order_value), 2) AS avg_order_value,
+    ROUND(AVG(order_frequency), 1) AS avg_order_frequency,
+    ROUND(AVG(recency_days), 1) AS avg_recency_days,
+    SUM(total_spend) AS segment_total_revenue,
+    ROUND(SUM(total_spend) * 100.0 / SUM(SUM(total_spend)) OVER (PARTITION BY acquisition_channel), 2) AS revenue_percentage,
+    CONCAT('Optimize ', acquisition_channel, ' for ', value_tier, ' customers') AS recommended_action
+
+FROM customer_segments
+WHERE acquisition_channel IS NOT NULL
+GROUP BY acquisition_channel, value_tier
+
+UNION ALL
+
+-- Geographic insights
+SELECT
+    'Geographic Analysis' AS analysis_type,
+    CONCAT(country, ' - ', behavioral_segment) AS segment,
+    COUNT(*) AS customer_count,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (PARTITION BY country), 2) AS percentage,
+    ROUND(AVG(total_spend), 2) AS avg_total_spend,
+    ROUND(AVG(avg_order_value), 2) AS avg_order_value,
+    ROUND(AVG(order_frequency), 1) AS avg_order_frequency,
+    ROUND(AVG(recency_days), 1) AS avg_recency_days,
+    SUM(total_spend) AS segment_total_revenue,
+    ROUND(SUM(total_spend) * 100.0 / SUM(SUM(total_spend)) OVER (PARTITION BY country), 2) AS revenue_percentage,
+    CONCAT('Localize strategy for ', behavioral_segment, ' customers in ', country) AS recommended_action
+
+FROM customer_segments
+WHERE country IS NOT NULL
+GROUP BY country, behavioral_segment
+HAVING COUNT(*) >= 10
+
+ORDER BY analysis_type, customer_count DESC;
+
+-- Separate query for cohort retention analysis
+WITH retention_rates AS (
+    SELECT
+        ca.cohort_month,
+        ca.period_number,
+        ca.customers_in_period,
+        cs.cohort_size,
+        ROUND(ca.customers_in_period * 100.0 / cs.cohort_size, 2) AS retention_rate,
+        ca.revenue_in_period,
+        ROUND(ca.revenue_in_period / ca.customers_in_period, 2) AS avg_revenue_per_customer
+    FROM cohort_analysis ca
+    JOIN cohort_sizes cs ON ca.cohort_month = cs.cohort_month
+)
+
+SELECT
+    cohort_month,
+    period_number,
+    CASE period_number
+        WHEN 0 THEN 'Registration Month'
+        WHEN 1 THEN 'Month 1'
+        WHEN 3 THEN 'Month 3 (Critical)'
+        WHEN 6 THEN 'Month 6'
+        WHEN 12 THEN 'Year 1'
+        ELSE CONCAT('Month ', period_number)
+    END AS period_label,
+    retention_rate,
+    avg_revenue_per_customer,
+
+    -- Health indicators
+    CASE
+        WHEN period_number = 1 AND retention_rate >= 40 THEN 'Excellent'
+        WHEN period_number = 1 AND retention_rate >= 25 THEN 'Good'
+        WHEN period_number = 1 AND retention_rate >= 15 THEN 'Average'
+        WHEN period_number = 3 AND retention_rate >= 20 THEN 'Good'
+        WHEN period_number = 6 AND retention_rate >= 15 THEN 'Good'
+        WHEN period_number = 12 AND retention_rate >= 10 THEN 'Good'
+        ELSE 'Needs Attention'
+    END AS retention_health
+
+FROM retention_rates
+WHERE period_number IN (0, 1, 3, 6, 12, 24)
+ORDER BY cohort_month DESC, period_number;
+\`\`\`
+
+## R Statistical Analysis
+
+\`\`\`r
+# Advanced Statistical Analysis and Machine Learning in R
+library(tidyverse)
+library(caret)
+library(randomForest)
+library(xgboost)
+library(corrplot)
+library(VIM)
+library(mice)
+library(plotly)
+library(DT)
+
+# Advanced Data Preprocessing Pipeline
+preprocess_data <- function(data, target_var, test_split = 0.2) {
+
+  cat("Starting advanced data preprocessing...\\n")
+
+  # Initial data summary
+  cat("Dataset shape:", nrow(data), "rows,", ncol(data), "columns\\n")
+  cat("Missing values summary:\\n")
+  print(colSums(is.na(data)))
+
+  # Identify column types
+  numeric_cols <- data %>%
+    select_if(is.numeric) %>%
+    names() %>%
+    setdiff(target_var)
+
+  categorical_cols <- data %>%
+    select_if(function(x) is.character(x) | is.factor(x)) %>%
+    names()
+
+  cat("Numeric columns:", length(numeric_cols), "\\n")
+  cat("Categorical columns:", length(categorical_cols), "\\n")
+
+  # Advanced missing value imputation
+  if (any(is.na(data))) {
+    cat("Performing advanced missing value imputation using MICE...\\n")
+
+    # Use MICE for sophisticated imputation
+    mice_imputation <- mice(data, m = 5, method = 'pmm', printFlag = FALSE)
+    data_imputed <- complete(mice_imputation)
+
+    cat("Missing values after imputation:", sum(is.na(data_imputed)), "\\n")
+  } else {
+    data_imputed <- data
+  }
+
+  # Feature engineering
+  cat("Creating engineered features...\\n")
+
+  # Polynomial features for top numeric predictors
+  if (length(numeric_cols) >= 2) {
+    # Calculate correlation with target to identify top predictors
+    correlations <- cor(data_imputed[numeric_cols],
+                       data_imputed[[target_var]],
+                       use = "complete.obs")
+    top_numeric <- names(sort(abs(correlations), decreasing = TRUE))[1:min(3, length(numeric_cols))]
+
+    # Create polynomial features
+    for (col in top_numeric) {
+      data_imputed[[paste0(col, "_squared")]] <- data_imputed[[col]]^2
+      data_imputed[[paste0(col, "_log")]] <- log1p(abs(data_imputed[[col]]))
+    }
+
+    # Create interaction features
+    if (length(top_numeric) >= 2) {
+      for (i in 1:(length(top_numeric)-1)) {
+        for (j in (i+1):length(top_numeric)) {
+          col1 <- top_numeric[i]
+          col2 <- top_numeric[j]
+          data_imputed[[paste0(col1, "_x_", col2)]] <-
+            data_imputed[[col1]] * data_imputed[[col2]]
+        }
+      }
+    }
+  }
+
+  # Advanced categorical encoding
+  if (length(categorical_cols) > 0) {
+    for (col in categorical_cols) {
+      # Target encoding for high-cardinality categories
+      if (n_distinct(data_imputed[[col]]) > 10) {
+        target_encoding <- data_imputed %>%
+          group_by(!!sym(col)) %>%
+          summarise(mean_target = mean(!!sym(target_var), na.rm = TRUE),
+                   .groups = 'drop')
+
+        data_imputed <- data_imputed %>%
+          left_join(target_encoding, by = col) %>%
+          mutate(!!paste0(col, "_target_encoded") := mean_target) %>%
+          select(-mean_target)
+      }
+
+      # Frequency encoding
+      freq_encoding <- data_imputed %>%
+        count(!!sym(col), name = "frequency")
+
+      data_imputed <- data_imputed %>%
+        left_join(freq_encoding, by = col) %>%
+        rename(!!paste0(col, "_frequency") := frequency)
+    }
+  }
+
+  # Outlier detection and treatment
+  cat("Detecting and treating outliers...\\n")
+  numeric_cols_updated <- data_imputed %>%
+    select_if(is.numeric) %>%
+    names() %>%
+    setdiff(target_var)
+
+  for (col in numeric_cols_updated) {
+    Q1 <- quantile(data_imputed[[col]], 0.25, na.rm = TRUE)
+    Q3 <- quantile(data_imputed[[col]], 0.75, na.rm = TRUE)
+    IQR <- Q3 - Q1
+    lower_bound <- Q1 - 1.5 * IQR
+    upper_bound <- Q3 + 1.5 * IQR
+
+    outliers_count <- sum(data_imputed[[col]] < lower_bound |
+                         data_imputed[[col]] > upper_bound, na.rm = TRUE)
+
+    if (outliers_count > 0) {
+      cat("Treating", outliers_count, "outliers in", col, "\\n")
+      data_imputed[[col]] <- pmax(pmin(data_imputed[[col]], upper_bound), lower_bound)
+    }
+  }
+
+  # Train-test split
+  set.seed(42)
+  train_indices <- createDataPartition(data_imputed[[target_var]],
+                                      p = 1 - test_split,
+                                      list = FALSE)
+
+  train_data <- data_imputed[train_indices, ]
+  test_data <- data_imputed[-train_indices, ]
+
+  cat("Training set:", nrow(train_data), "rows\\n")
+  cat("Test set:", nrow(test_data), "rows\\n")
+
+  list(
+    train = train_data,
+    test = test_data,
+    preprocessing_info = list(
+      numeric_cols = numeric_cols_updated,
+      categorical_cols = categorical_cols,
+      original_shape = dim(data),
+      processed_shape = dim(data_imputed)
+    )
+  )
+}
+
+# Advanced Model Training and Evaluation
+train_advanced_models <- function(train_data, test_data, target_var) {
+
+  cat("Training advanced machine learning models...\\n")
+
+  # Prepare data for modeling
+  feature_cols <- setdiff(names(train_data), target_var)
+
+  X_train <- train_data[feature_cols]
+  y_train <- train_data[[target_var]]
+  X_test <- test_data[feature_cols]
+  y_test <- test_data[[target_var]]
+
+  # Model configurations
+  models <- list()
+  results <- data.frame()
+
+  # Random Forest
+  cat("Training Random Forest...\\n")
+  rf_model <- randomForest(
+    x = X_train,
+    y = y_train,
+    ntree = 500,
+    mtry = floor(sqrt(ncol(X_train))),
+    importance = TRUE,
+    do.trace = 50
+  )
+
+  rf_pred <- predict(rf_model, X_test)
+  rf_rmse <- sqrt(mean((y_test - rf_pred)^2))
+  rf_mae <- mean(abs(y_test - rf_pred))
+  rf_r2 <- cor(y_test, rf_pred)^2
+
+  models[["random_forest"]] <- rf_model
+  results <- rbind(results, data.frame(
+    Model = "Random Forest",
+    RMSE = rf_rmse,
+    MAE = rf_mae,
+    R_squared = rf_r2
+  ))
+
+  # XGBoost
+  cat("Training XGBoost...\\n")
+  # Prepare data for XGBoost
+  dtrain <- xgb.DMatrix(data = as.matrix(X_train), label = y_train)
+  dtest <- xgb.DMatrix(data = as.matrix(X_test), label = y_test)
+
+  # XGBoost parameters
+  xgb_params <- list(
+    objective = "reg:squarederror",
+    eval_metric = "rmse",
+    max_depth = 6,
+    eta = 0.1,
+    subsample = 0.8,
+    colsample_bytree = 0.8
+  )
+
+  # Train with early stopping
+  xgb_model <- xgb.train(
+    params = xgb_params,
+    data = dtrain,
+    nrounds = 1000,
+    watchlist = list(train = dtrain, test = dtest),
+    early_stopping_rounds = 50,
+    print_every_n = 100,
+    verbose = 1
+  )
+
+  xgb_pred <- predict(xgb_model, dtest)
+  xgb_rmse <- sqrt(mean((y_test - xgb_pred)^2))
+  xgb_mae <- mean(abs(y_test - xgb_pred))
+  xgb_r2 <- cor(y_test, xgb_pred)^2
+
+  models[["xgboost"]] <- xgb_model
+  results <- rbind(results, data.frame(
+    Model = "XGBoost",
+    RMSE = xgb_rmse,
+    MAE = xgb_mae,
+    R_squared = xgb_r2
+  ))
+
+  # Linear Model with Regularization
+  cat("Training Regularized Linear Model...\\n")
+  lm_model <- train(
+    x = X_train,
+    y = y_train,
+    method = "glmnet",
+    trControl = trainControl(method = "cv", number = 5),
+    tuneGrid = expand.grid(
+      alpha = seq(0, 1, 0.1),
+      lambda = 10^seq(-3, 1, length = 50)
+    )
+  )
+
+  lm_pred <- predict(lm_model, X_test)
+  lm_rmse <- sqrt(mean((y_test - lm_pred)^2))
+  lm_mae <- mean(abs(y_test - lm_pred))
+  lm_r2 <- cor(y_test, lm_pred)^2
+
+  models[["linear_regularized"]] <- lm_model
+  results <- rbind(results, data.frame(
+    Model = "Regularized Linear",
+    RMSE = lm_rmse,
+    MAE = lm_mae,
+    R_squared = lm_r2
+  ))
+
+  # Ensemble Model (Simple Average)
+  ensemble_pred <- (rf_pred + xgb_pred + lm_pred) / 3
+  ensemble_rmse <- sqrt(mean((y_test - ensemble_pred)^2))
+  ensemble_mae <- mean(abs(y_test - ensemble_pred))
+  ensemble_r2 <- cor(y_test, ensemble_pred)^2
+
+  results <- rbind(results, data.frame(
+    Model = "Ensemble Average",
+    RMSE = ensemble_rmse,
+    MAE = ensemble_mae,
+    R_squared = ensemble_r2
+  ))
+
+  cat("\\nModel Performance Comparison:\\n")
+  print(results %>% arrange(RMSE))
+
+  # Feature importance analysis
+  cat("\\nAnalyzing feature importance...\\n")
+
+  # Random Forest importance
+  rf_importance <- importance(rf_model) %>%
+    as.data.frame() %>%
+    rownames_to_column("Feature") %>%
+    arrange(desc(\`%IncMSE\`))
+
+  # XGBoost importance
+  xgb_importance <- xgb.importance(
+    feature_names = colnames(X_train),
+    model = xgb_model
+  )
+
+  list(
+    models = models,
+    results = results,
+    predictions = list(
+      random_forest = rf_pred,
+      xgboost = xgb_pred,
+      linear_regularized = lm_pred,
+      ensemble = ensemble_pred,
+      actual = y_test
+    ),
+    feature_importance = list(
+      random_forest = rf_importance,
+      xgboost = xgb_importance
+    )
+  )
+}
+
+# Main execution function
+analyze_dataset <- function(file_path, target_variable) {
+
+  # Load and inspect data
+  cat("Loading dataset from:", file_path, "\\n")
+  data <- read.csv(file_path, stringsAsFactors = FALSE)
+
+  cat("Dataset loaded successfully!\\n")
+  cat("Shape:", nrow(data), "rows,", ncol(data), "columns\\n")
+  cat("Target variable:", target_variable, "\\n")
+
+  # Data preprocessing
+  processed_data <- preprocess_data(data, target_variable)
+
+  # Model training and evaluation
+  model_results <- train_advanced_models(
+    processed_data$train,
+    processed_data$test,
+    target_variable
+  )
+
+  # Create visualizations
+  cat("Creating visualizations...\\n")
+
+  # Model comparison plot
+  performance_plot <- model_results$results %>%
+    pivot_longer(cols = c(RMSE, MAE, R_squared),
+                names_to = "Metric",
+                values_to = "Value") %>%
+    ggplot(aes(x = Model, y = Value, fill = Model)) +
+    geom_col() +
+    facet_wrap(~Metric, scales = "free_y") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title = "Model Performance Comparison",
+         subtitle = "Lower RMSE/MAE and higher R² indicate better performance")
+
+  # Feature importance plot (Random Forest)
+  importance_plot <- model_results$feature_importance$random_forest %>%
+    head(15) %>%
+    ggplot(aes(x = reorder(Feature, \`%IncMSE\`), y = \`%IncMSE\`)) +
+    geom_col(fill = "steelblue") +
+    coord_flip() +
+    theme_minimal() +
+    labs(title = "Top 15 Most Important Features",
+         subtitle = "Based on Random Forest % Increase in MSE",
+         x = "Features",
+         y = "Importance Score")
+
+  # Prediction vs Actual scatter plot
+  best_model_name <- model_results$results %>%
+    arrange(RMSE) %>%
+    slice(1) %>%
+    pull(Model)
+
+  prediction_plot <- data.frame(
+    Actual = model_results$predictions$actual,
+    Predicted = model_results$predictions$ensemble,  # Using ensemble
+    Model = "Ensemble"
+  ) %>%
+    ggplot(aes(x = Actual, y = Predicted)) +
+    geom_point(alpha = 0.6) +
+    geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+    theme_minimal() +
+    labs(title = "Predictions vs Actual Values",
+         subtitle = paste("Model:", best_model_name),
+         x = "Actual Values",
+         y = "Predicted Values")
+
+  # Print final summary
+  cat("\\n" %+% "="*50, "\\n")
+  cat("ANALYSIS COMPLETE\\n")
+  cat("="*50, "\\n")
+  cat("Best performing model:", best_model_name, "\\n")
+  best_performance <- model_results$results %>% arrange(RMSE) %>% slice(1)
+  cat("RMSE:", round(best_performance$RMSE, 4), "\\n")
+  cat("R²:", round(best_performance$R_squared, 4), "\\n")
+
+  return(list(
+    processed_data = processed_data,
+    models = model_results,
+    plots = list(
+      performance = performance_plot,
+      importance = importance_plot,
+      predictions = prediction_plot
+    )
+  ))
+}
+
+# Example usage:
+# results <- analyze_dataset("your_dataset.csv", "target_column_name")
+# print(results$plots$performance)
+# print(results$plots$importance)
+# print(results$plots$predictions)
+\`\`\``;
+
+            editor.setValue(content);
+        }
+
+        // Auto-initialize highlight.js when page loads and wire UI events
+        window.addEventListener('load', () => {
+            // Theme change handler (module-scoped function isn't on window)
+            const themeSelectEl = document.getElementById('themeSelect');
+            if (themeSelectEl) themeSelectEl.addEventListener('change', () => changeTheme());
+
+            setTimeout(() => {
+                initializeHighlightJs();
+            }, 500);
+        });
+
+        console.log('highlight.js integration example loaded');
+    </script>
+</body>
+</html>
