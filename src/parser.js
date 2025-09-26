@@ -330,7 +330,7 @@ export class MarkdownParser {
       
       if (sanctuary.type === 'code') {
         // Transform code sanctuary to HTML
-        replacement = `<code><span class="syntax-marker">${sanctuary.openTicks}</span>${this.escapeHtml(sanctuary.content)}<span class="syntax-marker">${sanctuary.closeTicks}</span></code>`;
+        replacement = `<code><span class="syntax-marker">${sanctuary.openTicks}</span>${sanctuary.content}<span class="syntax-marker">${sanctuary.closeTicks}</span></code>`;
       } else if (sanctuary.type === 'link') {
         // For links, we need to process the link text for markdown
         let processedLinkText = sanctuary.linkText;
@@ -340,7 +340,7 @@ export class MarkdownParser {
         sanctuaries.forEach((innerSanctuary, innerPlaceholder) => {
           if (processedLinkText.includes(innerPlaceholder)) {
             if (innerSanctuary.type === 'code') {
-              const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${this.escapeHtml(innerSanctuary.content)}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
+              const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${innerSanctuary.content}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
               processedLinkText = processedLinkText.replace(innerPlaceholder, codeHtml);
             }
           }
