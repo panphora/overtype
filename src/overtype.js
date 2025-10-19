@@ -102,20 +102,6 @@ class OverType {
       // Setup link tooltip
       this.linkTooltip = new LinkTooltip(this);
 
-      // Setup toolbar if enabled
-      if (this.options.toolbar) {
-        const toolbarButtons = typeof this.options.toolbar === 'object' ? this.options.toolbar.buttons : null;
-        this.toolbar = new Toolbar(this, toolbarButtons);
-        this.toolbar.create();
-        
-        // Update toolbar states on selection change
-        this.textarea.addEventListener('selectionchange', () => {
-          this.toolbar.updateButtonStates();
-        });
-        this.textarea.addEventListener('input', () => {
-          this.toolbar.updateButtonStates();
-        });
-      }
 
       // Mark as initialized
       this.initialized = true;
@@ -413,6 +399,24 @@ class OverType {
     }
 
     /**
+     * Create and setup toolbar
+     * @private
+     */
+    _createToolbar() {
+      const toolbarButtons = typeof this.options.toolbar === 'object' ? this.options.toolbar.buttons : null;
+      this.toolbar = new Toolbar(this, toolbarButtons);
+      this.toolbar.create();
+      
+      // Update toolbar states on selection change
+      this.textarea.addEventListener('selectionchange', () => {
+        this.toolbar.updateButtonStates();
+      });
+      this.textarea.addEventListener('input', () => {
+        this.toolbar.updateButtonStates();
+      });
+    }
+
+    /**
      * Apply options to the editor
      * @private
      */
@@ -430,6 +434,14 @@ class OverType {
       } else {
         // Ensure auto-resize class is removed
         this.container.classList.remove('overtype-auto-resize');
+      }
+      
+      // Handle toolbar option changes
+      if (this.options.toolbar && !this.toolbar) {
+        this._createToolbar();
+      } else if (!this.options.toolbar && this.toolbar) {
+        this.toolbar.destroy();
+        this.toolbar = null;
       }
 
       // Update preview with initial content
