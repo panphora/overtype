@@ -509,6 +509,30 @@ OverType.themes.cave
 
 Note: Markdown syntax remains visible but styled (e.g., `**bold**` shows with styled markers).
 
+## Web Component
+
+OverType provides a fully-featured native Web Component `<overtype-editor>` with Shadow DOM encapsulation and a declarative HTML API.
+
+**Quick example:**
+```html
+<overtype-editor
+  value="# Hello OverType!"
+  theme="solar"
+  height="300px"
+  toolbar>
+</overtype-editor>
+```
+
+📖 **[Complete Web Component Documentation](docs/WEB-COMPONENT.md)**
+
+Features include:
+- Complete style isolation with Shadow DOM
+- 15 reactive HTML attributes
+- Framework-agnostic (React, Vue, Angular)
+- Built-in themes (Solar, Cave)
+- Custom events API
+- Zero configuration required
+
 ## DOM Persistence & Re-initialization
 
 OverType is designed to work with platforms that persist DOM across page loads (like HyperClay):

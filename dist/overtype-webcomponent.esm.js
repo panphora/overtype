@@ -3956,13 +3956,504 @@ OverType.themes = { solar, cave: getTheme("cave") };
 OverType.getTheme = getTheme;
 OverType.currentTheme = solar;
 var overtype_default = OverType;
+
+// src/overtype-webcomponent.js
+var CONTAINER_CLASS = "overtype-webcomponent-container";
+var DEFAULT_PLACEHOLDER = "Start typing...";
+var OBSERVED_ATTRIBUTES = [
+  "value",
+  "theme",
+  "toolbar",
+  "height",
+  "min-height",
+  "max-height",
+  "placeholder",
+  "font-size",
+  "line-height",
+  "padding",
+  "auto-resize",
+  "autofocus",
+  "show-stats",
+  "smart-lists",
+  "readonly"
+];
+var OverTypeEditor = class extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._editor = null;
+    this._initialized = false;
+    this._pendingOptions = {};
+    this._styleVersion = 0;
+    this._isConnected = false;
+    this._handleChange = this._handleChange.bind(this);
+    this._handleKeydown = this._handleKeydown.bind(this);
+  }
+  /**
+   * Decode common escape sequences from attribute string values
+   * @private
+   * @param {string|null|undefined} str
+   * @returns {string}
+   */
+  _decodeValue(str) {
+    if (typeof str !== "string")
+      return "";
+    return str.replace(/\\r/g, "\r").replace(/\\n/g, "\n").replace(/\\t/g, "	");
+  }
+  // Note: _encodeValue removed as it's currently unused
+  // Can be re-added if needed for future attribute encoding
+  /**
+   * Define observed attributes for reactive updates
+   */
+  static get observedAttributes() {
+    return OBSERVED_ATTRIBUTES;
+  }
+  /**
+   * Component connected to DOM - initialize editor
+   */
+  connectedCallback() {
+    this._isConnected = true;
+    this._initializeEditor();
+  }
+  /**
+   * Component disconnected from DOM - cleanup
+   */
+  disconnectedCallback() {
+    this._isConnected = false;
+    this._cleanup();
+  }
+  /**
+   * Attribute changed callback - update editor options
+   */
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue)
+      return;
+    if (this._silentUpdate)
+      return;
+    if (!this._initialized) {
+      this._pendingOptions[name] = newValue;
+      return;
+    }
+    this._updateOption(name, newValue);
+  }
+  /**
+   * Initialize the OverType editor inside shadow DOM
+   * @private
+   */
+  _initializeEditor() {
+    if (this._initialized || !this._isConnected)
+      return;
+    try {
+      const container = document.createElement("div");
+      container.className = CONTAINER_CLASS;
+      const height = this.getAttribute("height");
+      const minHeight = this.getAttribute("min-height");
+      const maxHeight = this.getAttribute("max-height");
+      if (height)
+        container.style.height = height;
+      if (minHeight)
+        container.style.minHeight = minHeight;
+      if (maxHeight)
+        container.style.maxHeight = maxHeight;
+      this._injectStyles();
+      this.shadowRoot.appendChild(container);
+      const options = this._getOptionsFromAttributes();
+      const editorInstances = new overtype_default(container, options);
+      this._editor = editorInstances[0];
+      this._initialized = true;
+      this._applyPendingOptions();
+      this._dispatchEvent("ready", { editor: this._editor });
+    } catch (error) {
+      const message = error && error.message ? error.message : String(error);
+      console.warn("OverType Web Component initialization failed:", message);
+      this._dispatchEvent("error", { error: { message } });
+    }
+  }
+  /**
+   * Inject styles into shadow DOM for complete isolation
+   * @private
+   */
+  _injectStyles() {
+    const style = document.createElement("style");
+    const themeAttr = this.getAttribute("theme") || "solar";
+    const theme = getTheme(themeAttr);
+    const options = this._getOptionsFromAttributes();
+    const styles = generateStyles({ ...options, theme });
+    const webComponentStyles = `
+      /* Web Component Host Styles */
+      :host {
+        display: block;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        contain: layout style;
+      }
+      
+      .overtype-webcomponent-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      
+      /* Override container grid layout for web component */
+      .overtype-container {
+        height: 100% !important;
+      }
+    `;
+    this._styleVersion += 1;
+    const versionBanner = `
+/* overtype-webcomponent styles v${this._styleVersion} */
+`;
+    style.textContent = versionBanner + styles + webComponentStyles;
+    this.shadowRoot.appendChild(style);
+  }
+  /**
+   * Extract options from HTML attributes
+   * @private
+   * @returns {Object} OverType options object
+   */
+  _getOptionsFromAttributes() {
+    const options = {
+      // Allow authoring multi-line content via escaped sequences in attributes
+      // and fall back to light DOM text content if attribute is absent
+      value: this.getAttribute("value") !== null ? this._decodeValue(this.getAttribute("value")) : (this.textContent || "").trim(),
+      placeholder: this.getAttribute("placeholder") || DEFAULT_PLACEHOLDER,
+      toolbar: this.hasAttribute("toolbar"),
+      autofocus: this.hasAttribute("autofocus"),
+      autoResize: this.hasAttribute("auto-resize"),
+      showStats: this.hasAttribute("show-stats"),
+      smartLists: !this.hasAttribute("smart-lists") || this.getAttribute("smart-lists") !== "false",
+      onChange: this._handleChange,
+      onKeydown: this._handleKeydown
+    };
+    const fontSize = this.getAttribute("font-size");
+    if (fontSize)
+      options.fontSize = fontSize;
+    const lineHeight = this.getAttribute("line-height");
+    if (lineHeight)
+      options.lineHeight = parseFloat(lineHeight) || 1.6;
+    const padding = this.getAttribute("padding");
+    if (padding)
+      options.padding = padding;
+    const minHeight = this.getAttribute("min-height");
+    if (minHeight)
+      options.minHeight = minHeight;
+    const maxHeight = this.getAttribute("max-height");
+    if (maxHeight)
+      options.maxHeight = maxHeight;
+    return options;
+  }
+  /**
+   * Apply pending option changes after initialization
+   * @private
+   */
+  _applyPendingOptions() {
+    for (const [attr, value] of Object.entries(this._pendingOptions)) {
+      this._updateOption(attr, value);
+    }
+    this._pendingOptions = {};
+  }
+  /**
+   * Update a single editor option
+   * @private
+   * @param {string} attribute - Attribute name
+   * @param {string} value - New value
+   */
+  _updateOption(attribute, value) {
+    if (!this._editor)
+      return;
+    switch (attribute) {
+      case "value":
+        {
+          const decoded = this._decodeValue(value);
+          if (this._editor.getValue() !== decoded) {
+            this._editor.setValue(decoded || "");
+          }
+        }
+        break;
+      case "theme":
+        this._reinjectStyles();
+        break;
+      case "placeholder":
+        if (this._editor.textarea) {
+          this._editor.textarea.placeholder = value || "";
+        }
+        break;
+      case "readonly":
+        if (this._editor.textarea) {
+          this._editor.textarea.readOnly = this.hasAttribute("readonly");
+        }
+        break;
+      case "height":
+      case "min-height":
+      case "max-height":
+        this._updateContainerHeight();
+        break;
+      case "toolbar":
+        if (!!this.hasAttribute("toolbar") === !!this._editor.options.toolbar)
+          return;
+        this._reinitializeEditor();
+        break;
+      case "auto-resize":
+        if (!!this.hasAttribute("auto-resize") === !!this._editor.options.autoResize)
+          return;
+        this._reinitializeEditor();
+        break;
+      case "show-stats":
+        if (!!this.hasAttribute("show-stats") === !!this._editor.options.showStats)
+          return;
+        this._reinitializeEditor();
+        break;
+      case "font-size": {
+        if (this._updateFontSize(value)) {
+          this._reinjectStyles();
+        }
+        break;
+      }
+      case "line-height": {
+        if (this._updateLineHeight(value)) {
+          this._reinjectStyles();
+        }
+        break;
+      }
+      case "padding":
+        this._reinjectStyles();
+        break;
+      case "smart-lists": {
+        const newSmartLists = !this.hasAttribute("smart-lists") || this.getAttribute("smart-lists") !== "false";
+        if (!!this._editor.options.smartLists === !!newSmartLists)
+          return;
+        this._reinitializeEditor();
+        break;
+      }
+    }
+  }
+  /**
+   * Update container height from attributes
+   * @private
+   */
+  _updateContainerHeight() {
+    const container = this.shadowRoot.querySelector(`.${CONTAINER_CLASS}`);
+    if (!container)
+      return;
+    const height = this.getAttribute("height");
+    const minHeight = this.getAttribute("min-height");
+    const maxHeight = this.getAttribute("max-height");
+    container.style.height = height || "";
+    container.style.minHeight = minHeight || "";
+    container.style.maxHeight = maxHeight || "";
+  }
+  /**
+   * Update font size efficiently
+   * @private
+   * @param {string} value - New font size value
+   * @returns {boolean} True if direct update succeeded
+   */
+  _updateFontSize(value) {
+    if (this._editor && this._editor.wrapper) {
+      this._editor.options.fontSize = value || "";
+      this._editor.wrapper.style.setProperty("--instance-font-size", this._editor.options.fontSize);
+      this._editor.updatePreview();
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Update line height efficiently
+   * @private
+   * @param {string} value - New line height value
+   * @returns {boolean} True if direct update succeeded
+   */
+  _updateLineHeight(value) {
+    if (this._editor && this._editor.wrapper) {
+      const numeric = parseFloat(value);
+      const lineHeight = Number.isFinite(numeric) ? numeric : this._editor.options.lineHeight;
+      this._editor.options.lineHeight = lineHeight;
+      this._editor.wrapper.style.setProperty("--instance-line-height", String(lineHeight));
+      this._editor.updatePreview();
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Re-inject styles (useful for theme changes)
+   * @private
+   */
+  _reinjectStyles() {
+    const existingStyle = this.shadowRoot.querySelector("style");
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    this._injectStyles();
+  }
+  /**
+   * Reinitialize the entire editor (for major option changes)
+   * @private
+   */
+  _reinitializeEditor() {
+    const currentValue = this._editor ? this._editor.getValue() : "";
+    this._cleanup();
+    this._initialized = false;
+    this.shadowRoot.innerHTML = "";
+    if (currentValue && !this.getAttribute("value")) {
+      this.setAttribute("value", currentValue);
+    }
+    this._initializeEditor();
+  }
+  /**
+   * Handle content changes from OverType
+   * @private
+   * @param {string} value - New editor value
+   */
+  _handleChange(value) {
+    this._updateValueAttribute(value);
+    if (!this._initialized || !this._editor) {
+      return;
+    }
+    this._dispatchEvent("change", {
+      value,
+      editor: this._editor
+    });
+  }
+  /**
+   * Handle keydown events from OverType
+   * @private
+   * @param {KeyboardEvent} event - Keyboard event
+   */
+  _handleKeydown(event) {
+    this._dispatchEvent("keydown", {
+      event,
+      editor: this._editor
+    });
+  }
+  /**
+   * Update value attribute without triggering observer
+   * @private
+   * @param {string} value - New value
+   */
+  _updateValueAttribute(value) {
+    const currentAttrValue = this.getAttribute("value");
+    if (currentAttrValue !== value) {
+      this._silentUpdate = true;
+      this.setAttribute("value", value);
+      this._silentUpdate = false;
+    }
+  }
+  /**
+   * Dispatch custom events
+   * @private
+   * @param {string} eventName - Event name
+   * @param {Object} detail - Event detail
+   */
+  _dispatchEvent(eventName, detail = {}) {
+    const event = new CustomEvent(eventName, {
+      detail,
+      bubbles: true,
+      composed: true
+    });
+    this.dispatchEvent(event);
+  }
+  /**
+   * Cleanup editor and remove listeners
+   * @private
+   */
+  _cleanup() {
+    if (this._editor && typeof this._editor.destroy === "function") {
+      this._editor.destroy();
+    }
+    this._editor = null;
+    this._initialized = false;
+  }
+  // ===== PUBLIC API METHODS =====
+  /**
+   * Get current editor value
+   * @returns {string} Current markdown content
+   */
+  getValue() {
+    return this._editor ? this._editor.getValue() : this.getAttribute("value") || "";
+  }
+  /**
+   * Set editor value
+   * @param {string} value - New markdown content
+   */
+  setValue(value) {
+    if (this._editor) {
+      this._editor.setValue(value);
+    } else {
+      this.setAttribute("value", value);
+    }
+  }
+  /**
+   * Get rendered HTML
+   * @returns {string} Rendered HTML
+   */
+  getHTML() {
+    return this._editor ? this._editor.getRenderedHTML(false) : "";
+  }
+  /**
+   * Insert text at cursor position
+   * @param {string} text - Text to insert
+   */
+  insertText(text) {
+    if (!this._editor || typeof text !== "string") {
+      return;
+    }
+    this._editor.insertText(text);
+  }
+  /**
+   * Focus the editor
+   */
+  focus() {
+    if (this._editor && this._editor.textarea) {
+      this._editor.textarea.focus();
+    }
+  }
+  /**
+   * Blur the editor
+   */
+  blur() {
+    if (this._editor && this._editor.textarea) {
+      this._editor.textarea.blur();
+    }
+  }
+  /**
+   * Get editor statistics
+   * @returns {Object} Statistics object
+   */
+  getStats() {
+    return this._editor ? this._editor.getStats() : null;
+  }
+  /**
+   * Check if editor is ready
+   * @returns {boolean} True if editor is initialized
+   */
+  isReady() {
+    return this._initialized && this._editor !== null;
+  }
+  /**
+   * Get the internal OverType instance
+   * @returns {OverType} The OverType editor instance
+   */
+  getEditor() {
+    return this._editor;
+  }
+};
+if (!customElements.get("overtype-editor")) {
+  customElements.define("overtype-editor", OverTypeEditor);
+}
+var overtype_webcomponent_default = OverTypeEditor;
 export {
-  OverType,
-  overtype_default as default
+  overtype_webcomponent_default as default
 };
 /**
  * OverType - A lightweight markdown editor library with perfect WYSIWYG alignment
  * @version 1.0.0
  * @license MIT
  */
-//# sourceMappingURL=overtype.esm.js.map
+/**
+ * OverType Web Component
+ * A custom element wrapper for the OverType markdown editor with Shadow DOM isolation
+ * @version 1.0.0
+ * @license MIT
+ */
+//# sourceMappingURL=overtype-webcomponent.esm.js.map

@@ -265,6 +265,7 @@
 
     <script src="../dist/overtype.js"></script>
     <script>
+        const OT = window.OverType?.default || window.OverType;
         let editorInstances = [];
         let totalCreated = 0;
         
@@ -382,7 +383,7 @@ Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu 
             container.appendChild(wrapper);
             
             // Initialize OverType
-            const [instance] = new OverType(editorDiv, {
+            const [instance] = new OT(editorDiv, {
                 theme: theme,
                 fontSize: fontSize,
                 placeholder: placeholder,
@@ -441,7 +442,7 @@ Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu 
             const editor = editorInstances.find(e => e.id === editorId);
             if (editor) {
                 editor.theme = editor.theme === 'solar' ? 'cave' : 'solar';
-                OverType.setTheme(editor.theme);
+                OT.setTheme(editor.theme);
             }
         }
         
@@ -494,7 +495,7 @@ Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu 
             });
             // Apply the last theme globally (this will affect all editors)
             if (editorInstances.length > 0) {
-                OverType.setTheme(editorInstances[editorInstances.length - 1].theme);
+                OT.setTheme(editorInstances[editorInstances.length - 1].theme);
             }
             
             console.log('Randomized all themes');

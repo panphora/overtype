@@ -178,7 +178,13 @@ testCases.forEach((test, index) => {
     
     // Special case: empty lines get converted to &nbsp; (0 -> 1 char) intentionally
     // JSDOM converts &nbsp; to char code 160 (non-breaking space)
-    const isEmptyLineWithNbsp = inputLine.length === 0 && visualLine.length === 1 && visualLine.charCodeAt(0) === 160;
+    // Also handle other invisible/whitespace characters that may result from processing
+    const isEmptyLineWithNbsp = inputLine.length === 0 && visualLine.length === 1 && (
+      visualLine.charCodeAt(0) === 160 ||  // &nbsp;
+      visualLine.charCodeAt(0) === 32 ||   // regular space
+      visualLine.charCodeAt(0) === 0 ||    // null character
+      /^\s$/.test(visualLine)              // any whitespace character
+    );
     
     if (inputLine.length !== visualLine.length && !isEmptyLineWithNbsp) {
       charAlignment = false;

@@ -96,7 +96,7 @@ export interface Options {
 export interface OverTypeConstructor {
   new(target: string | Element | NodeList | Element[], options?: Options): OverTypeInstance[];
   // Static members
-  instances: WeakMap<Element, OverTypeInstance>;
+  instances: any;
   stylesInjected: boolean;
   globalListenersInitialized: boolean;
   instanceCount: number;
@@ -146,7 +146,7 @@ export interface OverTypeInstance {
   isInitialized(): boolean;
   reinit(options: Options): void;
   showStats(show: boolean): void;
-  setTheme(theme: string | Theme): void;
+  setTheme(theme: string | Theme): this;
   updatePreview(): void;
   
   // HTML output methods
@@ -155,8 +155,9 @@ export interface OverTypeInstance {
   getPreviewHTML(): string;
   
   // View mode methods
-  showPlainTextarea(show: boolean): void;
-  showPreviewMode(show: boolean): void;
+  showNormalEditMode(): this;
+  showPlainTextarea(): this;
+  showPreviewMode(): this;
 }
 
 // Declare the constructor as a constant with proper typing

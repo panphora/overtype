@@ -197,6 +197,66 @@
             </div>
             <div id="code-editor" class="editor-wrapper"></div>
         </div>
+        <!-- Web Component Editor -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>Web Component</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="wcUpdateContent()">Update</button>
+                    <button class="btn" onclick="wcGetValue()">Get Value</button>
+                    <button class="btn" onclick="wcFocus()">Focus</button>
+                </div>
+            </div>
+            <div style="padding: 10px; background: #0a0a0a;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center;">
+                    <label>Theme:
+                        <select id="wc-theme-select" onchange="wcChangeTheme()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
+                            <option value="solar">solar</option>
+                            <option value="cave">cave</option>
+                        </select>
+                    </label>
+                    <label>Height:
+                        <select id="wc-height-select" onchange="wcChangeHeight()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
+                            <option value="200px">200px</option>
+                            <option value="300px">300px</option>
+                            <option value="400px">400px</option>
+                        </select>
+                    </label>
+                    <label>Font Size:
+                        <select id="wc-fontsize-select" onchange="wcChangeFontSize()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
+                            <option value="12px">12px</option>
+                            <option value="14px">14px</option>
+                            <option value="16px">16px</option>
+                            <option value="18px">18px</option>
+                        </select>
+                    </label>
+                    <label style="display:flex; gap:6px; align-items:center;">
+                        <input id="wc-toolbar-check" type="checkbox" onchange="wcToggleToolbar()">
+                        Toolbar
+                    </label>
+                    <label style="display:flex; gap:6px; align-items:center;">
+                        <input id="wc-stats-check" type="checkbox" onchange="wcToggleStats()">
+                        Stats
+                    </label>
+                    <label style="display:flex; gap:6px; align-items:center;">
+                        <input id="wc-autoresize-check" type="checkbox" onchange="wcToggleAutoResize()">
+                        Auto Resize
+                    </label>
+                </div>
+                <overtype-editor 
+                    id="wc-editor"
+                    value="# Web Component Demo\n\nThis demo showcases the **native** `<overtype-editor>` custom element with full functionality!\n\n## Features\n\n- **Real-time** markdown editing\n- *Live* preview updates\n- `Keyboard shortcuts` support\n- Multiple themes (Solar/Cave)\n- Built-in toolbar\n- Auto-resize capability\n- Event handling\n\n## Try These Features\n\n1. **Bold text** with Cmd/Ctrl + B\n2. *Italic text* with Cmd/Ctrl + I\n3. `Inline code` with Cmd/Ctrl + K\n4. [Links](https://github.com) work great!\n5. Create lists with Cmd/Ctrl + Shift + 8\n\n### Code Blocks\n\n```javascript\n// JavaScript code with syntax highlighting\nfunction greet(name) {\n    return `Hello, ${name}!`;\n}\n\nconsole.log(greet('OverType'));\n```\n\n### Blockquotes\n\n> This is a blockquote example.\n> It can span multiple lines\n> and looks great in the preview!\n\n---\n\n**Happy editing!** 🎉\n\n*The Web Component provides the same powerful features as the regular OverType editor, but as a native HTML element.*"
+                    theme="solar"
+                    height="300px"
+                    font-size="16px"
+                    toolbar
+                    show-stats>
+                </overtype-editor>
+                <div id="wc-output" style="margin-top:10px; border:1px solid #333; padding:8px; background:#0f0f0f; font-size:12px; min-height:40px;">
+                    Waiting for events...
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Theme Toggle -->
@@ -205,6 +265,156 @@
             Toggle Theme
         </button>
     </div>
+
+    <script type="module">
+        // Register custom element and set up minimal interaction
+        import OverTypeEditor from './dist/overtype-webcomponent.esm.js';
+
+        function wcGetValue() {
+            const el = document.getElementById('wc-editor');
+            if (el?.getValue) {
+                alert(el.getValue().slice(0, 200));
+            }
+        }
+
+        function wcUpdateContent() {
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            const content = `# Updated at: ${new Date().toLocaleTimeString()}\n\n**This content was updated programmatically.**`;
+            if (el.setValue) el.setValue(content); else el.setAttribute('value', content);
+        }
+
+        function wcFocus() {
+            const el = document.getElementById('wc-editor');
+            el?.focus && el.focus();
+        }
+
+        function wcChangeTheme() {
+            const sel = document.getElementById('wc-theme-select');
+            const el = document.getElementById('wc-editor');
+            el?.setAttribute('theme', sel.value);
+            const Lib = window.OverType?.default || window.OverType;
+            Lib?.setTheme && Lib.setTheme(sel.value);
+        }
+
+        function wcChangeHeight() {
+            const sel = document.getElementById('wc-height-select');
+            const el = document.getElementById('wc-editor');
+            el?.setAttribute('height', sel.value);
+        }
+
+        function wcChangeFontSize() {
+            const sel = document.getElementById('wc-fontsize-select');
+            const el = document.getElementById('wc-editor');
+            el?.setAttribute('font-size', sel.value);
+        }
+
+        function wcToggleToolbar() {
+            const chk = document.getElementById('wc-toolbar-check');
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            if (chk.checked) el.setAttribute('toolbar', ''); else el.removeAttribute('toolbar');
+        }
+
+        function wcToggleStats() {
+            const chk = document.getElementById('wc-stats-check');
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            if (chk.checked) el.setAttribute('show-stats', ''); else el.removeAttribute('show-stats');
+        }
+
+        function wcToggleAutoResize() {
+            const chk = document.getElementById('wc-autoresize-check');
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            if (chk.checked) {
+                el.setAttribute('auto-resize', '');
+                el.removeAttribute('height');
+            } else {
+                el.removeAttribute('auto-resize');
+                el.setAttribute('height', document.getElementById('wc-height-select').value || '300px');
+            }
+        }
+
+        // Sync controls with Web Component initial state
+        function syncControlsWithWc() {
+            const el = document.getElementById('wc-editor');
+            if (!el) return;
+            
+            // Sync theme selector
+            const themeSelect = document.getElementById('wc-theme-select');
+            const currentTheme = el.getAttribute('theme');
+            if (themeSelect && currentTheme) {
+                themeSelect.value = currentTheme;
+            }
+            
+            // Sync height selector
+            const heightSelect = document.getElementById('wc-height-select');
+            const currentHeight = el.getAttribute('height');
+            if (heightSelect && currentHeight) {
+                heightSelect.value = currentHeight;
+            }
+            
+            // Sync font-size selector
+            const fontsizeSelect = document.getElementById('wc-fontsize-select');
+            const currentFontSize = el.getAttribute('font-size');
+            if (fontsizeSelect && currentFontSize) {
+                fontsizeSelect.value = currentFontSize;
+            }
+            
+            // Sync toolbar checkbox
+            const toolbarCheck = document.getElementById('wc-toolbar-check');
+            const hasToolbar = el.hasAttribute('toolbar');
+            if (toolbarCheck) toolbarCheck.checked = hasToolbar;
+            
+            // Sync stats checkbox
+            const statsCheck = document.getElementById('wc-stats-check');
+            const hasStats = el.hasAttribute('show-stats');
+            if (statsCheck) statsCheck.checked = hasStats;
+            
+            // Sync auto-resize checkbox
+            const autoResizeCheck = document.getElementById('wc-autoresize-check');
+            const hasAutoResize = el.hasAttribute('auto-resize');
+            if (autoResizeCheck) autoResizeCheck.checked = hasAutoResize;
+        }
+
+        // Listen to WC events for live output
+        function setupWcEvents() {
+            const el = document.getElementById('wc-editor');
+            const out = document.getElementById('wc-output');
+            if (!el || !out) return;
+            
+            // Sync controls first
+            syncControlsWithWc();
+            
+            el.addEventListener('ready', () => { out.textContent = 'Ready'; });
+            el.addEventListener('change', (e) => {
+                const stats = el.getStats?.();
+                const chars = stats?.characters ?? e.detail?.value?.length ?? 0;
+                out.innerHTML = `<strong>Changed</strong> · ${chars} chars · ${new Date().toLocaleTimeString()}`;
+            });
+            el.addEventListener('keydown', (e) => {
+                out.innerHTML = `<strong>Key:</strong> ${e.detail?.event?.key || ''}`;
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', setupWcEvents);
+        } else {
+            setupWcEvents();
+        }
+
+        // Expose to buttons in header
+        window.wcGetValue = wcGetValue;
+        window.wcUpdateContent = wcUpdateContent;
+        window.wcFocus = wcFocus;
+        window.wcChangeTheme = wcChangeTheme;
+        window.wcChangeHeight = wcChangeHeight;
+        window.wcChangeFontSize = wcChangeFontSize;
+        window.wcToggleToolbar = wcToggleToolbar;
+        window.wcToggleStats = wcToggleStats;
+        window.wcToggleAutoResize = wcToggleAutoResize;
+    </script>
 
     <script src="dist/overtype.min.js"></script>
     <script>
@@ -313,6 +523,12 @@ const editor = new OverType('#editor', {
             const currentTheme = OT.currentTheme?.name || 'solar';
             const newTheme = currentTheme === 'solar' ? 'cave' : 'solar';
             OT.setTheme(newTheme);
+            // Keep Web Component in sync
+            const wc = document.getElementById('wc-editor');
+            wc?.setAttribute('theme', newTheme);
+            // Sync the selector control
+            const sel = document.getElementById('wc-theme-select');
+            if (sel) sel.value = newTheme;
         }
 
         // Sync preview with main

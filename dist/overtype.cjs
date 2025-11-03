@@ -2311,11 +2311,11 @@ function generateStyles(options = {}) {
     }
     
     /* Plain mode - hide preview and show textarea text */
-    .overtype-container.plain-mode .overtype-preview {
+    .overtype-container[data-mode="plain"] .overtype-preview {
       display: none !important;
     }
     
-    .overtype-container.plain-mode .overtype-input {
+    .overtype-container[data-mode="plain"] .overtype-input {
       color: var(--text, #0d3b66) !important;
       /* Use system font stack for better plain text readability */
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
@@ -2323,7 +2323,7 @@ function generateStyles(options = {}) {
     }
     
     /* Ensure textarea remains transparent in overlay mode */
-    .overtype-container:not(.plain-mode) .overtype-input {
+    .overtype-container:not([data-mode="plain"]) .overtype-input {
       color: transparent !important;
     }
 
@@ -2377,36 +2377,36 @@ function generateStyles(options = {}) {
     }
 
     /* Preview mode styles */
-    .overtype-container.preview-mode .overtype-input {
+    .overtype-container[data-mode="preview"] .overtype-input {
       display: none !important;
     }
 
-    .overtype-container.preview-mode .overtype-preview {
+    .overtype-container[data-mode="preview"] .overtype-preview {
       pointer-events: auto !important;
       user-select: text !important;
       cursor: text !important;
     }
 
     /* Hide syntax markers in preview mode */
-    .overtype-container.preview-mode .syntax-marker {
+    .overtype-container[data-mode="preview"] .syntax-marker {
       display: none !important;
     }
     
     /* Hide URL part of links in preview mode - extra specificity */
-    .overtype-container.preview-mode .syntax-marker.url-part,
-    .overtype-container.preview-mode .url-part {
+    .overtype-container[data-mode="preview"] .syntax-marker.url-part,
+    .overtype-container[data-mode="preview"] .url-part {
       display: none !important;
     }
     
     /* Hide all syntax markers inside links too */
-    .overtype-container.preview-mode a .syntax-marker {
+    .overtype-container[data-mode="preview"] a .syntax-marker {
       display: none !important;
     }
 
     /* Headers - restore proper sizing in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview h1, 
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview h2, 
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview h3 {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h1, 
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h2, 
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3 {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
       font-weight: 600 !important;
       margin: 0 !important;
@@ -2415,41 +2415,41 @@ function generateStyles(options = {}) {
       line-height: 1 !important; /* Tight line height for headings */
     }
     
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview h1 { 
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h1 { 
       font-size: 2em !important; 
     }
     
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview h2 { 
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h2 { 
       font-size: 1.5em !important; 
     }
     
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview h3 { 
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3 { 
       font-size: 1.17em !important; 
     }
 
     /* Lists - restore list styling in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview ul {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview ul {
       display: block !important;
       list-style: disc !important;
       padding-left: 2em !important;
       margin: 1em 0 !important;
     }
 
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview ol {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview ol {
       display: block !important;
       list-style: decimal !important;
       padding-left: 2em !important;
       margin: 1em 0 !important;
     }
     
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview li {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview li {
       display: list-item !important;
       margin: 0 !important;
       padding: 0 !important;
     }
 
     /* Links - make clickable in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview a {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview a {
       pointer-events: auto !important;
       cursor: pointer !important;
       color: var(--link, #0066cc) !important;
@@ -2457,7 +2457,7 @@ function generateStyles(options = {}) {
     }
 
     /* Code blocks - proper pre/code styling in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview pre.code-block {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview pre.code-block {
       background: #2d2d2d !important;
       color: #f8f8f2 !important;
       padding: 1.2em !important;
@@ -2468,11 +2468,11 @@ function generateStyles(options = {}) {
     }
     
     /* Cave theme code block background in preview mode */
-    .overtype-container[data-theme="cave"].preview-mode .overtype-wrapper .overtype-preview pre.code-block {
+    .overtype-container[data-theme="cave"][data-mode="preview"] .overtype-wrapper .overtype-preview pre.code-block {
       background: #11171F !important;
     }
 
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview pre.code-block code {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview pre.code-block code {
       background: transparent !important;
       color: inherit !important;
       padding: 0 !important;
@@ -2482,16 +2482,16 @@ function generateStyles(options = {}) {
     }
 
     /* Hide old code block lines and fences in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview .code-block-line {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview .code-block-line {
       display: none !important;
     }
 
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview .code-fence {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview .code-fence {
       display: none !important;
     }
 
     /* Blockquotes - enhanced styling in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview .blockquote {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview .blockquote {
       display: block !important;
       border-left: 4px solid var(--blockquote, #ddd) !important;
       padding-left: 1em !important;
@@ -2500,7 +2500,7 @@ function generateStyles(options = {}) {
     }
 
     /* Typography improvements in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview {
       font-family: Georgia, 'Times New Roman', serif !important;
       font-size: 16px !important;
       line-height: 1.8 !important;
@@ -2508,7 +2508,7 @@ function generateStyles(options = {}) {
     }
 
     /* Inline code in preview mode - keep monospace */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview code {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview code {
       font-family: ${fontFamily} !important;
       font-size: 0.9em !important;
       background: rgba(135, 131, 120, 0.15) !important;
@@ -2517,18 +2517,18 @@ function generateStyles(options = {}) {
     }
 
     /* Strong and em elements in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview strong {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview strong {
       font-weight: 700 !important;
       color: inherit !important; /* Use parent text color */
     }
 
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview em {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview em {
       font-style: italic !important;
       color: inherit !important; /* Use parent text color */
     }
 
     /* HR in preview mode */
-    .overtype-container.preview-mode .overtype-wrapper .overtype-preview .hr-marker {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview .hr-marker {
       display: block !important;
       border-top: 2px solid var(--hr, #ddd) !important;
       text-indent: -9999px !important;
@@ -2728,8 +2728,12 @@ var Toolbar = class {
           toggleTaskList(textarea);
           break;
         case "toggle-plain":
-          const isPlain = this.editor.container.classList.contains("plain-mode");
-          this.editor.showPlainTextarea(!isPlain);
+          const isPlain = this.editor.container.dataset.mode === "plain";
+          if (isPlain) {
+            this.editor.showNormalEditMode();
+          } else {
+            this.editor.showPlainTextarea();
+          }
           break;
       }
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -2780,7 +2784,7 @@ var Toolbar = class {
             isActive = activeFormats.includes("header-3");
             break;
           case "togglePlain":
-            isActive = !this.editor.container.classList.contains("plain-mode");
+            isActive = this.editor.container.dataset.mode !== "plain";
             break;
         }
         button.classList.toggle("active", isActive);
@@ -2823,9 +2827,7 @@ var Toolbar = class {
   createViewDropdown() {
     const dropdown = document.createElement("div");
     dropdown.className = "overtype-dropdown-menu";
-    const isPlain = this.editor.container.classList.contains("plain-mode");
-    const isPreview = this.editor.container.classList.contains("preview-mode");
-    const currentMode = isPreview ? "preview" : isPlain ? "plain" : "normal";
+    const currentMode = this.editor.container.dataset.mode || "normal";
     const modes = [
       { id: "normal", label: "Normal Edit", icon: "\u2713" },
       { id: "plain", label: "Plain Textarea", icon: "\u2713" },
@@ -2860,20 +2862,16 @@ var Toolbar = class {
    * Set view mode
    */
   setViewMode(mode) {
-    this.editor.container.classList.remove("plain-mode", "preview-mode");
     switch (mode) {
       case "plain":
-        this.editor.showPlainTextarea(true);
+        this.editor.showPlainTextarea();
         break;
       case "preview":
-        this.editor.showPreviewMode(true);
+        this.editor.showPreviewMode();
         break;
       case "normal":
       default:
-        this.editor.showPlainTextarea(false);
-        if (typeof this.editor.showPreviewMode === "function") {
-          this.editor.showPreviewMode(false);
-        }
+        this.editor.showNormalEditMode();
         break;
     }
   }
@@ -2902,7 +2900,7 @@ var LinkTooltip = class {
     this.init();
   }
   init() {
-    const supportsAnchor = CSS.supports("position-anchor: --x") && CSS.supports("position-area: center");
+    const supportsAnchor = typeof CSS !== "undefined" && CSS.supports && CSS.supports("position-anchor: --x") && CSS.supports("position-area: center");
     if (!supportsAnchor) {
       return;
     }
@@ -3671,6 +3669,25 @@ var _OverType = class _OverType {
     this.updatePreview();
   }
   /**
+   * Set theme for this instance
+   * @param {string|Object} theme - Theme name or custom theme object
+   * @returns {this} Returns this for chaining
+   */
+  setTheme(theme) {
+    this.instanceTheme = theme;
+    const themeObj = typeof theme === "string" ? getTheme(theme) : theme;
+    const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
+    if (themeName) {
+      this.container.setAttribute("data-theme", themeName);
+    }
+    if (themeObj && themeObj.colors) {
+      const cssVars = themeToCSSVars(themeObj.colors);
+      this.container.style.cssText += cssVars;
+    }
+    this.updatePreview();
+    return this;
+  }
+  /**
    * Update stats bar
    * @private
    */
@@ -3772,37 +3789,39 @@ var _OverType = class _OverType {
     }
   }
   /**
-   * Show or hide the plain textarea (toggle overlay visibility)
-   * @param {boolean} show - true to show plain textarea (hide overlay), false to show overlay
-   * @returns {boolean} Current plain textarea state
+   * Show normal edit mode (overlay with markdown preview)
+   * @returns {this} Returns this for chaining
    */
-  showPlainTextarea(show) {
-    if (show) {
-      this.container.classList.add("plain-mode");
-    } else {
-      this.container.classList.remove("plain-mode");
-    }
+  showNormalEditMode() {
+    this.container.dataset.mode = "normal";
+    requestAnimationFrame(() => {
+      this.textarea.scrollTop = this.preview.scrollTop;
+      this.textarea.scrollLeft = this.preview.scrollLeft;
+    });
+    return this;
+  }
+  /**
+   * Show plain textarea mode (no overlay)
+   * @returns {this} Returns this for chaining
+   */
+  showPlainTextarea() {
+    this.container.dataset.mode = "plain";
     if (this.toolbar) {
       const toggleBtn = this.container.querySelector('[data-action="toggle-plain"]');
       if (toggleBtn) {
-        toggleBtn.classList.toggle("active", !show);
-        toggleBtn.title = show ? "Show markdown preview" : "Show plain textarea";
+        toggleBtn.classList.remove("active");
+        toggleBtn.title = "Show markdown preview";
       }
     }
-    return show;
+    return this;
   }
   /**
-   * Show/hide preview mode
-   * @param {boolean} show - Show preview mode if true, edit mode if false
-   * @returns {boolean} Current preview mode state
+   * Show preview mode (read-only view)
+   * @returns {this} Returns this for chaining
    */
-  showPreviewMode(show) {
-    if (show) {
-      this.container.classList.add("preview-mode");
-    } else {
-      this.container.classList.remove("preview-mode");
-    }
-    return show;
+  showPreviewMode() {
+    this.container.dataset.mode = "preview";
+    return this;
   }
   /**
    * Destroy the editor instance
