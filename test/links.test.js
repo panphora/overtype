@@ -254,6 +254,139 @@ console.log('\n⚠️ Edge Cases\n');
   );
 })();
 
+// ===== URL Escaping (PR #64 - Fix Double-Escaping) =====
+console.log('\n🔧 URL Escaping (Fix for Issue #63)\n');
+
+// Test: URL with ampersands should not be double-escaped
+(() => {
+  const input = '[Google](https://google.com?a=1&b=2)';
+  const parsed = MarkdownParser.parse(input);
+
+  // The visible URL part should have &amp; (once escaped, for display)
+  // But NOT &amp;amp; (double-escaped)
+  assert(
+    parsed.includes('](https://google.com?a=1&amp;b=2)</span>') &&
+    !parsed.includes('&amp;amp;'),
+    'URL with ampersands - no double-escaping',
+    `URL should be escaped once, not twice. Got: ${parsed}`
+  );
+})();
+
+// Test: URL with multiple ampersands
+(() => {
+  const input = '[Search](https://example.com?q=test&lang=en&filter=all)';
+  const parsed = MarkdownParser.parse(input);
+
+  // Count how many times &amp; appears in the visible URL part
+  const urlPartMatch = parsed.match(/]\(https:\/\/example\.com\?q=test.*?\)<\/span>/);
+  const urlPart = urlPartMatch ? urlPartMatch[0] : '';
+  const ampCount = (urlPart.match(/&amp;/g) || []).length;
+  const doubleAmpCount = (urlPart.match(/&amp;amp;/g) || []).length;
+
+  assert(
+    ampCount === 2 && doubleAmpCount === 0,
+    'URL with multiple ampersands',
+    `Should have 2 &amp; (not double-escaped). Found ${ampCount} &amp; and ${doubleAmpCount} &amp;amp;. Got: ${parsed}`
+  );
+})();
+
+// Test: URL with angle brackets
+(() => {
+  const input = '[Test](https://example.com?tag=<test>)';
+  const parsed = MarkdownParser.parse(input);
+
+  assert(
+    parsed.includes('](https://example.com?tag=&lt;test&gt;)</span>') &&
+    !parsed.includes('&lt;lt;') && !parsed.includes('&gt;gt;'),
+    'URL with angle brackets - no double-escaping',
+    `Angle brackets should be escaped once. Got: ${parsed}`
+  );
+})();
+
+// Test: URL with quotes
+(() => {
+  const input = '[Link](https://example.com?name="test")';
+  const parsed = MarkdownParser.parse(input);
+
+  assert(
+    parsed.includes('](https://example.com?name=&quot;test&quot;)</span>') &&
+    !parsed.includes('&quot;quot;'),
+    'URL with quotes - no double-escaping',
+    `Quotes should be escaped once. Got: ${parsed}`
+  );
+})();
+
+// Test: URL with fragment and query parameters
+(() => {
+  const input = '[Link](https://example.com?a=1&b=2#section)';
+  const parsed = MarkdownParser.parse(input);
+
+  assert(
+    parsed.includes('](https://example.com?a=1&amp;b=2#section)</span>') &&
+    !parsed.includes('&amp;amp;'),
+    'URL with fragment and parameters',
+    `Should preserve fragment and not double-escape. Got: ${parsed}`
+  );
+})();
+
+// Test: mailto URL with query parameters
+(() => {
+  const input = '[Email](mailto:test@example.com?subject=Hello&body=World)';
+  const parsed = MarkdownParser.parse(input);
+
+  assert(
+    parsed.includes('](mailto:test@example.com?subject=Hello&amp;body=World)</span>') &&
+    !parsed.includes('&amp;amp;'),
+    'mailto URL with parameters',
+    `mailto URLs should not be double-escaped. Got: ${parsed}`
+  );
+})();
+
+// Test: Image link with special characters
+(() => {
+  const input = '![Image](https://example.com/img.png?w=100&h=200)';
+  const parsed = MarkdownParser.parse(input);
+
+  // Image links follow the same pattern as regular links
+  assert(
+    parsed.includes('](https://example.com/img.png?w=100&amp;h=200)</span>') &&
+    !parsed.includes('&amp;amp;'),
+    'Image URL with parameters',
+    `Image URLs should not be double-escaped. Got: ${parsed}`
+  );
+})();
+
+// Test: FTP URL with special characters
+(() => {
+  const input = '[FTP](ftp://server.com/path?user=test&pass=123)';
+  const parsed = MarkdownParser.parse(input);
+
+  assert(
+    parsed.includes('](ftp://server.com/path?user=test&amp;pass=123)</span>') &&
+    !parsed.includes('&amp;amp;'),
+    'FTP URL with parameters',
+    `FTP URLs should not be double-escaped. Got: ${parsed}`
+  );
+})();
+
+// Test: Verify alignment preservation with special characters
+(() => {
+  const input = '[Link](https://example.com?a=1&b=2)';
+  const parsed = MarkdownParser.parse(input);
+
+  // The visible part should match the input character count
+  // Original: [Link](https://example.com?a=1&b=2) = 39 chars
+  // In the visible URL part, & becomes &amp; which is displayed as & (1 char)
+  // So alignment is preserved
+  const urlPartMatch = parsed.match(/]\(https:\/\/example\.com\?a=1&amp;b=2\)<\/span>/);
+
+  assert(
+    urlPartMatch !== null,
+    'Alignment preserved with special chars',
+    `URL escaping should preserve alignment. Got: ${parsed}`
+  );
+})();
+
 // ===== Summary =====
 console.log('\n' + '━'.repeat(50));
 console.log('\n📊 Test Results Summary\n');

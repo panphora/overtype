@@ -98,24 +98,9 @@ class OverType {
 
       // Setup shortcuts manager
       this.shortcuts = new ShortcutsManager(this);
-      
+
       // Setup link tooltip
       this.linkTooltip = new LinkTooltip(this);
-
-      // Setup toolbar if enabled
-      if (this.options.toolbar) {
-        const toolbarButtons = typeof this.options.toolbar === 'object' ? this.options.toolbar.buttons : null;
-        this.toolbar = new Toolbar(this, toolbarButtons);
-        this.toolbar.create();
-        
-        // Update toolbar states on selection change
-        this.textarea.addEventListener('selectionchange', () => {
-          this.toolbar.updateButtonStates();
-        });
-        this.textarea.addEventListener('input', () => {
-          this.toolbar.updateButtonStates();
-        });
-      }
 
       // Mark as initialized
       this.initialized = true;
@@ -413,6 +398,47 @@ class OverType {
     }
 
     /**
+     * Create and setup toolbar
+     * @private
+     */
+    _createToolbar() {
+      const toolbarButtons = typeof this.options.toolbar === 'object' ? this.options.toolbar.buttons : null;
+      this.toolbar = new Toolbar(this, toolbarButtons);
+      this.toolbar.create();
+
+      // Store listener references for cleanup
+      this._toolbarSelectionListener = () => {
+        if (this.toolbar) {
+          this.toolbar.updateButtonStates();
+        }
+      };
+      this._toolbarInputListener = () => {
+        if (this.toolbar) {
+          this.toolbar.updateButtonStates();
+        }
+      };
+
+      // Add listeners
+      this.textarea.addEventListener('selectionchange', this._toolbarSelectionListener);
+      this.textarea.addEventListener('input', this._toolbarInputListener);
+    }
+
+    /**
+     * Cleanup toolbar event listeners
+     * @private
+     */
+    _cleanupToolbarListeners() {
+      if (this._toolbarSelectionListener) {
+        this.textarea.removeEventListener('selectionchange', this._toolbarSelectionListener);
+        this._toolbarSelectionListener = null;
+      }
+      if (this._toolbarInputListener) {
+        this.textarea.removeEventListener('input', this._toolbarInputListener);
+        this._toolbarInputListener = null;
+      }
+    }
+
+    /**
      * Apply options to the editor
      * @private
      */
@@ -421,7 +447,7 @@ class OverType {
       if (this.options.autofocus) {
         this.textarea.focus();
       }
-      
+
       // Setup or remove auto-resize
       if (this.options.autoResize) {
         if (!this.container.classList.contains('overtype-auto-resize')) {
@@ -430,6 +456,17 @@ class OverType {
       } else {
         // Ensure auto-resize class is removed
         this.container.classList.remove('overtype-auto-resize');
+      }
+
+      // Handle toolbar option changes
+      if (this.options.toolbar && !this.toolbar) {
+        // Create toolbar if enabled and doesn't exist
+        this._createToolbar();
+      } else if (!this.options.toolbar && this.toolbar) {
+        // Destroy toolbar if disabled and exists
+        this._cleanupToolbarListeners();
+        this.toolbar.destroy();
+        this.toolbar = null;
       }
 
       // Update preview with initial content
@@ -843,6 +880,36 @@ class OverType {
     }
 
     /**
+     * Set theme for this instance
+     * @param {string|Object} theme - Theme name or custom theme object
+     * @returns {this} Returns this for chaining
+     */
+    setTheme(theme) {
+      // Update instance theme
+      this.instanceTheme = theme;
+
+      // Get theme object
+      const themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
+      const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
+
+      // Update container theme attribute
+      if (themeName) {
+        this.container.setAttribute('data-theme', themeName);
+      }
+
+      // Apply CSS variables to container for instance override
+      if (themeObj && themeObj.colors) {
+        const cssVars = themeToCSSVars(themeObj.colors);
+        this.container.style.cssText += cssVars;
+      }
+
+      // Update preview to reflect new theme
+      this.updatePreview();
+
+      return this;
+    }
+
+    /**
      * Update stats bar
      * @private
      */
@@ -986,47 +1053,47 @@ class OverType {
     }
     
     /**
-     * Show or hide the plain textarea (toggle overlay visibility)
-     * @param {boolean} show - true to show plain textarea (hide overlay), false to show overlay
-     * @returns {boolean} Current plain textarea state
+     * Show normal edit mode (overlay with markdown preview)
+     * @returns {this} Returns this for chaining
      */
-    showPlainTextarea(show) {
-      if (show) {
-        // Show plain textarea mode (hide overlay)
-        this.container.classList.add('plain-mode');
-      } else {
-        // Show overlay mode (hide plain textarea text)
-        this.container.classList.remove('plain-mode');
-      }
-      
+    showNormalEditMode() {
+      this.container.dataset.mode = 'normal';
+
+      // Always sync scroll from preview to textarea
+      requestAnimationFrame(() => {
+        this.textarea.scrollTop = this.preview.scrollTop;
+        this.textarea.scrollLeft = this.preview.scrollLeft;
+      });
+
+      return this;
+    }
+
+    /**
+     * Show plain textarea mode (no overlay)
+     * @returns {this} Returns this for chaining
+     */
+    showPlainTextarea() {
+      this.container.dataset.mode = 'plain';
+
       // Update toolbar button if exists
       if (this.toolbar) {
         const toggleBtn = this.container.querySelector('[data-action="toggle-plain"]');
         if (toggleBtn) {
-          // Button is active when showing overlay (not plain mode)
-          toggleBtn.classList.toggle('active', !show);
-          toggleBtn.title = show ? 'Show markdown preview' : 'Show plain textarea';
+          toggleBtn.classList.remove('active');
+          toggleBtn.title = 'Show markdown preview';
         }
       }
-      
-      return show;
+
+      return this;
     }
 
     /**
-     * Show/hide preview mode
-     * @param {boolean} show - Show preview mode if true, edit mode if false
-     * @returns {boolean} Current preview mode state
+     * Show preview mode (read-only view)
+     * @returns {this} Returns this for chaining
      */
-    showPreviewMode(show) {
-      if (show) {
-        // Show preview mode (hide textarea, make preview interactive)
-        this.container.classList.add('preview-mode');
-      } else {
-        // Show edit mode
-        this.container.classList.remove('preview-mode');
-      }
-      
-      return show;
+    showPreviewMode() {
+      this.container.dataset.mode = 'preview';
+      return this;
     }
 
     /**

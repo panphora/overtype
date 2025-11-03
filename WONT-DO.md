@@ -74,6 +74,15 @@ These features are fundamentally incompatible with OverType's design philosophy 
 
 **Alternative:** Use browser extensions that add Vim keybindings to all textareas.
 
+### 🚫 Nested Lists
+**Why not:**
+- Tab key naturally inserts `\t` in textareas, Markdown needs spaces for indentation
+- Different indent levels with varying marker widths break character grid alignment
+- Parser runs per keystroke causing visual "jumping" when typing indentation
+- Would require complex state management contradicting the "transparent textarea" philosophy
+
+**Alternative:** Use single-level lists with clear headings to organize content hierarchically.
+
 ---
 
 ## Design Philosophy

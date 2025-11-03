@@ -154,8 +154,12 @@ export class Toolbar {
           break;
         case 'toggle-plain':
           // Toggle between plain textarea and overlay mode
-          const isPlain = this.editor.container.classList.contains('plain-mode');
-          this.editor.showPlainTextarea(!isPlain);
+          const isPlain = this.editor.container.dataset.mode === 'plain';
+          if (isPlain) {
+            this.editor.showNormalEditMode();
+          } else {
+            this.editor.showPlainTextarea();
+          }
           break;
       }
 
@@ -215,7 +219,7 @@ export class Toolbar {
             break;
           case 'togglePlain':
             // Button is active when in overlay mode (not plain mode)
-            isActive = !this.editor.container.classList.contains('plain-mode');
+            isActive = this.editor.container.dataset.mode !== 'plain';
             break;
         }
 
@@ -275,9 +279,7 @@ export class Toolbar {
     dropdown.className = 'overtype-dropdown-menu';
     
     // Determine current mode
-    const isPlain = this.editor.container.classList.contains('plain-mode');
-    const isPreview = this.editor.container.classList.contains('preview-mode');
-    const currentMode = isPreview ? 'preview' : (isPlain ? 'plain' : 'normal');
+    const currentMode = this.editor.container.dataset.mode || 'normal';
     
     // Create menu items
     const modes = [
@@ -323,23 +325,16 @@ export class Toolbar {
    * Set view mode
    */
   setViewMode(mode) {
-    // Clear all mode classes
-    this.editor.container.classList.remove('plain-mode', 'preview-mode');
-    
     switch(mode) {
       case 'plain':
-        this.editor.showPlainTextarea(true);
+        this.editor.showPlainTextarea();
         break;
       case 'preview':
-        this.editor.showPreviewMode(true);
+        this.editor.showPreviewMode();
         break;
       case 'normal':
       default:
-        // Normal edit mode
-        this.editor.showPlainTextarea(false);
-        if (typeof this.editor.showPreviewMode === 'function') {
-          this.editor.showPreviewMode(false);
-        }
+        this.editor.showNormalEditMode();
         break;
     }
   }

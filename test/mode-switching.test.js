@@ -24,6 +24,7 @@ global.Element = dom.window.Element;
 global.Node = dom.window.Node;
 global.CSS = { supports: () => false }; // Mock CSS.supports for link-tooltip
 global.performance = { now: () => Date.now() };
+global.requestAnimationFrame = (callback) => setTimeout(callback, 0); // Mock for Node.js
 
 // Test results
 let passed = 0;
@@ -140,10 +141,10 @@ Final paragraph here.`;
   editor.textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
 
   // Mode switches
-  editor.showPlainTextarea(true);
-  editor.showPlainTextarea(false);
-  editor.showPreviewMode(true);
-  editor.showPreviewMode(false);
+  editor.showPlainTextarea();
+  editor.showNormalEditMode();
+  editor.showPreviewMode();
+  editor.showNormalEditMode();
 
   // Check alignment
   let alignment = checkAlignment(editor);
@@ -169,10 +170,10 @@ Final paragraph here.`;
   editor.textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
 
   // Mode switches
-  editor.showPreviewMode(true);
-  editor.showPreviewMode(false);
-  editor.showPlainTextarea(true);
-  editor.showPlainTextarea(false);
+  editor.showPreviewMode();
+  editor.showNormalEditMode();
+  editor.showPlainTextarea();
+  editor.showNormalEditMode();
 
   // Check alignment
   alignment = checkAlignment(editor);
@@ -199,10 +200,10 @@ Final paragraph here.`;
   editor.textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
 
   // Mode switches
-  editor.showPlainTextarea(true);
-  editor.showPreviewMode(true);
-  editor.showPreviewMode(false);
-  editor.showPlainTextarea(false);
+  editor.showPlainTextarea();
+  editor.showPreviewMode();
+  editor.showNormalEditMode();
+  editor.showNormalEditMode();
 
   // Check alignment
   alignment = checkAlignment(editor);
@@ -229,10 +230,10 @@ Final paragraph here.`;
   editor.textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
 
   // Mode switches
-  editor.showPreviewMode(true);
-  editor.showPlainTextarea(true);
-  editor.showPlainTextarea(false);
-  editor.showPreviewMode(false);
+  editor.showPreviewMode();
+  editor.showPlainTextarea();
+  editor.showNormalEditMode();
+  editor.showNormalEditMode();
 
   // Check alignment
   alignment = checkAlignment(editor);
@@ -264,14 +265,14 @@ Final paragraph here.`;
   editor.textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
 
   // Mode switches (extra aggressive)
-  editor.showPlainTextarea(true);
-  editor.showPlainTextarea(false);
-  editor.showPreviewMode(true);
-  editor.showPreviewMode(false);
-  editor.showPlainTextarea(true);
-  editor.showPreviewMode(true);
-  editor.showPreviewMode(false);
-  editor.showPlainTextarea(false);
+  editor.showPlainTextarea();
+  editor.showNormalEditMode();
+  editor.showPreviewMode();
+  editor.showNormalEditMode();
+  editor.showPlainTextarea();
+  editor.showPreviewMode();
+  editor.showNormalEditMode();
+  editor.showNormalEditMode();
 
   // Check alignment
   alignment = checkAlignment(editor);

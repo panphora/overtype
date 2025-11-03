@@ -301,7 +301,7 @@ var OverType = (() => {
           processedLinkText = this.parseItalic(processedLinkText);
           const anchorName = `--link-${this.linkIndex++}`;
           const safeUrl = this.sanitizeUrl(sanctuary.url);
-          replacement = `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">](${this.escapeHtml(sanctuary.url)})</span></a>`;
+          replacement = `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">](${sanctuary.url})</span></a>`;
         }
         html = html.replace(placeholder, replacement);
       });
@@ -2077,12 +2077,14 @@ ${blockSuffix}` : suffix;
     /* Code block styling in normal mode - yellow background */
     .overtype-wrapper .overtype-preview pre.code-block {
       background: var(--code-bg, rgba(244, 211, 94, 0.4)) !important;
+      white-space: break-spaces !important; /* Prevent horizontal scrollbar that breaks alignment */
     }
 
     /* Code inside pre blocks - remove background */
     .overtype-wrapper .overtype-preview pre code {
       background: transparent !important;
       color: var(--code, #0d3b66) !important;
+      font-family: ${fontFamily} !important; /* Match textarea font exactly for alignment */
     }
 
     /* Blockquotes */
@@ -3095,17 +3097,6 @@ ${blockSuffix}` : suffix;
       }
       this.shortcuts = new ShortcutsManager(this);
       this.linkTooltip = new LinkTooltip(this);
-      if (this.options.toolbar) {
-        const toolbarButtons = typeof this.options.toolbar === "object" ? this.options.toolbar.buttons : null;
-        this.toolbar = new Toolbar(this, toolbarButtons);
-        this.toolbar.create();
-        this.textarea.addEventListener("selectionchange", () => {
-          this.toolbar.updateButtonStates();
-        });
-        this.textarea.addEventListener("input", () => {
-          this.toolbar.updateButtonStates();
-        });
-      }
       this.initialized = true;
       if (this.options.onChange) {
         this.options.onChange(this.getValue(), this);
@@ -3328,6 +3319,41 @@ ${blockSuffix}` : suffix;
       this.textarea.setAttribute("data-enable-grammarly", "false");
     }
     /**
+     * Create and setup toolbar
+     * @private
+     */
+    _createToolbar() {
+      const toolbarButtons = typeof this.options.toolbar === "object" ? this.options.toolbar.buttons : null;
+      this.toolbar = new Toolbar(this, toolbarButtons);
+      this.toolbar.create();
+      this._toolbarSelectionListener = () => {
+        if (this.toolbar) {
+          this.toolbar.updateButtonStates();
+        }
+      };
+      this._toolbarInputListener = () => {
+        if (this.toolbar) {
+          this.toolbar.updateButtonStates();
+        }
+      };
+      this.textarea.addEventListener("selectionchange", this._toolbarSelectionListener);
+      this.textarea.addEventListener("input", this._toolbarInputListener);
+    }
+    /**
+     * Cleanup toolbar event listeners
+     * @private
+     */
+    _cleanupToolbarListeners() {
+      if (this._toolbarSelectionListener) {
+        this.textarea.removeEventListener("selectionchange", this._toolbarSelectionListener);
+        this._toolbarSelectionListener = null;
+      }
+      if (this._toolbarInputListener) {
+        this.textarea.removeEventListener("input", this._toolbarInputListener);
+        this._toolbarInputListener = null;
+      }
+    }
+    /**
      * Apply options to the editor
      * @private
      */
@@ -3341,6 +3367,13 @@ ${blockSuffix}` : suffix;
         }
       } else {
         this.container.classList.remove("overtype-auto-resize");
+      }
+      if (this.options.toolbar && !this.toolbar) {
+        this._createToolbar();
+      } else if (!this.options.toolbar && this.toolbar) {
+        this._cleanupToolbarListeners();
+        this.toolbar.destroy();
+        this.toolbar = null;
       }
       this.updatePreview();
     }

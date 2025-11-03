@@ -15,6 +15,7 @@ global.NodeList = dom.window.NodeList;
 global.HTMLElement = dom.window.HTMLElement;
 global.performance = { now: () => Date.now() };
 global.CSS = { supports: () => false }; // Mock CSS.supports for link-tooltip
+global.requestAnimationFrame = (callback) => setTimeout(callback, 0); // Mock for Node.js
 
 // Test results storage
 const results = {
@@ -148,19 +149,17 @@ const x = 42;
   editor.setValue(markdown);
   
   // Test in normal mode
-  editor.showPlainTextarea(false);
-  editor.showPreviewMode(false);
+  editor.showNormalEditMode();
   const normalValue = editor.getValue();
   const normalHTML = editor.getRenderedHTML();
-  
+
   // Test in plain mode
-  editor.showPlainTextarea(true);
+  editor.showPlainTextarea();
   const plainValue = editor.getValue();
   const plainHTML = editor.getRenderedHTML();
-  
+
   // Test in preview mode
-  editor.showPlainTextarea(false);
-  editor.showPreviewMode(true);
+  editor.showPreviewMode();
   const previewValue = editor.getValue();
   const previewHTML = editor.getRenderedHTML();
   

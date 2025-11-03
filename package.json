@@ -14,6 +14,10 @@
       "import": "./dist/overtype.esm.js",
       "require": "./dist/overtype.cjs",
       "browser": "./dist/overtype.iife.min.js"
+    },
+    "./parser": {
+      "import": "./src/parser.js",
+      "require": "./src/parser.js"
     }
   },
   "type": "module",
@@ -30,7 +34,7 @@
     "test:alignment": "node test/comprehensive-alignment.test.js",
     "test:sanctuary": "node test/sanctuary-parsing.test.js",
     "test:modes": "node test/mode-switching.test.js",
-    "test:types": "tsc --noEmit test-types.ts",
+    "test:types": "tsc --noEmit --lib ES2020,DOM test-types.ts",
     "preversion": "npm test",
     "size": "gzip-size dist/overtype.min.js",
     "serve": "http-server -p 8080 -c-1"

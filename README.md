@@ -1,6 +1,6 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~85KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~86KB minified with all features.
 
 ## Live Examples
 
@@ -19,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~85KB minified
+- 🚀 **Lightweight** - ~86KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -35,7 +35,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~85KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~86KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -85,7 +85,7 @@ const [editor] = new OverType('#editor', {
 editor.getValue();
 editor.setValue('# New Content');
 
-// Change theme
+// Change theme for this instance
 editor.setTheme('cave');
 ```
 
@@ -130,8 +130,9 @@ const [editor] = new OverType('#editor', {
 // 3. Preview Mode - Read-only rendered preview with clickable links
 
 // Programmatically switch modes:
-editor.showPlainTextarea(true);   // Switch to plain textarea mode
-editor.showPreviewMode(true);     // Switch to preview mode
+editor.showNormalEditMode();   // Switch to normal edit mode (default)
+editor.showPlainTextarea();    // Switch to plain textarea mode
+editor.showPreviewMode();      // Switch to preview mode
 ```
 
 ### Keyboard Shortcuts
@@ -300,6 +301,45 @@ function MarkdownEditor({ value, onChange }) {
 }
 ```
 
+### Standalone Parser
+
+Import and use the markdown parser without the full editor for server-side rendering, static site generation, or browser extensions:
+
+```javascript
+// Import just the parser
+import { MarkdownParser } from 'overtype/parser';
+
+// Parse markdown to HTML
+const html = MarkdownParser.parse('# Hello World\n\nThis is **bold** text.');
+
+// Use in Node.js for SSR
+app.get('/preview', (req, res) => {
+  const markdown = req.body.content;
+  const html = MarkdownParser.parse(markdown);
+  res.json({ html });
+});
+
+// Use in static site generator
+const posts = markdownFiles.map(file => ({
+  content: MarkdownParser.parse(file.content),
+  metadata: file.metadata
+}));
+
+// Use in browser extension
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.markdown) {
+    const html = MarkdownParser.parse(request.markdown);
+    sendResponse({ html });
+  }
+});
+```
+
+**Benefits:**
+- No DOM dependencies required
+- Smaller bundle when you only need parsing
+- Same markdown rendering as the editor
+- Perfect for headless/server-side use cases
+
 ## API
 
 ### Constructor
@@ -394,15 +434,14 @@ editor.getCleanHTML()                       // Alias for getRenderedHTML({ clean
 // Get the current preview element's HTML
 editor.getPreviewHTML()            // Actual DOM content from preview layer
 
-// Change theme
+// Change theme (instance-specific, overrides global theme)
 editor.setTheme('cave')  // Built-in theme name
 editor.setTheme(customThemeObject)  // Custom theme
 
 // View modes
-editor.showPlainTextarea(true)    // Switch to plain textarea mode
-editor.showPlainTextarea(false)   // Switch back to normal mode
-editor.showPreviewMode(true)      // Switch to preview mode
-editor.showPreviewMode(false)     // Switch back to normal mode
+editor.showNormalEditMode()   // Switch to normal edit mode (default)
+editor.showPlainTextarea()    // Switch to plain textarea mode
+editor.showPreviewMode()      // Switch to preview mode
 
 // Focus/blur
 editor.focus()
@@ -425,10 +464,12 @@ editor.destroy()
 ### Static Methods
 
 ```javascript
-// Set global theme (affects all instances)
+// Set global theme (affects all instances without instance themes)
 OverType.setTheme('cave')  // Built-in theme
 OverType.setTheme(customTheme)  // Custom theme object
 OverType.setTheme('solar', { h1: '#custom' })  // Override specific colors
+
+// Note: editor.setTheme() overrides global theme for that specific instance
 
 // Initialize multiple editors (same as constructor)
 OverType.init(target, options)
@@ -564,11 +605,29 @@ OverType uses a unique invisible textarea overlay approach:
 ## Contributors
 
 Special thanks to:
+
+### Core Features & Fixes
 - [Josh Doman](https://github.com/joshdoman) - Fixed inline code formatting preservation ([#6](https://github.com/panphora/overtype/pull/6)), improved code fence detection ([#19](https://github.com/panphora/overtype/pull/19))
 - [kbhomes](https://github.com/kbhomes) - Fixed text selection desynchronization during overscroll ([#17](https://github.com/panphora/overtype/pull/17))
+- [Kristián Kostecký](https://github.com/kristiankostecky) - Fixed toolbar option being ignored in reinit() ([#62](https://github.com/panphora/overtype/pull/62))
+- [Lyric Wai](https://github.com/lyricat) - Fixed double-escaping of links ([#64](https://github.com/panphora/overtype/pull/64)), reported code block alignment issues ([#65](https://github.com/panphora/overtype/issues/65))
+
+### TypeScript & Framework Support
 - [merlinz01](https://github.com/merlinz01) - Initial TypeScript definitions implementation ([#20](https://github.com/panphora/overtype/pull/20))
-- [Max Bernstein](https://github.com/tekknolagi) - Fixed typo in website ([#11](https://github.com/panphora/overtype/pull/11))
+- [ChasLui](https://github.com/ChasLui) - Web component implementation (under review) ([#40](https://github.com/panphora/overtype/pull/40))
+
+### New Features & Enhancements
 - [davidlazar](https://github.com/davidlazar) - Suggested view mode feature for toggling overlay and preview modes ([#24](https://github.com/panphora/overtype/issues/24))
+- [Yukai Huang](https://github.com/Yukaii) - Syntax highlighting support (under review) ([#35](https://github.com/panphora/overtype/pull/35))
+- [Rognoni](https://github.com/rognoni) - Suggested custom toolbar button API ([#61](https://github.com/panphora/overtype/issues/61))
+- [Deyan Gigov](https://github.com/dido739) - Reported checkbox rendering issue in preview mode ([#60](https://github.com/panphora/overtype/issues/60))
+
+### Developer Experience
+- [Ned Twigg](https://github.com/nedtwigg) - Browser extension developer feedback, gitcasso extension ([#59](https://github.com/panphora/overtype/issues/59))
+- [Victor](https://github.com/ViggieM) - Suggested exporting MarkdownParser for standalone use ([#58](https://github.com/panphora/overtype/issues/58))
+- [Bernhard Weichel](https://github.com/bwl21) - Reported mode switching scroll sync bug ([#52](https://github.com/panphora/overtype/issues/52))
+- [Colin Devroe](https://github.com/cdevroe) - Reported theme API confusion ([#54](https://github.com/panphora/overtype/issues/54))
+- [Max Bernstein](https://github.com/tekknolagi) - Fixed typo in website ([#11](https://github.com/panphora/overtype/pull/11))
 
 ## License
 
