@@ -151,7 +151,8 @@ class OverType {
         showStats: false,
         toolbar: false,
         statsFormatter: null,
-        smartLists: true  // Enable smart list continuation
+        smartLists: true,  // Enable smart list continuation
+        codeHighlighter: null  // Per-instance code highlighter
       };
       
       // Remove theme and colors from options - these are now global
@@ -480,9 +481,9 @@ class OverType {
       const text = this.textarea.value;
       const cursorPos = this.textarea.selectionStart;
       const activeLine = this._getCurrentLine(text, cursorPos);
-      
+
       // Parse markdown
-      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw);
+      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter);
       this.preview.innerHTML = html || '<span style="color: #808080;">Start typing...</span>';
       
       // Apply code block backgrounds
@@ -815,8 +816,8 @@ class OverType {
      */
     getRenderedHTML(options = {}) {
       const markdown = this.getValue();
-      let html = MarkdownParser.parse(markdown);
-      
+      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
+
       if (options.cleanHTML) {
         // Remove all syntax marker spans for clean HTML export
         html = html.replace(/<span class="syntax-marker[^"]*">.*?<\/span>/g, '');
@@ -907,6 +908,15 @@ class OverType {
       this.updatePreview();
 
       return this;
+    }
+
+    /**
+     * Set instance-specific code highlighter
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    setCodeHighlighter(highlighter) {
+      this.options.codeHighlighter = highlighter;
+      this.updatePreview();
     }
 
     /**
@@ -1219,6 +1229,22 @@ class OverType {
         // Trigger preview update for the instance
         const instance = wrapper._instance;
         if (instance) {
+          instance.updatePreview();
+        }
+      });
+    }
+
+    /**
+     * Set global code highlighter for all OverType instances
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    static setCodeHighlighter(highlighter) {
+      MarkdownParser.setCodeHighlighter(highlighter);
+
+      // Update all existing instances
+      document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
+        const instance = wrapper._instance;
+        if (instance && instance.updatePreview) {
           instance.updatePreview();
         }
       });
