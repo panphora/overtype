@@ -96,7 +96,7 @@ export interface Options {
 export interface OverTypeConstructor {
   new(target: string | Element | NodeList | Element[], options?: Options): OverTypeInstance[];
   // Static members
-  instances: WeakMap<Element, OverTypeInstance>;
+  instances: any;
   stylesInjected: boolean;
   globalListenersInitialized: boolean;
   instanceCount: number;
