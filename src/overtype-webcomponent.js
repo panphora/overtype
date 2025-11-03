@@ -497,6 +497,16 @@ class OverTypeEditor extends HTMLElement {
   // ===== PUBLIC API METHODS =====
 
   /**
+   * Refresh theme styles (useful when theme object is updated without changing theme name)
+   * @public
+   */
+  refreshTheme() {
+    if (this._initialized) {
+      this._reinjectStyles();
+    }
+  }
+
+  /**
    * Get current editor value
    * @returns {string} Current markdown content
    */
