@@ -363,6 +363,51 @@ setTimeout(() => {
     container.removeChild(editor);
   });
 
+  console.log('\n📋 Test Suite: Disconnect/Reconnect (React/Vue patterns)');
+
+  // Test: Remount cleanup - ensure no duplicate containers
+  runTest('Element remount cleans up shadow root properly', () => {
+    const container = dom.window.document.getElementById('test-container');
+    const editor = dom.window.document.createElement('overtype-editor');
+
+    editor.setAttribute('value', '# Initial Content');
+    editor.setAttribute('height', '300px');
+
+    // First mount
+    container.appendChild(editor);
+
+    const shadow = editor.shadowRoot;
+    const firstContainer = shadow.querySelector('.overtype-webcomponent-container');
+    if (!firstContainer) throw new Error('container not found after first mount');
+
+    const firstContainerCount = shadow.querySelectorAll('.overtype-webcomponent-container').length;
+    if (firstContainerCount !== 1) throw new Error(`expected 1 container after first mount, got ${firstContainerCount}`);
+
+    // Remove from DOM (triggers disconnectedCallback)
+    container.removeChild(editor);
+
+    // Verify shadow root is cleared
+    const afterRemove = shadow.querySelectorAll('.overtype-webcomponent-container').length;
+    if (afterRemove !== 0) throw new Error(`expected 0 containers after disconnect, got ${afterRemove}`);
+
+    // Re-mount (common in React/Vue)
+    container.appendChild(editor);
+
+    // Verify only one container exists
+    const afterRemount = shadow.querySelectorAll('.overtype-webcomponent-container').length;
+    if (afterRemount !== 1) throw new Error(`expected 1 container after remount, got ${afterRemount} (stale containers not cleaned up)`);
+
+    // Verify attribute updates work on the correct container
+    editor.setAttribute('height', '400px');
+    const remountedContainer = shadow.querySelector('.overtype-webcomponent-container');
+    if (!remountedContainer) throw new Error('container not found after remount');
+    if (remountedContainer.style.height !== '400px') {
+      throw new Error('height attribute not applied to remounted container (stale container may be receiving updates)');
+    }
+
+    container.removeChild(editor);
+  });
+
   console.log('\n📋 Test Suite: API Methods');
   
   // Test 6: API methods availability
