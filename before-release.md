@@ -1,10 +1,17 @@
 # Before Release Checklist
 
-## Issue #59 - Parser API
-- [ ] Comment on issue #59 with MarkdownParser export feature
-  - Show `import { MarkdownParser } from 'overtype/parser'` usage
-  - Link to README documentation section
+## Version Bump Strategy
+- This release should be a MINOR version bump (new features, backward compatible)
+- Consider jumping to v1.5.0 or v1.6.0 instead of v1.3.0 to signal the significance of the web component architecture addition
+- Web components represent a major enhancement in capabilities while maintaining full backward compatibility
+
+## Issue #59 - Browser Extension Developer Feedback
+- [ ] Comment on issue #59 and close
   - Thank Ned for the feedback
+  - ✅ Parser API is already exportable: `import { MarkdownParser } from 'overtype/parser'`
+  - ❌ GitHub-specific features: Better suited for specialized forks
+  - ❌ Prettier: Keeping build process simple, consistent code style already in place
+  - Close issue as partially addressed (parser API already available)
 
 ## PR #62 - Toolbar reinit fix
 - [ ] Test toolbar dynamic creation/destruction via reinit()
@@ -12,6 +19,17 @@
   - Verify no memory leaks with listener cleanup
 - [ ] Comment on PR #62 thanking Kristián
   - Note: Applied with additional memory leak fix for event listeners
+
+## PR #40 - Web Component Implementation
+- [x] Merged with modifications applied locally
+  - Removed `.prettierrc` file (belongs in Issue #59)
+  - Moved web component docs to `docs/WEB-COMPONENT.md`
+  - Fixed TypeScript compilation error
+- [ ] Comment on PR #40 thanking ChasLui
+  - Thank for the excellent web component implementation
+  - Note: Applied with organizational improvements (docs structure)
+  - Mention: All 178 tests passing including web component tests
+  - Close PR as merged
 
 ## Issue #63 / PR #64 - Fix Double-Escaping of URLs
 - [x] Fix applied to `src/parser.js:358`
