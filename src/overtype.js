@@ -1197,18 +1197,18 @@ class OverType {
     static setTheme(theme, customColors = null) {
       // Process theme
       let themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
-      
+
       // Apply custom colors if provided
       if (customColors) {
         themeObj = mergeTheme(themeObj, customColors);
       }
-      
+
       // Store as current theme
       OverType.currentTheme = themeObj;
-      
+
       // Re-inject styles with new theme
       OverType.injectStyles(true);
-      
+
       // Update all existing instances - update container theme attribute
       document.querySelectorAll('.overtype-container').forEach(container => {
         const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
@@ -1216,7 +1216,7 @@ class OverType {
           container.setAttribute('data-theme', themeName);
         }
       });
-      
+
       // Also handle any old-style wrappers without containers
       document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
         if (!wrapper.closest('.overtype-container')) {
@@ -1225,11 +1225,20 @@ class OverType {
             wrapper.setAttribute('data-theme', themeName);
           }
         }
-        
+
         // Trigger preview update for the instance
         const instance = wrapper._instance;
         if (instance) {
           instance.updatePreview();
+        }
+      });
+
+      // Update web components (shadow DOM instances)
+      const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
+      document.querySelectorAll('overtype-editor').forEach(webComponent => {
+        if (themeName && typeof webComponent.setAttribute === 'function') {
+          // Setting the attribute triggers the web component's attributeChangedCallback
+          webComponent.setAttribute('theme', themeName);
         }
       });
     }
@@ -1241,11 +1250,21 @@ class OverType {
     static setCodeHighlighter(highlighter) {
       MarkdownParser.setCodeHighlighter(highlighter);
 
-      // Update all existing instances
+      // Update all existing instances in light DOM
       document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
         const instance = wrapper._instance;
         if (instance && instance.updatePreview) {
           instance.updatePreview();
+        }
+      });
+
+      // Update web components (shadow DOM instances)
+      document.querySelectorAll('overtype-editor').forEach(webComponent => {
+        if (typeof webComponent.getEditor === 'function') {
+          const instance = webComponent.getEditor();
+          if (instance && instance.updatePreview) {
+            instance.updatePreview();
+          }
         }
       });
     }

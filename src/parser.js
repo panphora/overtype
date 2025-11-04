@@ -438,10 +438,10 @@ export class MarkdownParser {
    * @param {string} text - Full markdown text
    * @param {number} activeLine - Currently active line index (optional)
    * @param {boolean} showActiveLineRaw - Show raw markdown on active line
-   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter = null) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter) {
     // Reset link counter for each parse
     this.resetLinkIndex();
 
@@ -484,10 +484,10 @@ export class MarkdownParser {
   /**
    * Post-process HTML to consolidate lists and code blocks
    * @param {string} html - HTML to post-process
-   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML with consolidated lists and code blocks
    */
-  static postProcessHTML(html, instanceHighlighter = null) {
+  static postProcessHTML(html, instanceHighlighter) {
     // Check if we're in a browser environment
     if (typeof document === 'undefined' || !document) {
       // In Node.js environment - do manual post-processing
@@ -543,14 +543,35 @@ export class MarkdownParser {
             continue;
           } else {
             // End of code block - apply highlighting if needed
+            // Use instance highlighter if provided, otherwise fall back to global highlighter
             const highlighter = instanceHighlighter || this.codeHighlighter;
             if (currentCodeBlock && highlighter && currentCodeBlock._codeContent) {
               try {
-                const highlightedCode = highlighter(
+                const result = highlighter(
                   currentCodeBlock._codeContent,
                   currentCodeBlock._language || ''
                 );
-                currentCodeBlock._codeElement.innerHTML = highlightedCode;
+
+                // Check if result is a Promise (async highlighter)
+                if (result && typeof result.then === 'function') {
+                  // Store reference to code element for async update
+                  const codeElementRef = currentCodeBlock._codeElement;
+                  result.then(highlightedCode => {
+                    // Verify highlighter returned non-empty string
+                    if (highlightedCode && typeof highlightedCode === 'string' && highlightedCode.trim()) {
+                      codeElementRef.innerHTML = highlightedCode;
+                    }
+                  }).catch(error => {
+                    console.warn('Async code highlighting failed:', error);
+                  });
+                } else {
+                  // Synchronous highlighter
+                  // Verify highlighter returned non-empty string
+                  if (result && typeof result === 'string' && result.trim()) {
+                    currentCodeBlock._codeElement.innerHTML = result;
+                  }
+                  // else: keep the plain text fallback that was already set
+                }
               } catch (error) {
                 console.warn('Code highlighting failed:', error);
                 // Keep the plain text content as fallback
@@ -644,10 +665,10 @@ export class MarkdownParser {
   /**
    * Manual post-processing for Node.js environments (without DOM)
    * @param {string} html - HTML to post-process
-   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML
    */
-  static postProcessHTMLManual(html, instanceHighlighter = null) {
+  static postProcessHTMLManual(html, instanceHighlighter) {
     let processed = html;
 
     // Process unordered lists
@@ -714,6 +735,7 @@ export class MarkdownParser {
 
       // Apply code highlighting if available
       let highlightedContent = codeContent;
+      // Use instance highlighter if provided, otherwise fall back to global highlighter
       const highlighter = instanceHighlighter || this.codeHighlighter;
       if (highlighter) {
         try {
@@ -727,7 +749,20 @@ export class MarkdownParser {
             .replace(/&gt;/g, '>')
             .replace(/&amp;/g, '&');  // Must be last to avoid double-decoding
 
-          highlightedContent = highlighter(decodedCode, lang);
+          const result = highlighter(decodedCode, lang);
+
+          // Check if result is a Promise (async highlighter)
+          // Note: In Node.js context, we can't easily defer rendering, so we warn
+          if (result && typeof result.then === 'function') {
+            console.warn('Async highlighters are not supported in Node.js (non-DOM) context. Use synchronous highlighters for server-side rendering.');
+            // Fall back to escaped content
+          } else {
+            // Synchronous highlighter - verify returned non-empty string
+            if (result && typeof result === 'string' && result.trim()) {
+              highlightedContent = result;
+            }
+            // else: keep the escaped codeContent as fallback
+          }
         } catch (error) {
           console.warn('Code highlighting failed:', error);
           // Fall back to original content
