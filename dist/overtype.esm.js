@@ -3085,17 +3085,6 @@ var toolbarButtons = {
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
   },
-  strikethrough: {
-    name: "strikethrough",
-    icon: void 0 || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.3 4.9c-2.3-.6-4.4-1-6.2-.9-2.7.1-5.3 1.1-5.7 3.1-.4 1.7.9 2.9 3.2 3.3"/><path d="M7.7 19.4c1.9.7 3.6 1.3 5.3 1.4 2.7.1 5.3-1.1 5.7-3.1.2-1-.2-1.8-.7-2.3"/><line x1="3" y1="12" x2="21" y2="12"/></svg>',
-    title: "Strikethrough",
-    action: ({ editor, event }) => {
-      if (void 0) {
-        (void 0)(editor.textarea);
-        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-    }
-  },
   code: {
     name: "code",
     icon: codeIcon,
@@ -3194,7 +3183,6 @@ var toolbarButtons = {
 var defaultToolbarButtons = [
   toolbarButtons.bold,
   toolbarButtons.italic,
-  toolbarButtons.strikethrough,
   toolbarButtons.code,
   toolbarButtons.separator,
   toolbarButtons.link,

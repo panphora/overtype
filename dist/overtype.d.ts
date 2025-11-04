@@ -193,7 +193,6 @@ export default OverType;
 export const toolbarButtons: {
   bold: ToolbarButton;
   italic: ToolbarButton;
-  strikethrough: ToolbarButton;
   code: ToolbarButton;
   separator: ToolbarButton;
   link: ToolbarButton;
