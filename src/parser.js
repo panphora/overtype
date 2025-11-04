@@ -103,6 +103,25 @@ export class MarkdownParser {
   }
 
   /**
+   * Parse task lists (GitHub Flavored Markdown checkboxes)
+   * @param {string} html - HTML line to parse
+   * @param {boolean} isPreviewMode - Whether to render actual checkboxes (preview) or keep syntax visible (normal)
+   * @returns {string} Parsed task list item
+   */
+  static parseTaskList(html, isPreviewMode = false) {
+    return html.replace(/^((?:&nbsp;)*)-\s+\[([ xX])\]\s+(.+)$/, (match, indent, checked, content) => {
+      if (isPreviewMode) {
+        // Preview mode: render actual checkbox
+        const isChecked = checked.toLowerCase() === 'x';
+        return `${indent}<li class="task-list"><input type="checkbox" disabled ${isChecked ? 'checked' : ''}> ${content}</li>`;
+      } else {
+        // Normal mode: keep syntax visible for alignment
+        return `${indent}<li class="task-list"><span class="syntax-marker">- [${checked}] </span>${content}</li>`;
+      }
+    });
+  }
+
+  /**
    * Parse numbered lists
    * @param {string} html - HTML line to parse
    * @returns {string} Parsed numbered list item
@@ -401,7 +420,7 @@ export class MarkdownParser {
    * @param {string} line - Raw markdown line
    * @returns {string} Parsed HTML line
    */
-  static parseLine(line) {
+  static parseLine(line, isPreviewMode = false) {
     let html = this.escapeHtml(line);
 
     // Preserve indentation
@@ -417,6 +436,7 @@ export class MarkdownParser {
     // Parse block elements
     html = this.parseHeader(html);
     html = this.parseBlockquote(html);
+    html = this.parseTaskList(html, isPreviewMode);  // Check task lists before regular bullet lists
     html = this.parseBulletList(html);
     html = this.parseNumberedList(html);
 
@@ -441,7 +461,7 @@ export class MarkdownParser {
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false) {
     // Reset link counter for each parse
     this.resetLinkIndex();
 
@@ -460,7 +480,7 @@ export class MarkdownParser {
       if (codeFenceRegex.test(line)) {
         inCodeBlock = !inCodeBlock;
         // Parse fence markers normally to get styled output
-        return this.parseLine(line);
+        return this.parseLine(line, isPreviewMode);
       }
 
       // If we're inside a code block, don't parse as markdown
@@ -471,7 +491,7 @@ export class MarkdownParser {
       }
 
       // Otherwise, parse the markdown normally
-      return this.parseLine(line);
+      return this.parseLine(line, isPreviewMode);
     });
 
     // Join without newlines to prevent extra spacing

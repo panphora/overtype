@@ -96,6 +96,22 @@ var MarkdownParser = class {
     });
   }
   /**
+   * Parse task lists (GitHub Flavored Markdown checkboxes)
+   * @param {string} html - HTML line to parse
+   * @param {boolean} isPreviewMode - Whether to render actual checkboxes (preview) or keep syntax visible (normal)
+   * @returns {string} Parsed task list item
+   */
+  static parseTaskList(html, isPreviewMode = false) {
+    return html.replace(/^((?:&nbsp;)*)-\s+\[([ xX])\]\s+(.+)$/, (match, indent, checked, content) => {
+      if (isPreviewMode) {
+        const isChecked = checked.toLowerCase() === "x";
+        return `${indent}<li class="task-list"><input type="checkbox" disabled ${isChecked ? "checked" : ""}> ${content}</li>`;
+      } else {
+        return `${indent}<li class="task-list"><span class="syntax-marker">- [${checked}] </span>${content}</li>`;
+      }
+    });
+  }
+  /**
    * Parse numbered lists
    * @param {string} html - HTML line to parse
    * @returns {string} Parsed numbered list item
@@ -309,7 +325,7 @@ var MarkdownParser = class {
    * @param {string} line - Raw markdown line
    * @returns {string} Parsed HTML line
    */
-  static parseLine(line) {
+  static parseLine(line, isPreviewMode = false) {
     let html = this.escapeHtml(line);
     html = this.preserveIndentation(html, line);
     const horizontalRule = this.parseHorizontalRule(html);
@@ -320,6 +336,7 @@ var MarkdownParser = class {
       return codeBlock;
     html = this.parseHeader(html);
     html = this.parseBlockquote(html);
+    html = this.parseTaskList(html, isPreviewMode);
     html = this.parseBulletList(html);
     html = this.parseNumberedList(html);
     html = this.parseInlineElements(html);
@@ -333,10 +350,10 @@ var MarkdownParser = class {
    * @param {string} text - Full markdown text
    * @param {number} activeLine - Currently active line index (optional)
    * @param {boolean} showActiveLineRaw - Show raw markdown on active line
-   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter = null) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false) {
     this.resetLinkIndex();
     const lines = text.split("\n");
     let inCodeBlock = false;
@@ -348,14 +365,14 @@ var MarkdownParser = class {
       const codeFenceRegex = /^```[^`]*$/;
       if (codeFenceRegex.test(line)) {
         inCodeBlock = !inCodeBlock;
-        return this.parseLine(line);
+        return this.parseLine(line, isPreviewMode);
       }
       if (inCodeBlock) {
         const escaped = this.escapeHtml(line);
         const indented = this.preserveIndentation(escaped, line);
         return `<div>${indented || "&nbsp;"}</div>`;
       }
-      return this.parseLine(line);
+      return this.parseLine(line, isPreviewMode);
     });
     const html = parsedLines.join("");
     return this.postProcessHTML(html, instanceHighlighter);
@@ -363,10 +380,10 @@ var MarkdownParser = class {
   /**
    * Post-process HTML to consolidate lists and code blocks
    * @param {string} html - HTML to post-process
-   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML with consolidated lists and code blocks
    */
-  static postProcessHTML(html, instanceHighlighter = null) {
+  static postProcessHTML(html, instanceHighlighter) {
     if (typeof document === "undefined" || !document) {
       return this.postProcessHTMLManual(html, instanceHighlighter);
     }
@@ -404,11 +421,17 @@ var MarkdownParser = class {
             const highlighter = instanceHighlighter || this.codeHighlighter;
             if (currentCodeBlock && highlighter && currentCodeBlock._codeContent) {
               try {
-                const highlightedCode = highlighter(
+                const result = highlighter(
                   currentCodeBlock._codeContent,
                   currentCodeBlock._language || ""
                 );
-                currentCodeBlock._codeElement.innerHTML = highlightedCode;
+                if (result && typeof result.then === "function") {
+                  console.warn("Async highlighters are not supported in parse() because it returns an HTML string. The caller creates new DOM elements from that string, breaking references to the elements we would update. Use synchronous highlighters only.");
+                } else {
+                  if (result && typeof result === "string" && result.trim()) {
+                    currentCodeBlock._codeElement.innerHTML = result;
+                  }
+                }
               } catch (error) {
                 console.warn("Code highlighting failed:", error);
               }
@@ -474,10 +497,10 @@ var MarkdownParser = class {
   /**
    * Manual post-processing for Node.js environments (without DOM)
    * @param {string} html - HTML to post-process
-   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML
    */
-  static postProcessHTMLManual(html, instanceHighlighter = null) {
+  static postProcessHTMLManual(html, instanceHighlighter) {
     let processed = html;
     processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
       const divs = match.match(/<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
@@ -526,7 +549,15 @@ var MarkdownParser = class {
       const highlighter = instanceHighlighter || this.codeHighlighter;
       if (highlighter) {
         try {
-          highlightedContent = highlighter(codeContent, lang);
+          const decodedCode = codeContent.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+          const result2 = highlighter(decodedCode, lang);
+          if (result2 && typeof result2.then === "function") {
+            console.warn("Async highlighters are not supported in Node.js (non-DOM) context. Use synchronous highlighters for server-side rendering.");
+          } else {
+            if (result2 && typeof result2 === "string" && result2.trim()) {
+              highlightedContent = result2;
+            }
+          }
         } catch (error) {
           console.warn("Code highlighting failed:", error);
         }
@@ -2391,6 +2422,51 @@ function generateStyles(options = {}) {
       color: var(--h1, #007bff);
     }
 
+    .overtype-dropdown-icon {
+      width: 20px;
+      margin-right: 8px;
+      text-align: center;
+    }
+
+    /* Custom toolbar buttons */
+    .overtype-toolbar-button[data-custom="true"] {
+      background: transparent;
+      border: 1px solid var(--border-color, #e0e0e0);
+      color: var(--text-color, #333);
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .overtype-toolbar-button[data-custom="true"]:hover:not(:disabled) {
+      /* Use theme primary color with opacity for hover */
+      background: rgba(59, 130, 246, 0.1);
+      border-color: var(--theme-primary, #3b82f6);
+    }
+
+    .overtype-toolbar-button[data-custom="true"]:active:not(:disabled) {
+      /* Slightly darker on active */
+      background: rgba(59, 130, 246, 0.2);
+      transform: translateY(1px);
+    }
+
+    .overtype-toolbar-button[data-custom="true"]:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .overtype-toolbar-button[data-custom="true"].error {
+      animation: buttonError 0.3s;
+      border-color: #ef4444;
+    }
+
+    @keyframes buttonError {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
     /* Preview mode styles */
     .overtype-container[data-mode="preview"] .overtype-input {
       display: none !important;
@@ -2461,6 +2537,28 @@ function generateStyles(options = {}) {
       display: list-item !important;
       margin: 0 !important;
       padding: 0 !important;
+    }
+
+    /* Task list checkboxes - only in preview mode */
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview li.task-list {
+      list-style: none !important;
+      position: relative !important;
+    }
+
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview li.task-list input[type="checkbox"] {
+      margin-right: 0.5em !important;
+      cursor: default !important;
+      vertical-align: middle !important;
+    }
+
+    /* Task list in normal mode - keep syntax visible */
+    .overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview li.task-list {
+      list-style: none !important;
+    }
+
+    .overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview li.task-list .syntax-marker {
+      color: var(--syntax, #999999) !important;
+      font-weight: normal !important;
     }
 
     /* Links - make clickable in preview mode */
@@ -2604,67 +2702,217 @@ var quoteIcon = `<svg viewBox="2 2 20 20">
   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 10.8182L9 10.8182C8.80222 10.8182 8.60888 10.7649 8.44443 10.665C8.27998 10.5651 8.15181 10.4231 8.07612 10.257C8.00043 10.0909 7.98063 9.90808 8.01922 9.73174C8.0578 9.55539 8.15304 9.39341 8.29289 9.26627C8.43275 9.13913 8.61093 9.05255 8.80491 9.01747C8.99889 8.98239 9.19996 9.00039 9.38268 9.0692C9.56541 9.13801 9.72159 9.25453 9.83147 9.40403C9.94135 9.55353 10 9.72929 10 9.90909L10 12.1818C10 12.664 9.78929 13.1265 9.41421 13.4675C9.03914 13.8084 8.53043 14 8 14"></path>
   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 10.8182L15 10.8182C14.8022 10.8182 14.6089 10.7649 14.4444 10.665C14.28 10.5651 14.1518 10.4231 14.0761 10.257C14.0004 10.0909 13.9806 9.90808 14.0192 9.73174C14.0578 9.55539 14.153 9.39341 14.2929 9.26627C14.4327 9.13913 14.6109 9.05255 14.8049 9.01747C14.9989 8.98239 15.2 9.00039 15.3827 9.0692C15.5654 9.13801 15.7216 9.25453 15.8315 9.40403C15.9414 9.55353 16 9.72929 16 9.90909L16 12.1818C16 12.664 15.7893 13.1265 15.4142 13.4675C15.0391 13.8084 14.5304 14 14 14"></path>
 </svg>`;
-var taskListIcon = `<svg viewBox="0 0 18 18">
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="16" y1="4" y2="4"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="16" y1="9" y2="9"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="16" y1="14" y2="14"></line>
-  <rect stroke="currentColor" fill="none" stroke-width="1.5" x="2" y="3" width="3" height="3" rx="0.5"></rect>
-  <rect stroke="currentColor" fill="none" stroke-width="1.5" x="2" y="13" width="3" height="3" rx="0.5"></rect>
-  <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" points="2.65 9.5 3.5 10.5 5 8.5"></polyline>
-</svg>`;
 var eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none"></path>
   <circle cx="12" cy="12" r="3" fill="none"></circle>
 </svg>`;
 
 // src/toolbar.js
+var BUILTIN_BUTTONS = [
+  "bold",
+  "italic",
+  "strikethrough",
+  "code",
+  "link",
+  "h1",
+  "h2",
+  "h3",
+  "bulletList",
+  "orderedList",
+  "quote",
+  "viewMode"
+  // Special dropdown button
+];
 var Toolbar = class {
-  constructor(editor, buttonConfig = null) {
+  constructor(editor, options = {}) {
     this.editor = editor;
     this.container = null;
     this.buttons = {};
-    this.buttonConfig = buttonConfig;
+    this.buttonConfig = options.buttonConfig || null;
+    this.customButtons = options.customToolbarButtons || [];
+    this.hideButtons = options.hideButtons || [];
+    this.buttonOrder = options.buttonOrder || null;
+    this.buttonRegistry = this.buildButtonRegistry();
+  }
+  /**
+   * Build registry of all buttons (built-in + custom)
+   */
+  buildButtonRegistry() {
+    const registry = /* @__PURE__ */ new Map();
+    this.customButtons.forEach((button) => {
+      if (BUILTIN_BUTTONS.includes(button.name)) {
+        console.warn(`Custom button "${button.name}" conflicts with built-in button. Using "custom-${button.name}" instead.`);
+        button.name = `custom-${button.name}`;
+      }
+    });
+    BUILTIN_BUTTONS.forEach((name) => {
+      if (!this.hideButtons.includes(name)) {
+        registry.set(name, {
+          type: "builtin",
+          name,
+          ...this.getBuiltinButtonConfig(name)
+        });
+      }
+    });
+    this.customButtons.forEach((button) => {
+      registry.set(button.name, { type: "custom", ...button });
+    });
+    return registry;
+  }
+  /**
+   * Get configuration for built-in buttons
+   */
+  getBuiltinButtonConfig(name) {
+    const configs = {
+      bold: {
+        icon: boldIcon,
+        title: "Bold (Ctrl+B)",
+        action: (editor) => {
+          toggleBold(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      italic: {
+        icon: italicIcon,
+        title: "Italic (Ctrl+I)",
+        action: (editor) => {
+          toggleItalic(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      strikethrough: {
+        icon: void 0 || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4H9a3 3 0 0 0 0 6h11a3 3 0 0 0 0-6h-1M8 20h7M4 12h16"/></svg>',
+        title: "Strikethrough",
+        action: (editor) => {
+          if (void 0) {
+            (void 0)(editor.textarea);
+          }
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      code: {
+        icon: codeIcon,
+        title: "Code (Ctrl+`)",
+        action: (editor) => {
+          toggleCode(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      link: {
+        icon: linkIcon,
+        title: "Insert Link (Ctrl+K)",
+        action: (editor) => {
+          insertLink(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      h1: {
+        icon: h1Icon,
+        title: "Heading 1",
+        action: (editor) => {
+          toggleH1(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      h2: {
+        icon: h2Icon,
+        title: "Heading 2",
+        action: (editor) => {
+          toggleH2(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      h3: {
+        icon: h3Icon,
+        title: "Heading 3",
+        action: (editor) => {
+          toggleH3(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      bulletList: {
+        icon: bulletListIcon,
+        title: "Bullet List",
+        action: (editor) => {
+          toggleBulletList(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      orderedList: {
+        icon: orderedListIcon,
+        title: "Numbered List",
+        action: (editor) => {
+          toggleNumberedList(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      quote: {
+        icon: quoteIcon,
+        title: "Quote",
+        action: (editor) => {
+          toggleQuote(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      },
+      viewMode: {
+        icon: eyeIcon,
+        title: "View mode",
+        type: "dropdown",
+        dropdownItems: [
+          { id: "normal", label: "Normal Edit", icon: "\u2713" },
+          { id: "plain", label: "Plain Textarea", icon: "\u2713" },
+          { id: "preview", label: "Preview Mode", icon: "\u2713" }
+        ],
+        action: (editor, item) => {
+          switch (item.id) {
+            case "plain":
+              editor.showPlainTextarea();
+              break;
+            case "preview":
+              editor.showPreviewMode();
+              break;
+            case "normal":
+            default:
+              editor.showNormalEditMode();
+              break;
+          }
+        }
+      }
+    };
+    return configs[name] || {};
+  }
+  /**
+   * Sanitize SVG to prevent XSS
+   */
+  sanitizeSVG(svgString) {
+    if (typeof svgString !== "string") {
+      throw new Error("Icon must be a string");
+    }
+    const clean = svgString.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/on\w+\s*=\s*"[^"]*"/gi, "").replace(/on\w+\s*=\s*'[^']*'/gi, "").replace(/javascript:/gi, "").replace(/data:text\/html/gi, "");
+    if (!clean.trim().startsWith("<svg")) {
+      console.warn("Icon should start with <svg> tag");
+    }
+    return clean;
   }
   /**
    * Create and attach toolbar to editor
    */
   create() {
-    var _a;
     this.container = document.createElement("div");
     this.container.className = "overtype-toolbar";
     this.container.setAttribute("role", "toolbar");
     this.container.setAttribute("aria-label", "Text formatting");
-    const buttonConfig = (_a = this.buttonConfig) != null ? _a : [
-      { name: "bold", icon: boldIcon, title: "Bold (Ctrl+B)", action: "toggleBold" },
-      { name: "italic", icon: italicIcon, title: "Italic (Ctrl+I)", action: "toggleItalic" },
-      { separator: true },
-      { name: "h1", icon: h1Icon, title: "Heading 1", action: "insertH1" },
-      { name: "h2", icon: h2Icon, title: "Heading 2", action: "insertH2" },
-      { name: "h3", icon: h3Icon, title: "Heading 3", action: "insertH3" },
-      { separator: true },
-      { name: "link", icon: linkIcon, title: "Insert Link (Ctrl+K)", action: "insertLink" },
-      { name: "code", icon: codeIcon, title: "Code (Ctrl+`)", action: "toggleCode" },
-      { separator: true },
-      { name: "quote", icon: quoteIcon, title: "Quote", action: "toggleQuote" },
-      { separator: true },
-      { name: "bulletList", icon: bulletListIcon, title: "Bullet List", action: "toggleBulletList" },
-      { name: "orderedList", icon: orderedListIcon, title: "Numbered List", action: "toggleNumberedList" },
-      { name: "taskList", icon: taskListIcon, title: "Task List", action: "toggleTaskList" },
-      { separator: true },
-      { name: "viewMode", icon: eyeIcon, title: "View mode", action: "toggle-view-menu", hasDropdown: true }
-    ];
-    buttonConfig.forEach((config) => {
-      if (config.separator) {
-        const separator = document.createElement("div");
-        separator.className = "overtype-toolbar-separator";
-        separator.setAttribute("role", "separator");
-        this.container.appendChild(separator);
-      } else {
+    if (this.buttonConfig) {
+      this.createOldStyleButtons(this.buttonConfig);
+    } else {
+      const buttonsToCreate = this.getButtonsToCreate();
+      buttonsToCreate.forEach((config) => {
         const button = this.createButton(config);
         this.buttons[config.name] = button;
-        this.container.appendChild(button);
-      }
-    });
+        this.positionButton(button, config);
+      });
+      this.initializeCustomButtonStates();
+    }
     const container = this.editor.element.querySelector(".overtype-container");
     const wrapper = this.editor.element.querySelector(".overtype-wrapper");
     if (container && wrapper) {
@@ -2673,15 +2921,33 @@ var Toolbar = class {
     return this.container;
   }
   /**
-   * Create individual toolbar button
+   * Create buttons using old buttonConfig format (backward compatibility)
    */
-  createButton(config) {
+  createOldStyleButtons(buttonConfig) {
+    buttonConfig.forEach((config) => {
+      if (config.separator) {
+        const separator = document.createElement("div");
+        separator.className = "overtype-toolbar-separator";
+        separator.setAttribute("role", "separator");
+        this.container.appendChild(separator);
+      } else {
+        const button = this.createOldStyleButton(config);
+        this.buttons[config.name] = button;
+        this.container.appendChild(button);
+      }
+    });
+  }
+  /**
+   * Create button using old format (backward compatibility)
+   */
+  createOldStyleButton(config) {
     const button = document.createElement("button");
     button.className = "overtype-toolbar-button";
     button.type = "button";
     button.title = config.title;
     button.setAttribute("aria-label", config.title);
     button.setAttribute("data-action", config.action);
+    button.setAttribute("data-button", config.name);
     button.innerHTML = config.icon;
     if (config.hasDropdown) {
       button.classList.add("has-dropdown");
@@ -2691,14 +2957,14 @@ var Toolbar = class {
     }
     button.addEventListener("click", (e) => {
       e.preventDefault();
-      this.handleAction(config.action, button);
+      this.handleOldAction(config.action, button);
     });
     return button;
   }
   /**
-   * Handle toolbar button actions
+   * Handle old-style toolbar button actions (backward compatibility)
    */
-  async handleAction(action, button) {
+  async handleOldAction(action, button) {
     const textarea = this.editor.textarea;
     if (!textarea)
       return;
@@ -2742,19 +3008,291 @@ var Toolbar = class {
         case "toggleTaskList":
           toggleTaskList(textarea);
           break;
-        case "toggle-plain":
-          const isPlain = this.editor.container.dataset.mode === "plain";
-          if (isPlain) {
-            this.editor.showNormalEditMode();
-          } else {
-            this.editor.showPlainTextarea();
-          }
-          break;
       }
       textarea.dispatchEvent(new Event("input", { bubbles: true }));
     } catch (error) {
       console.error("Error loading markdown-actions:", error);
     }
+  }
+  /**
+   * Toggle view mode dropdown (old API compatibility)
+   */
+  toggleViewDropdown(button) {
+    const buttonConfig = {
+      name: "viewMode",
+      type: "dropdown",
+      dropdownItems: [
+        { id: "normal", label: "Normal Edit", icon: "\u2713" },
+        { id: "plain", label: "Plain Textarea", icon: "\u2713" },
+        { id: "preview", label: "Preview Mode", icon: "\u2713" }
+      ],
+      action: (editor, item) => {
+        switch (item.id) {
+          case "plain":
+            editor.showPlainTextarea();
+            break;
+          case "preview":
+            editor.showPreviewMode();
+            break;
+          case "normal":
+          default:
+            editor.showNormalEditMode();
+            break;
+        }
+      }
+    };
+    this.toggleDropdown(button, buttonConfig);
+  }
+  /**
+   * Get ordered list of buttons to create
+   */
+  getButtonsToCreate() {
+    if (this.buttonOrder) {
+      const ordered = [];
+      this.buttonOrder.forEach((name) => {
+        const config = this.buttonRegistry.get(name);
+        if (config) {
+          ordered.push(config);
+        } else {
+          console.warn(`Button "${name}" in buttonOrder not found in registry`);
+        }
+      });
+      this.buttonRegistry.forEach((config, name) => {
+        if (!this.buttonOrder.includes(name)) {
+          ordered.push(config);
+        }
+      });
+      return ordered;
+    } else {
+      return Array.from(this.buttonRegistry.values());
+    }
+  }
+  /**
+   * Create individual toolbar button (unified for built-in and custom)
+   */
+  createButton(buttonConfig) {
+    const button = document.createElement("button");
+    button.className = "overtype-toolbar-button";
+    button.type = "button";
+    button.setAttribute("data-button", buttonConfig.name);
+    button.title = buttonConfig.title;
+    button.setAttribute("aria-label", buttonConfig.title);
+    if (buttonConfig.type === "custom") {
+      button.innerHTML = this.sanitizeSVG(buttonConfig.icon);
+      button.dataset.custom = "true";
+    } else {
+      button.innerHTML = buttonConfig.icon;
+      button.dataset.builtin = "true";
+    }
+    if (buttonConfig.type === "dropdown" || buttonConfig.dropdownItems) {
+      button.classList.add("has-dropdown");
+      button.dataset.dropdown = "true";
+    }
+    const clickHandler = (event) => {
+      event.preventDefault();
+      if (buttonConfig.type === "dropdown" || buttonConfig.dropdownItems) {
+        this.toggleDropdown(button, buttonConfig);
+        return;
+      }
+      if (this.editor.textarea) {
+        this.editor.textarea.focus();
+      }
+      try {
+        if (buttonConfig.type === "custom") {
+          buttonConfig.action({
+            editor: this.editor,
+            getValue: () => this.editor.getValue(),
+            setValue: (value) => this.editor.setValue(value),
+            event
+          });
+        } else {
+          buttonConfig.action(this.editor);
+        }
+      } catch (error) {
+        console.error(`Button "${buttonConfig.name}" error:`, error);
+        this.editor.wrapper.dispatchEvent(new CustomEvent("button-error", {
+          detail: { buttonName: buttonConfig.name, error }
+        }));
+        button.classList.add("error");
+        setTimeout(() => button.classList.remove("error"), 300);
+      }
+    };
+    button.addEventListener("click", clickHandler);
+    button._clickHandler = clickHandler;
+    if (typeof buttonConfig.isEnabled === "function") {
+      button._isEnabled = buttonConfig.isEnabled;
+      button._buttonConfig = buttonConfig;
+    }
+    return button;
+  }
+  /**
+   * Position button in toolbar
+   */
+  positionButton(button, config) {
+    if (!config.position || config.position === "end") {
+      this.container.appendChild(button);
+    } else if (config.position === "start") {
+      this.container.insertBefore(button, this.container.firstChild);
+    } else if (config.position.startsWith("after:")) {
+      const targetName = config.position.substring(6);
+      const targetButton = this.container.querySelector(`[data-button="${targetName}"]`);
+      if (targetButton && targetButton.nextSibling) {
+        this.container.insertBefore(button, targetButton.nextSibling);
+      } else if (targetButton) {
+        this.container.appendChild(button);
+      } else {
+        console.warn(`Position target "${targetName}" not found, appending to end`);
+        this.container.appendChild(button);
+      }
+    } else {
+      this.container.appendChild(button);
+    }
+  }
+  /**
+   * Toggle dropdown menu for a button
+   */
+  toggleDropdown(button, buttonConfig) {
+    var _a;
+    const existingDropdown = document.querySelector(".overtype-dropdown-menu");
+    if (existingDropdown) {
+      existingDropdown.remove();
+      (_a = document.querySelector(".dropdown-active")) == null ? void 0 : _a.classList.remove("dropdown-active");
+      document.removeEventListener("click", this.handleDocumentClick);
+    }
+    if (button.classList.contains("dropdown-active")) {
+      button.classList.remove("dropdown-active");
+      return;
+    }
+    const dropdown = this.createDropdown(button, buttonConfig);
+    const rect = button.getBoundingClientRect();
+    dropdown.style.top = `${rect.bottom + 4}px`;
+    dropdown.style.left = `${rect.left}px`;
+    document.body.appendChild(dropdown);
+    button.classList.add("dropdown-active");
+    this.handleDocumentClick = (e) => {
+      if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.remove();
+        button.classList.remove("dropdown-active");
+        document.removeEventListener("click", this.handleDocumentClick);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener("click", this.handleDocumentClick);
+    }, 0);
+  }
+  /**
+   * Create dropdown menu
+   */
+  createDropdown(button, buttonConfig) {
+    const dropdown = document.createElement("div");
+    dropdown.className = "overtype-dropdown-menu";
+    const items = buttonConfig.dropdownItems || [];
+    if (buttonConfig.name === "viewMode") {
+      const currentMode = this.editor.container.dataset.mode || "normal";
+      items.forEach((item) => {
+        const menuItem = document.createElement("button");
+        menuItem.className = "overtype-dropdown-item";
+        menuItem.type = "button";
+        const check = document.createElement("span");
+        check.className = "overtype-dropdown-check";
+        check.textContent = currentMode === item.id ? item.icon : "";
+        const label = document.createElement("span");
+        label.textContent = item.label;
+        menuItem.appendChild(check);
+        menuItem.appendChild(label);
+        if (currentMode === item.id) {
+          menuItem.classList.add("active");
+        }
+        menuItem.addEventListener("click", (e) => {
+          e.stopPropagation();
+          buttonConfig.action(this.editor, item);
+          dropdown.remove();
+          button.classList.remove("dropdown-active");
+          document.removeEventListener("click", this.handleDocumentClick);
+        });
+        dropdown.appendChild(menuItem);
+      });
+    } else {
+      items.forEach((item) => {
+        const menuItem = document.createElement("button");
+        menuItem.className = "overtype-dropdown-item";
+        menuItem.type = "button";
+        if (item.icon) {
+          const icon = document.createElement("span");
+          icon.className = "overtype-dropdown-icon";
+          icon.textContent = item.icon;
+          menuItem.appendChild(icon);
+        }
+        const label = document.createElement("span");
+        label.textContent = item.label;
+        menuItem.appendChild(label);
+        menuItem.addEventListener("click", (e) => {
+          var _a;
+          e.stopPropagation();
+          try {
+            if (buttonConfig.type === "custom") {
+              buttonConfig.action({
+                editor: this.editor,
+                getValue: () => this.editor.getValue(),
+                setValue: (value) => this.editor.setValue(value),
+                item,
+                event: e
+              });
+            } else {
+              buttonConfig.action(this.editor, item);
+            }
+          } catch (error) {
+            console.error(`Dropdown item "${item.id}" error:`, error);
+            this.editor.wrapper.dispatchEvent(new CustomEvent("button-error", {
+              detail: { buttonName: buttonConfig.name, item, error }
+            }));
+          }
+          dropdown.remove();
+          (_a = document.querySelector(".dropdown-active")) == null ? void 0 : _a.classList.remove("dropdown-active");
+          document.removeEventListener("click", this.handleDocumentClick);
+        });
+        dropdown.appendChild(menuItem);
+      });
+    }
+    return dropdown;
+  }
+  /**
+   * Update button states (including custom buttons)
+   */
+  updateButtonState(button) {
+    if (button._isEnabled && button._buttonConfig) {
+      const enabled = button._isEnabled(this.editor);
+      button.disabled = !enabled;
+      button.classList.toggle("disabled", !enabled);
+    }
+  }
+  /**
+   * Initialize state management for custom buttons
+   */
+  initializeCustomButtonStates() {
+    var _a;
+    this.updateCustomButtonStates = this.debounce(() => {
+      Object.values(this.buttons).forEach((button) => {
+        if (button.dataset.custom === "true") {
+          this.updateButtonState(button);
+        }
+      });
+    }, 100);
+    (_a = this.editor.textarea) == null ? void 0 : _a.addEventListener("input", () => {
+      this.updateCustomButtonStates();
+    });
+  }
+  /**
+   * Debounce utility
+   */
+  debounce(func, wait) {
+    let timeout;
+    const debounced = function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+    debounced.cancel = () => clearTimeout(timeout);
+    return debounced;
   }
   /**
    * Update toolbar button states based on current selection
@@ -2766,6 +3304,8 @@ var Toolbar = class {
     try {
       const activeFormats = getActiveFormats2(textarea);
       Object.entries(this.buttons).forEach(([name, button]) => {
+        if (button.dataset.builtin !== "true")
+          return;
         let isActive = false;
         switch (name) {
           case "bold":
@@ -2786,9 +3326,6 @@ var Toolbar = class {
           case "quote":
             isActive = activeFormats.includes("quote");
             break;
-          case "taskList":
-            isActive = activeFormats.includes("task-list");
-            break;
           case "h1":
             isActive = activeFormats.includes("header");
             break;
@@ -2798,109 +3335,44 @@ var Toolbar = class {
           case "h3":
             isActive = activeFormats.includes("header-3");
             break;
-          case "togglePlain":
-            isActive = this.editor.container.dataset.mode !== "plain";
-            break;
         }
         button.classList.toggle("active", isActive);
         button.setAttribute("aria-pressed", isActive.toString());
       });
     } catch (error) {
     }
-  }
-  /**
-   * Toggle view mode dropdown menu
-   */
-  toggleViewDropdown(button) {
-    const existingDropdown = document.querySelector(".overtype-dropdown-menu");
-    if (existingDropdown) {
-      existingDropdown.remove();
-      button.classList.remove("dropdown-active");
-      document.removeEventListener("click", this.handleDocumentClick);
-      return;
-    }
-    const dropdown = this.createViewDropdown();
-    const rect = button.getBoundingClientRect();
-    dropdown.style.top = `${rect.bottom + 4}px`;
-    dropdown.style.left = `${rect.left}px`;
-    document.body.appendChild(dropdown);
-    button.classList.add("dropdown-active");
-    this.handleDocumentClick = (e) => {
-      if (!button.contains(e.target) && !dropdown.contains(e.target)) {
-        dropdown.remove();
-        button.classList.remove("dropdown-active");
-        document.removeEventListener("click", this.handleDocumentClick);
-      }
-    };
-    setTimeout(() => {
-      document.addEventListener("click", this.handleDocumentClick);
-    }, 0);
-  }
-  /**
-   * Create view mode dropdown menu
-   */
-  createViewDropdown() {
-    const dropdown = document.createElement("div");
-    dropdown.className = "overtype-dropdown-menu";
-    const currentMode = this.editor.container.dataset.mode || "normal";
-    const modes = [
-      { id: "normal", label: "Normal Edit", icon: "\u2713" },
-      { id: "plain", label: "Plain Textarea", icon: "\u2713" },
-      { id: "preview", label: "Preview Mode", icon: "\u2713" }
-    ];
-    modes.forEach((mode) => {
-      const item = document.createElement("button");
-      item.className = "overtype-dropdown-item";
-      item.type = "button";
-      const check = document.createElement("span");
-      check.className = "overtype-dropdown-check";
-      check.textContent = currentMode === mode.id ? mode.icon : "";
-      const label = document.createElement("span");
-      label.textContent = mode.label;
-      item.appendChild(check);
-      item.appendChild(label);
-      if (currentMode === mode.id) {
-        item.classList.add("active");
-      }
-      item.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.setViewMode(mode.id);
-        dropdown.remove();
-        this.viewModeButton.classList.remove("dropdown-active");
-        document.removeEventListener("click", this.handleDocumentClick);
-      });
-      dropdown.appendChild(item);
-    });
-    return dropdown;
-  }
-  /**
-   * Set view mode
-   */
-  setViewMode(mode) {
-    switch (mode) {
-      case "plain":
-        this.editor.showPlainTextarea();
-        break;
-      case "preview":
-        this.editor.showPreviewMode();
-        break;
-      case "normal":
-      default:
-        this.editor.showNormalEditMode();
-        break;
+    if (this.updateCustomButtonStates) {
+      this.updateCustomButtonStates();
     }
   }
   /**
-   * Destroy toolbar
+   * Destroy toolbar and cleanup
    */
   destroy() {
+    var _a;
     if (this.container) {
       if (this.handleDocumentClick) {
         document.removeEventListener("click", this.handleDocumentClick);
       }
+      Object.values(this.buttons).forEach((button) => {
+        if (button._clickHandler) {
+          button.removeEventListener("click", button._clickHandler);
+          delete button._clickHandler;
+        }
+        if (button._isEnabled) {
+          delete button._isEnabled;
+        }
+        if (button._buttonConfig) {
+          delete button._buttonConfig;
+        }
+      });
+      if ((_a = this.updateCustomButtonStates) == null ? void 0 : _a.cancel) {
+        this.updateCustomButtonStates.cancel();
+      }
       this.container.remove();
       this.container = null;
       this.buttons = {};
+      this.buttonRegistry.clear();
     }
   }
 };
@@ -3156,8 +3628,12 @@ var _OverType = class _OverType {
       statsFormatter: null,
       smartLists: true,
       // Enable smart list continuation
-      codeHighlighter: null
+      codeHighlighter: null,
       // Per-instance code highlighter
+      // Custom toolbar options
+      customToolbarButtons: [],
+      hideButtons: [],
+      buttonOrder: null
     };
     const { theme, colors, ...cleanOptions } = options;
     return {
@@ -3338,8 +3814,15 @@ var _OverType = class _OverType {
    * @private
    */
   _createToolbar() {
-    const toolbarButtons = typeof this.options.toolbar === "object" ? this.options.toolbar.buttons : null;
-    this.toolbar = new Toolbar(this, toolbarButtons);
+    let toolbarOptions = {
+      customToolbarButtons: this.options.customToolbarButtons,
+      hideButtons: this.options.hideButtons,
+      buttonOrder: this.options.buttonOrder
+    };
+    if (typeof this.options.toolbar === "object" && this.options.toolbar.buttons) {
+      toolbarOptions.buttonConfig = this.options.toolbar.buttons;
+    }
+    this.toolbar = new Toolbar(this, toolbarOptions);
     this.toolbar.create();
     this._toolbarSelectionListener = () => {
       if (this.toolbar) {
@@ -3399,7 +3882,8 @@ var _OverType = class _OverType {
     const text = this.textarea.value;
     const cursorPos = this.textarea.selectionStart;
     const activeLine = this._getCurrentLine(text, cursorPos);
-    const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter);
+    const isPreviewMode = this.container.dataset.mode === "preview";
+    const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
     this.preview.innerHTML = html || '<span style="color: #808080;">Start typing...</span>';
     this._applyCodeBlockBackgrounds();
     if (this.options.showStats && this.statsBar) {
@@ -3926,21 +4410,30 @@ var _OverType = class _OverType {
     _OverType.currentTheme = themeObj;
     _OverType.injectStyles(true);
     document.querySelectorAll(".overtype-container").forEach((container) => {
-      const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
-      if (themeName) {
-        container.setAttribute("data-theme", themeName);
+      const themeName2 = typeof themeObj === "string" ? themeObj : themeObj.name;
+      if (themeName2) {
+        container.setAttribute("data-theme", themeName2);
       }
     });
     document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
       if (!wrapper.closest(".overtype-container")) {
-        const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
-        if (themeName) {
-          wrapper.setAttribute("data-theme", themeName);
+        const themeName2 = typeof themeObj === "string" ? themeObj : themeObj.name;
+        if (themeName2) {
+          wrapper.setAttribute("data-theme", themeName2);
         }
       }
       const instance = wrapper._instance;
       if (instance) {
         instance.updatePreview();
+      }
+    });
+    const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
+    document.querySelectorAll("overtype-editor").forEach((webComponent) => {
+      if (themeName && typeof webComponent.setAttribute === "function") {
+        webComponent.setAttribute("theme", themeName);
+      }
+      if (typeof webComponent.refreshTheme === "function") {
+        webComponent.refreshTheme();
       }
     });
   }
@@ -3954,6 +4447,14 @@ var _OverType = class _OverType {
       const instance = wrapper._instance;
       if (instance && instance.updatePreview) {
         instance.updatePreview();
+      }
+    });
+    document.querySelectorAll("overtype-editor").forEach((webComponent) => {
+      if (typeof webComponent.getEditor === "function") {
+        const instance = webComponent.getEditor();
+        if (instance && instance.updatePreview) {
+          instance.updatePreview();
+        }
       }
     });
   }
@@ -4430,6 +4931,15 @@ var OverTypeEditor = class extends HTMLElement {
     }
   }
   // ===== PUBLIC API METHODS =====
+  /**
+   * Refresh theme styles (useful when theme object is updated without changing theme name)
+   * @public
+   */
+  refreshTheme() {
+    if (this._initialized) {
+      this._reinjectStyles();
+    }
+  }
   /**
    * Get current editor value
    * @returns {string} Current markdown content
