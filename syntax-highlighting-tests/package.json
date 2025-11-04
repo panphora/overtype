@@ -1,0 +1,16 @@
+{
+  "name": "syntax-highlighting-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Alignment verification tests for syntax highlighting libraries",
+  "private": true,
+  "scripts": {
+    "test": "node test-alignment.js",
+    "install-all": "npm install shiki highlight.js prismjs"
+  },
+  "dependencies": {
+    "shiki": "^1.0.0",
+    "highlight.js": "^11.9.0",
+    "prismjs": "^1.29.0"
+  }
+}
