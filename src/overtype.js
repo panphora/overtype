@@ -1234,9 +1234,14 @@ class OverType {
       });
 
       // Update web components (shadow DOM instances)
-      // Call refreshTheme() directly to handle cases where the theme name stays the same
-      // but the theme object's properties have changed
+      const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
       document.querySelectorAll('overtype-editor').forEach(webComponent => {
+        // Set the theme attribute to update the theme name
+        if (themeName && typeof webComponent.setAttribute === 'function') {
+          webComponent.setAttribute('theme', themeName);
+        }
+        // Also call refreshTheme() to handle cases where the theme name stays the same
+        // but the theme object's properties have changed
         if (typeof webComponent.refreshTheme === 'function') {
           webComponent.refreshTheme();
         }
