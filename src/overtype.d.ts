@@ -41,27 +41,26 @@ export interface Stats {
   column: number;
 }
 
-export interface DropdownItem {
-  id: string;
-  label: string;
-  icon?: string;
-}
-
-export interface CustomToolbarButton {
+/**
+ * Toolbar button definition
+ */
+export interface ToolbarButton {
+  /** Unique button identifier */
   name: string;
-  icon: string;  // SVG markup
-  title: string;
-  type?: 'button' | 'dropdown';  // Default: 'button'
-  position?: 'start' | 'end' | string;  // 'after:buttonName'
-  isEnabled?: (editor: OverType) => boolean;
-  dropdownItems?: DropdownItem[];  // Required if type is 'dropdown'
-  action: (context: {
+
+  /** SVG icon markup (optional for separator) */
+  icon?: string;
+
+  /** Button tooltip text (optional for separator) */
+  title?: string;
+
+  /** Button action callback (optional for separator) */
+  action?: (context: {
     editor: OverType;
     getValue: () => string;
     setValue: (value: string) => void;
     event: MouseEvent;
-    item?: DropdownItem;  // Present when dropdown item is clicked
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export interface MobileOptions {
@@ -94,24 +93,11 @@ export interface Options {
   // Features
   showActiveLineRaw?: boolean;
   showStats?: boolean;
-  toolbar?: boolean | {  // Support both boolean and object for backward compatibility
-    buttons?: Array<{
-      name?: string;
-      icon?: string;
-      title?: string;
-      action?: string;
-      separator?: boolean;
-      hasDropdown?: boolean;
-    }>;
-  };
+  toolbar?: boolean;
+  toolbarButtons?: ToolbarButton[];  // Custom toolbar button configuration
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   statsFormatter?: (stats: Stats) => string;
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
-
-  // Custom toolbar options (new API)
-  customToolbarButtons?: CustomToolbarButton[];
-  hideButtons?: string[];
-  buttonOrder?: string[];
 
   // Theme (deprecated in favor of global theme)
   theme?: string | Theme;
@@ -200,3 +186,28 @@ export type OverType = OverTypeInstance;
 
 // Module exports - default export is the constructor
 export default OverType;
+
+/**
+ * Pre-defined toolbar buttons
+ */
+export const toolbarButtons: {
+  bold: ToolbarButton;
+  italic: ToolbarButton;
+  strikethrough: ToolbarButton;
+  code: ToolbarButton;
+  separator: ToolbarButton;
+  link: ToolbarButton;
+  h1: ToolbarButton;
+  h2: ToolbarButton;
+  h3: ToolbarButton;
+  bulletList: ToolbarButton;
+  orderedList: ToolbarButton;
+  taskList: ToolbarButton;
+  quote: ToolbarButton;
+  viewMode: ToolbarButton;
+};
+
+/**
+ * Default toolbar button layout with separators
+ */
+export const defaultToolbarButtons: ToolbarButton[];

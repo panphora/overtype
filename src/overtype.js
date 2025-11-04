@@ -10,6 +10,7 @@ import { generateStyles } from './styles.js';
 import { getTheme, mergeTheme, solar, themeToCSSVars } from './themes.js';
 import { Toolbar } from './toolbar.js';
 import { LinkTooltip } from './link-tooltip.js';
+import { defaultToolbarButtons } from './toolbar-buttons.js';
 
 /**
  * OverType Editor Class
@@ -150,14 +151,10 @@ class OverType {
         showActiveLineRaw: false,
         showStats: false,
         toolbar: false,
+        toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
-        codeHighlighter: null,  // Per-instance code highlighter
-
-        // Custom toolbar options
-        customToolbarButtons: [],
-        hideButtons: [],
-        buttonOrder: null
+        codeHighlighter: null  // Per-instance code highlighter
       };
       
       // Remove theme and colors from options - these are now global
@@ -408,20 +405,10 @@ class OverType {
      * @private
      */
     _createToolbar() {
-      // Support both old and new toolbar API
-      let toolbarOptions = {
-        customToolbarButtons: this.options.customToolbarButtons,
-        hideButtons: this.options.hideButtons,
-        buttonOrder: this.options.buttonOrder
-      };
+      // Use provided toolbarButtons or default to defaultToolbarButtons
+      const toolbarButtons = this.options.toolbarButtons || defaultToolbarButtons;
 
-      // Backward compatibility: support toolbar: { buttons: [...] }
-      if (typeof this.options.toolbar === 'object' && this.options.toolbar.buttons) {
-        toolbarOptions.buttonConfig = this.options.toolbar.buttons;
-      }
-
-      // Pass all toolbar options to the Toolbar constructor
-      this.toolbar = new Toolbar(this, toolbarOptions);
+      this.toolbar = new Toolbar(this, { toolbarButtons });
       this.toolbar.create();
 
       // Store listener references for cleanup
@@ -1365,3 +1352,6 @@ OverType.currentTheme = solar;
 // Export for module systems
 export default OverType;
 export { OverType };
+
+// Export toolbar buttons for custom toolbar configurations
+export { toolbarButtons, defaultToolbarButtons } from './toolbar-buttons.js';
