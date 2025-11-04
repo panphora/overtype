@@ -107,33 +107,87 @@ editor.setTheme('cave');
 </script>
 ```
 
-### Toolbar & View Modes
+### Toolbar
 
 ```javascript
-// Enable the toolbar with view mode switcher
+// Enable default toolbar with all formatting buttons
 const [editor] = new OverType('#editor', {
-  toolbar: true,  // Enables the toolbar
-  value: '# Document\n\nSelect text and use the toolbar buttons!'
+  toolbar: true,
+  value: '# Document\n\nSelect text and use the toolbar!'
 });
 
-// Toolbar provides:
-// - Bold, Italic formatting
-// - Heading levels (H1, H2, H3)
-// - Links, inline code, code blocks
-// - Bullet and numbered lists
-// - View mode switcher (eye icon dropdown)
-// - All with keyboard shortcuts!
-
-// Three view modes available via toolbar dropdown:
-// 1. Normal Edit - Default WYSIWYG markdown editing
-// 2. Plain Textarea - Shows raw markdown without preview overlay
-// 3. Preview Mode - Read-only rendered preview with clickable links
-
-// Programmatically switch modes:
-editor.showNormalEditMode();   // Switch to normal edit mode (default)
-editor.showPlainTextarea();    // Switch to plain textarea mode
-editor.showPreviewMode();      // Switch to preview mode
+// Default toolbar: Bold, Italic, Code | Link | H1, H2, H3 | Lists, Tasks | Quote | View Mode
 ```
+
+**Custom Toolbar (v2.0):**
+
+```javascript
+import OverType, { toolbarButtons } from 'overtype';
+
+const [editor] = new OverType('#editor', {
+  toolbar: true,
+  toolbarButtons: [
+    toolbarButtons.bold,
+    toolbarButtons.italic,
+    toolbarButtons.separator,
+    {
+      name: 'save',
+      icon: '<svg>...</svg>',
+      title: 'Save',
+      action: ({ editor, getValue }) => {
+        localStorage.setItem('draft', getValue());
+      }
+    }
+  ]
+});
+
+// Available: bold, italic, code, link, h1, h2, h3, bulletList,
+// orderedList, taskList, quote, separator, viewMode
+```
+
+See [examples/custom-toolbar.html](examples/custom-toolbar.html) for complete examples.
+
+### View Modes
+
+Three modes available via toolbar dropdown or programmatically:
+
+```javascript
+editor.showNormalEditMode();   // Default WYSIWYG editing
+editor.showPlainTextarea();    // Raw markdown, no preview
+editor.showPreviewMode();      // Read-only preview with clickable links
+```
+
+### Task Lists
+
+GitHub-style checkboxes render in preview mode:
+
+```javascript
+const [editor] = new OverType('#editor', {
+  value: '- [ ] Todo\n- [x] Done',
+  toolbar: true  // Use view mode dropdown to see checkboxes
+});
+
+// Edit mode: Shows `- [ ]` and `- [x]` syntax (preserves alignment)
+// Preview mode: Renders actual checkbox inputs
+```
+
+### Syntax Highlighting
+
+```javascript
+import { codeToHtml } from 'shiki';
+
+// Global highlighter (all instances)
+OverType.setCodeHighlighter((code, lang) =>
+  codeToHtml(code, { lang, theme: 'nord' })
+);
+
+// Per-instance override
+const [editor] = new OverType('#editor', {
+  codeHighlighter: (code, lang) => myHighlighter(code, lang)
+});
+```
+
+See [docs/SYNTAX_HIGHLIGHTING.md](docs/SYNTAX_HIGHLIGHTING.md) for complete guide.
 
 ### Keyboard Shortcuts
 
@@ -400,8 +454,14 @@ new OverType(target, options)
   },
   
   // Toolbar
-  toolbar: false,         // Enable/disable toolbar with formatting buttons
-  
+  toolbar: false,         // Enable/disable toolbar
+  toolbarButtons: [],     // Custom button array (v2.0)
+                          // Defaults to all built-in buttons when toolbar: true
+
+  // Syntax highlighting
+  codeHighlighter: null,  // Function: (code, lang) => html
+                          // Overrides global OverType.setCodeHighlighter()
+
   // Smart lists
   smartLists: true,       // Enable GitHub-style list continuation on Enter
   
@@ -438,6 +498,10 @@ editor.getPreviewHTML()            // Actual DOM content from preview layer
 editor.setTheme('cave')  // Built-in theme name
 editor.setTheme(customThemeObject)  // Custom theme
 
+// Set code highlighter (instance-specific)
+editor.setCodeHighlighter((code, lang) => highlightedHTML)
+editor.setCodeHighlighter(null)  // Disable for this instance
+
 // View modes
 editor.showNormalEditMode()   // Switch to normal edit mode (default)
 editor.showPlainTextarea()    // Switch to plain textarea mode
@@ -469,7 +533,11 @@ OverType.setTheme('cave')  // Built-in theme
 OverType.setTheme(customTheme)  // Custom theme object
 OverType.setTheme('solar', { h1: '#custom' })  // Override specific colors
 
-// Note: editor.setTheme() overrides global theme for that specific instance
+// Set global code highlighter (affects all instances without instance highlighter)
+OverType.setCodeHighlighter((code, lang) => highlightedHTML)
+OverType.setCodeHighlighter(null)  // Disable global highlighting
+
+// Note: Instance methods override global settings
 
 // Initialize multiple editors (same as constructor)
 OverType.init(target, options)
@@ -501,13 +569,16 @@ OverType.themes.cave
 - **Headers** - `# H1`, `## H2`, `### H3`
 - **Bold** - `**text**` or `__text__`
 - **Italic** - `*text*` or `_text_`
+- **Strikethrough** - `~~text~~` or `~text~` (GFM)
 - **Code** - `` `inline code` ``
+- **Code blocks** - ` ```language `
 - **Links** - `[text](url)`
 - **Lists** - `- item`, `* item`, `1. item`
+- **Task lists** - `- [ ] todo`, `- [x] done` (GFM, renders in preview mode)
 - **Blockquotes** - `> quote`
 - **Horizontal rule** - `---`, `***`, or `___`
 
-Note: Markdown syntax remains visible but styled (e.g., `**bold**` shows with styled markers).
+**Note:** Syntax remains visible in edit mode (e.g., `**bold**` shows markers). Use preview mode for full rendering.
 
 ## Web Component
 
@@ -533,6 +604,39 @@ Features include:
 - Custom events API
 - Zero configuration required
 
+## Migration from v1.x
+
+### Breaking Change: Toolbar API (v2.0)
+
+**Old options removed:**
+```javascript
+// ❌ No longer supported
+{
+  customToolbarButtons: [...],
+  hideButtons: [...],
+  buttonOrder: [...]
+}
+```
+
+**New approach:**
+```javascript
+// ✅ v2.0: Single explicit array
+import { toolbarButtons } from 'overtype';
+
+{
+  toolbar: true,
+  toolbarButtons: [
+    toolbarButtons.bold,
+    toolbarButtons.italic,
+    { name: 'custom', icon: '...', action: ({ editor, getValue }) => {} }
+  ]
+}
+```
+
+**If using default toolbar** (`toolbar: true` with no customization), no changes needed.
+
+See [examples/custom-toolbar.html](examples/custom-toolbar.html) for migration examples.
+
 ## DOM Persistence & Re-initialization
 
 OverType is designed to work with platforms that persist DOM across page loads (like HyperClay):
@@ -555,6 +659,7 @@ Check the `examples` folder for complete examples:
 - `basic.html` - Simple single editor
 - `multiple.html` - Multiple independent editors
 - `custom-theme.html` - Theme customization
+- `custom-toolbar.html` - Custom toolbar buttons (v2.0)
 - `dynamic.html` - Dynamic creation/destruction
 
 ## Limitations
