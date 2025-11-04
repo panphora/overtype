@@ -486,6 +486,12 @@ class OverTypeEditor extends HTMLElement {
     }
     this._editor = null;
     this._initialized = false;
+
+    // Clear shadow root to prevent stale containers on remount
+    // This is critical for React/Vue/etc. that frequently mount/unmount components
+    if (this.shadowRoot) {
+      this.shadowRoot.innerHTML = '';
+    }
   }
 
   // ===== PUBLIC API METHODS =====

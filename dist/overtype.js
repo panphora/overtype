@@ -45,6 +45,13 @@ var OverType = (() => {
       this.linkIndex = 0;
     }
     /**
+     * Set global code highlighter function
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    static setCodeHighlighter(highlighter) {
+      this.codeHighlighter = highlighter;
+    }
+    /**
      * Escape HTML special characters
      * @param {string} text - Raw text to escape
      * @returns {string} Escaped HTML-safe text
@@ -350,9 +357,10 @@ var OverType = (() => {
      * @param {string} text - Full markdown text
      * @param {number} activeLine - Currently active line index (optional)
      * @param {boolean} showActiveLineRaw - Show raw markdown on active line
+     * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
      * @returns {string} Parsed HTML
      */
-    static parse(text, activeLine = -1, showActiveLineRaw = false) {
+    static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter = null) {
       this.resetLinkIndex();
       const lines = text.split("\n");
       let inCodeBlock = false;
@@ -374,16 +382,17 @@ var OverType = (() => {
         return this.parseLine(line);
       });
       const html = parsedLines.join("");
-      return this.postProcessHTML(html);
+      return this.postProcessHTML(html, instanceHighlighter);
     }
     /**
      * Post-process HTML to consolidate lists and code blocks
      * @param {string} html - HTML to post-process
+     * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
      * @returns {string} Post-processed HTML with consolidated lists and code blocks
      */
-    static postProcessHTML(html) {
+    static postProcessHTML(html, instanceHighlighter = null) {
       if (typeof document === "undefined" || !document) {
-        return this.postProcessHTMLManual(html);
+        return this.postProcessHTMLManual(html, instanceHighlighter);
       }
       const container = document.createElement("div");
       container.innerHTML = html;
@@ -412,8 +421,22 @@ var OverType = (() => {
               }
               container.insertBefore(currentCodeBlock, child.nextSibling);
               currentCodeBlock._codeElement = codeElement;
+              currentCodeBlock._language = lang;
+              currentCodeBlock._codeContent = "";
               continue;
             } else {
+              const highlighter = instanceHighlighter || this.codeHighlighter;
+              if (currentCodeBlock && highlighter && currentCodeBlock._codeContent) {
+                try {
+                  const highlightedCode = highlighter(
+                    currentCodeBlock._codeContent,
+                    currentCodeBlock._language || ""
+                  );
+                  currentCodeBlock._codeElement.innerHTML = highlightedCode;
+                } catch (error) {
+                  console.warn("Code highlighting failed:", error);
+                }
+              }
               inCodeBlock = false;
               currentCodeBlock = null;
               continue;
@@ -422,10 +445,14 @@ var OverType = (() => {
         }
         if (inCodeBlock && currentCodeBlock && child.tagName === "DIV" && !child.querySelector(".code-fence")) {
           const codeElement = currentCodeBlock._codeElement || currentCodeBlock.querySelector("code");
+          if (currentCodeBlock._codeContent.length > 0) {
+            currentCodeBlock._codeContent += "\n";
+          }
+          const lineText = child.textContent.replace(/\u00A0/g, " ");
+          currentCodeBlock._codeContent += lineText;
           if (codeElement.textContent.length > 0) {
             codeElement.textContent += "\n";
           }
-          const lineText = child.textContent.replace(/\u00A0/g, " ");
           codeElement.textContent += lineText;
           child.remove();
           continue;
@@ -471,9 +498,10 @@ var OverType = (() => {
     /**
      * Manual post-processing for Node.js environments (without DOM)
      * @param {string} html - HTML to post-process
+     * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
      * @returns {string} Post-processed HTML
      */
-    static postProcessHTMLManual(html) {
+    static postProcessHTMLManual(html, instanceHighlighter = null) {
       let processed = html;
       processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
         const divs = match.match(/<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
@@ -518,8 +546,17 @@ var OverType = (() => {
         }).join("\n");
         const lang = openFence.slice(3).trim();
         const langClass = lang ? ` class="language-${lang}"` : "";
+        let highlightedContent = codeContent;
+        const highlighter = instanceHighlighter || this.codeHighlighter;
+        if (highlighter) {
+          try {
+            highlightedContent = highlighter(codeContent, lang);
+          } catch (error) {
+            console.warn("Code highlighting failed:", error);
+          }
+        }
         let result = `<div><span class="code-fence">${openFence}</span></div>`;
-        result += `<pre class="code-block"><code${langClass}>${codeContent}</code></pre>`;
+        result += `<pre class="code-block"><code${langClass}>${highlightedContent}</code></pre>`;
         result += `<div><span class="code-fence">${closeFence}</span></div>`;
         return result;
       });
@@ -658,6 +695,8 @@ var OverType = (() => {
   };
   // Track link index for anchor naming
   __publicField(MarkdownParser, "linkIndex", 0);
+  // Global code highlighter function
+  __publicField(MarkdownParser, "codeHighlighter", null);
   /**
    * List pattern definitions
    */
@@ -3139,8 +3178,10 @@ ${blockSuffix}` : suffix;
         showStats: false,
         toolbar: false,
         statsFormatter: null,
-        smartLists: true
+        smartLists: true,
         // Enable smart list continuation
+        codeHighlighter: null
+        // Per-instance code highlighter
       };
       const { theme, colors, ...cleanOptions } = options;
       return {
@@ -3382,7 +3423,7 @@ ${blockSuffix}` : suffix;
       const text = this.textarea.value;
       const cursorPos = this.textarea.selectionStart;
       const activeLine = this._getCurrentLine(text, cursorPos);
-      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw);
+      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter);
       this.preview.innerHTML = html || '<span style="color: #808080;">Start typing...</span>';
       this._applyCodeBlockBackgrounds();
       if (this.options.showStats && this.statsBar) {
@@ -3616,7 +3657,7 @@ ${blockSuffix}` : suffix;
      */
     getRenderedHTML(options = {}) {
       const markdown = this.getValue();
-      let html = MarkdownParser.parse(markdown);
+      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
       if (options.cleanHTML) {
         html = html.replace(/<span class="syntax-marker[^"]*">.*?<\/span>/g, "");
         html = html.replace(/\sclass="(bullet-list|ordered-list|code-fence|hr-marker|blockquote|url-part)"/g, "");
@@ -3686,6 +3727,14 @@ ${blockSuffix}` : suffix;
       }
       this.updatePreview();
       return this;
+    }
+    /**
+     * Set instance-specific code highlighter
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    setCodeHighlighter(highlighter) {
+      this.options.codeHighlighter = highlighter;
+      this.updatePreview();
     }
     /**
      * Update stats bar
@@ -3915,6 +3964,19 @@ ${blockSuffix}` : suffix;
         }
         const instance = wrapper._instance;
         if (instance) {
+          instance.updatePreview();
+        }
+      });
+    }
+    /**
+     * Set global code highlighter for all OverType instances
+     * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+     */
+    static setCodeHighlighter(highlighter) {
+      MarkdownParser.setCodeHighlighter(highlighter);
+      document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
+        const instance = wrapper._instance;
+        if (instance && instance.updatePreview) {
           instance.updatePreview();
         }
       });
