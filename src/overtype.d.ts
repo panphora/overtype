@@ -82,6 +82,7 @@ export interface Options {
   };
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   statsFormatter?: (stats: Stats) => string;
+  codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
 
   // Theme (deprecated in favor of global theme)
   theme?: string | Theme;
@@ -112,6 +113,7 @@ export interface OverTypeConstructor {
   destroyAll(): void;
   injectStyles(force?: boolean): void;
   setTheme(theme: string | Theme, customColors?: Partial<Theme['colors']>): void;
+  setCodeHighlighter(highlighter: ((code: string, language: string) => string) | null): void;
   initGlobalListeners(): void;
   getTheme(name: string): Theme;
 }
@@ -147,6 +149,7 @@ export interface OverTypeInstance {
   reinit(options: Options): void;
   showStats(show: boolean): void;
   setTheme(theme: string | Theme): this;
+  setCodeHighlighter(highlighter: ((code: string, language: string) => string) | null): void;
   updatePreview(): void;
   
   // HTML output methods
