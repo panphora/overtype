@@ -49,6 +49,18 @@
   - Added extensive test coverage to prevent regression
   - Closes Issue #63
 
+## README.md Updates
+
+- [ ] Document web component feature in main README.md
+  - Add brief overview section with key benefits (Shadow DOM, declarative API)
+  - Link to detailed docs: `docs/WEB-COMPONENT.md`
+  - Include quick example showing `<overtype-editor>` usage
+- [ ] Document syntax highlighting feature in main README.md
+  - Add section explaining library-agnostic API
+  - Link to detailed docs: `docs/SYNTAX_HIGHLIGHTING.md`
+  - Include quick example showing `setCodeHighlighter()` usage
+  - Note: Supports Shiki, Highlight.js, Prism.js, and any custom highlighter
+
 # FILES TO DELETE
 
 - action-plan.md
@@ -56,3 +68,4 @@
 - issue-54-fix.md
 - overtype-pr-35-review.md
 - pr-40-assessment.md
+- PR-35-MERGE-STRATEGY.md
