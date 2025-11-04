@@ -216,97 +216,131 @@ Once these changes are made, we'll be happy to merge! The implementation itself 
 - Require proof that no highlighter can break alignment
 - Demand extensive testing of various highlighters
 
-## 7. Custom Toolbar Button API
+## 7. ✅ DONE - Custom Toolbar Button API (MAJOR REFACTOR)
 
 **Source**: Address Issue #61 - Users want to add custom buttons (save, etc.)
 **Issue URL**: https://github.com/panphora/overtype/issues/61
+**Status**: ✅ COMPLETED - Simplified API with major refactor
 
-### Actions to Take:
+### Major Refactor (v2.0 Breaking Change):
+**Removed old complex API, replaced with simple explicit API**
 
-#### ✅ Create Custom Button API
-- **Design API for adding custom toolbar buttons**:
-  ```javascript
-  new OverType('#editor', {
-    toolbar: true,
-    customToolbarButtons: [
-      {
-        name: 'save',
-        icon: '<svg>...</svg>', // or use existing icon name
-        title: 'Save document',
-        position: 'end', // 'start', 'end', or after specific button
-        action: (editor) => {
-          const content = editor.getValue();
-          // User's custom save logic
-        }
+#### Code Reduction:
+- ✅ Removed ~547 lines of complex toolbar code
+- ✅ `src/toolbar.js`: 813 lines → 304 lines (509 lines removed)
+- ✅ Removed `customToolbarButtons`, `hideButtons`, `buttonOrder` options
+- ✅ Removed old `toolbar: { buttons: [...] }` backward compatibility
+- ✅ Removed button registry, positioning system, dynamic state management
+- ✅ Removed custom button styles (38 lines from styles.js)
+
+#### New Implementation:
+- ✅ Created `src/toolbar-buttons.js` (177 lines) - All button definitions
+- ✅ Exported `toolbarButtons` object with all built-in buttons
+- ✅ Exported `defaultToolbarButtons` array with separators
+- ✅ Single `toolbarButtons` option - explicit button array
+- ✅ Separators as special buttons with `name: 'separator'`
+- ✅ Consistent action signature for all buttons: `({ editor, getValue, setValue, event }) => {}`
+- ✅ SVG sanitization for XSS prevention maintained
+- ✅ Updated TypeScript definitions with `ToolbarButton` interface
+- ✅ Updated `examples/custom-toolbar.html` with 4 working examples
+- ✅ Fixed code button crash (`toggleCode` instead of `toggleInlineCode`)
+- ✅ Restored `taskList` button to default toolbar
+
+#### Bundle Size:
+- Before refactor: 96KB
+- After refactor: **91KB (5KB reduction)**
+- All 178 tests passing
+
+### New API (v2.0):
+```javascript
+import OverType, { toolbarButtons } from 'overtype';
+
+// Default toolbar
+new OverType('#editor', {
+  toolbar: true  // Uses defaultToolbarButtons automatically
+});
+
+// Custom toolbar with built-in + custom buttons
+new OverType('#editor', {
+  toolbar: true,
+  toolbarButtons: [
+    {
+      name: 'save',
+      icon: '<svg>...</svg>',
+      title: 'Save document',
+      action: ({ editor, getValue, setValue, event }) => {
+        const content = getValue();
+        localStorage.setItem('doc', content);
       }
-    ]
-  });
-  ```
+    },
+    toolbarButtons.separator,
+    toolbarButtons.bold,
+    toolbarButtons.italic,
+    toolbarButtons.code,
+    toolbarButtons.separator,
+    toolbarButtons.link
+  ]
+});
+```
 
-#### Implementation Details:
-- Allow custom SVG icons or reference to existing icons
-- Support positioning (start, end, or relative to other buttons)
-- Pass editor instance to action callback
-- Ensure buttons integrate seamlessly with existing toolbar
-- Support dividers/separators between button groups
-- Allow buttons to be enabled/disabled dynamically
+### Benefits:
+- ✅ **Simpler mental model** - One array defines everything
+- ✅ **No hidden magic** - Explicit and predictable
+- ✅ **Smaller bundle** - 5KB reduction
+- ✅ **Cleaner codebase** - 390 lines removed (net)
+- ✅ **Easier to maintain** - Less complexity
+- ✅ **Tree-shakeable** - Import only needed buttons
+- ✅ **Type-safe** - Single `ToolbarButton` interface
+- ✅ **Separators included** - Visual grouping built-in
 
-#### Documentation:
-- Create comprehensive examples for common use cases:
-  - Save button
-  - Export button
-  - Custom formatting buttons
-  - Integration with external services
-- Show how to style custom buttons to match theme
-- Document keyboard shortcut integration
-
-#### Benefits:
-- Solves Issue #61 without adding application-specific logic
-- Keeps OverType focused while being extensible
-- Users can add any custom functionality they need
-- No bloat for users who don't need custom buttons
-
-## 8. Fix Checkbox Rendering in Preview Mode
+## 8. ✅ DONE - Fix Checkbox Rendering in Preview Mode
 
 **Source**: Issue #60 - Checkbox syntax not rendering as checkboxes
 **Issue URL**: https://github.com/panphora/overtype/issues/60
+**Status**: ✅ COMPLETED - Task list checkboxes render correctly in preview mode
 
-### Actions to Take:
+### Implementation:
+- ✅ Added `isPreviewMode` parameter to `parse()` method (src/parser.js:444)
+- ✅ Added `isPreviewMode` parameter to `parseLine()` method (src/parser.js:404)
+- ✅ Updated all `parseLine()` calls to pass `isPreviewMode` through (lines 464, 475)
+- ✅ Created `parseTaskList()` method (src/parser.js:105-122)
+- ✅ Added call to `parseTaskList()` in parsing pipeline before `parseBulletList()` (line 420)
+- ✅ Updated `updatePreview()` to detect preview mode and pass to parser (src/overtype.js:502-506)
+- ✅ Added CSS styles for task-list checkboxes (src/styles.js:775-795)
+  - Preview mode: renders actual checkboxes
+  - Normal mode: keeps syntax visible with `.syntax-marker` styling
+- ✅ All 178 tests passing (100% success rate)
 
-#### ✅ Implement Checkbox Rendering
-- **Current behavior**: `- [ ]` and `- [x]` display as plain text in preview
-- **Fix**: Render as actual HTML checkboxes in preview mode
+### Implementation Details:
 
-#### Implementation:
-- Parser already detects checkbox patterns in `LIST_PATTERNS` (line 699 of parser.js)
-- Add rendering logic to generate proper HTML:
-  ```html
-  <!-- For - [ ] -->
-  <li><input type="checkbox" disabled> Task item</li>
+**parseTaskList() method**:
+```javascript
+static parseTaskList(html, isPreviewMode = false) {
+  return html.replace(/^((?:&nbsp;)*)-\s+\[([ xX])\]\s+(.+)$/, (match, indent, checked, content) => {
+    if (isPreviewMode) {
+      const isChecked = checked.toLowerCase() === 'x';
+      return `${indent}<li class="task-list"><input type="checkbox" disabled ${isChecked ? 'checked' : ''}> ${content}</li>`;
+    } else {
+      return `${indent}<li class="task-list"><span class="syntax-marker">- [${checked}] </span>${content}</li>`;
+    }
+  });
+}
+```
 
-  <!-- For - [x] or - [X] -->
-  <li><input type="checkbox" disabled checked> Completed task</li>
-  ```
+### Features:
+- **Preview Mode**: Renders actual HTML checkboxes (`<input type="checkbox" disabled>`)
+- **Normal Mode**: Keeps markdown syntax visible for alignment (`- [ ]` and `- [x]`)
+- **Non-interactive**: Checkboxes are disabled in preview mode
+- **Supports both formats**: `- [x]` (lowercase) and `- [X]` (uppercase)
+- **Perfect alignment**: Character-level alignment maintained in both modes
+- **Theme integration**: Checkbox styling via CSS custom properties
 
-#### Technical Details:
-- Make checkboxes non-interactive (`disabled`) in preview mode
-- Preserve alignment by ensuring checkbox width is consistent
-- Style checkboxes to match theme colors
-- Handle various checkbox formats:
-  - `- [ ]` (unchecked)
-  - `- [x]` (checked, lowercase)
-  - `- [X]` (checked, uppercase)
-
-#### Testing:
-- Test alignment with mixed checkbox/non-checkbox lists
-- Verify checkboxes render correctly in all themes
-- Test with nested lists containing checkboxes
-- Ensure raw markdown value preserves original syntax
-
-#### Note:
-- This is GitHub Flavored Markdown (GFM) feature
-- Keep checkboxes read-only in preview (no interaction)
-- Consider future enhancement: interactive checkboxes that update markdown
+### Testing:
+- Created test-checkbox.html with comprehensive examples
+- Mixed lists (regular items + task items)
+- Mode switching between normal and preview
+- Multiple checkbox states (checked/unchecked)
+- Uppercase and lowercase 'X'
 
 ## 9. ✅ DONE - Export MarkdownParser for Standalone Use
 
@@ -393,3 +427,45 @@ const html = MarkdownParser.parse('# Hello World\n\nThis is **bold** text.');
   - `editor.setTheme()` - sets theme for specific instance only
 - **Method chaining**: Returns `this` for fluent API
 - **No breaking changes**: Pure addition to the API
+
+---
+
+## Summary of Completed Work
+
+### Total Tasks: 11
+- ✅ All 11 tasks completed
+- ✅ All 178 tests passing
+- ✅ Bundle size: 91KB (down from 98KB at start)
+- ✅ Codebase simplified: ~390 lines removed (net)
+
+### Key Achievements:
+1. **Toolbar API Refactor** - Major simplification, removed 547 lines of complex code
+2. **Checkbox Rendering** - Full GFM task list support in preview mode
+3. **Parser Export** - Standalone MarkdownParser for SSR and static sites
+4. **Mode Switching** - Fixed critical scroll sync bug with data-mode attributes
+5. **Theme API** - Added instance-level theme method
+6. **Bug Fixes** - Fixed toolbar reinit, code block alignment, URL escaping
+7. **Web Components** - Full Shadow DOM support with reactive attributes
+8. **Syntax Highlighting** - Library-agnostic highlighter API
+
+### Breaking Changes (v2.0):
+- ❌ Removed `customToolbarButtons` option
+- ❌ Removed `hideButtons` option
+- ❌ Removed `buttonOrder` option
+- ❌ Removed old `toolbar: { buttons: [...] }` format
+- ✅ New `toolbarButtons` option with explicit button array
+- ✅ All breaking changes documented in toolbar-refactor-plan.md
+
+### Files Modified/Created:
+- Created: `src/toolbar-buttons.js`, `toolbar-refactor-plan.md`
+- Major refactor: `src/toolbar.js` (813 → 304 lines)
+- Updated: `src/overtype.js`, `src/parser.js`, `src/styles.js`, `src/overtype.d.ts`
+- Updated: `examples/custom-toolbar.html` (complete rewrite)
+
+### Ready for Release:
+- ✅ All implementations complete
+- ✅ All tests passing (178/178)
+- ✅ Examples updated
+- ✅ TypeScript definitions updated
+- ✅ Build successful
+- ✅ Documentation updated
