@@ -10,11 +10,22 @@ export class MarkdownParser {
   // Track link index for anchor naming
   static linkIndex = 0;
 
+  // Global code highlighter function
+  static codeHighlighter = null;
+
   /**
    * Reset link index (call before parsing a new document)
    */
   static resetLinkIndex() {
     this.linkIndex = 0;
+  }
+
+  /**
+   * Set global code highlighter function
+   * @param {Function|null} highlighter - Function that takes (code, language) and returns highlighted HTML
+   */
+  static setCodeHighlighter(highlighter) {
+    this.codeHighlighter = highlighter;
   }
 
   /**
@@ -427,9 +438,10 @@ export class MarkdownParser {
    * @param {string} text - Full markdown text
    * @param {number} activeLine - Currently active line index (optional)
    * @param {boolean} showActiveLineRaw - Show raw markdown on active line
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter = null) {
     // Reset link counter for each parse
     this.resetLinkIndex();
 
@@ -466,19 +478,20 @@ export class MarkdownParser {
     const html = parsedLines.join('');
 
     // Apply post-processing for list consolidation
-    return this.postProcessHTML(html);
+    return this.postProcessHTML(html, instanceHighlighter);
   }
 
   /**
    * Post-process HTML to consolidate lists and code blocks
    * @param {string} html - HTML to post-process
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
    * @returns {string} Post-processed HTML with consolidated lists and code blocks
    */
-  static postProcessHTML(html) {
+  static postProcessHTML(html, instanceHighlighter = null) {
     // Check if we're in a browser environment
     if (typeof document === 'undefined' || !document) {
       // In Node.js environment - do manual post-processing
-      return this.postProcessHTMLManual(html);
+      return this.postProcessHTMLManual(html, instanceHighlighter);
     }
 
     // Parse HTML string into DOM
@@ -525,9 +538,25 @@ export class MarkdownParser {
 
             // Store reference to the code element for adding content
             currentCodeBlock._codeElement = codeElement;
+            currentCodeBlock._language = lang;
+            currentCodeBlock._codeContent = '';
             continue;
           } else {
-            // End of code block - fence stays visible
+            // End of code block - apply highlighting if needed
+            const highlighter = instanceHighlighter || this.codeHighlighter;
+            if (currentCodeBlock && highlighter && currentCodeBlock._codeContent) {
+              try {
+                const highlightedCode = highlighter(
+                  currentCodeBlock._codeContent,
+                  currentCodeBlock._language || ''
+                );
+                currentCodeBlock._codeElement.innerHTML = highlightedCode;
+              } catch (error) {
+                console.warn('Code highlighting failed:', error);
+                // Keep the plain text content as fallback
+              }
+            }
+
             inCodeBlock = false;
             currentCodeBlock = null;
             continue;
@@ -538,14 +567,18 @@ export class MarkdownParser {
       // Check if we're in a code block - any div that's not a code fence
       if (inCodeBlock && currentCodeBlock && child.tagName === 'DIV' && !child.querySelector('.code-fence')) {
         const codeElement = currentCodeBlock._codeElement || currentCodeBlock.querySelector('code');
-        // Add the line content to the code block
+        // Add the line content to the code block content (for highlighting)
+        if (currentCodeBlock._codeContent.length > 0) {
+          currentCodeBlock._codeContent += '\n';
+        }
+        // Get the actual text content, preserving spaces
+        const lineText = child.textContent.replace(/\u00A0/g, ' '); // \u00A0 is nbsp
+        currentCodeBlock._codeContent += lineText;
+
+        // Also add to the code element (fallback if no highlighter)
         if (codeElement.textContent.length > 0) {
           codeElement.textContent += '\n';
         }
-        // Get the actual text content, preserving spaces
-        // Use textContent instead of innerHTML to avoid double-escaping
-        // textContent automatically decodes HTML entities
-        const lineText = child.textContent.replace(/\u00A0/g, ' '); // \u00A0 is nbsp
         codeElement.textContent += lineText;
         child.remove();
         continue;
@@ -611,9 +644,10 @@ export class MarkdownParser {
   /**
    * Manual post-processing for Node.js environments (without DOM)
    * @param {string} html - HTML to post-process
+   * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional)
    * @returns {string} Post-processed HTML
    */
-  static postProcessHTMLManual(html) {
+  static postProcessHTMLManual(html, instanceHighlighter = null) {
     let processed = html;
 
     // Process unordered lists
@@ -678,10 +712,22 @@ export class MarkdownParser {
       const lang = openFence.slice(3).trim();
       const langClass = lang ? ` class="language-${lang}"` : '';
 
+      // Apply code highlighting if available
+      let highlightedContent = codeContent;
+      const highlighter = instanceHighlighter || this.codeHighlighter;
+      if (highlighter) {
+        try {
+          highlightedContent = highlighter(codeContent, lang);
+        } catch (error) {
+          console.warn('Code highlighting failed:', error);
+          // Fall back to original content
+        }
+      }
+
       // Keep fence markers visible as separate divs, with pre/code block between them
       let result = `<div><span class="code-fence">${openFence}</span></div>`;
-      // Content is already escaped, don't double-escape
-      result += `<pre class="code-block"><code${langClass}>${codeContent}</code></pre>`;
+      // Use highlighted content if available, otherwise use escaped content
+      result += `<pre class="code-block"><code${langClass}>${highlightedContent}</code></pre>`;
       result += `<div><span class="code-fence">${closeFence}</span></div>`;
 
       return result;
