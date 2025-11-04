@@ -152,7 +152,12 @@ class OverType {
         toolbar: false,
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
-        codeHighlighter: null  // Per-instance code highlighter
+        codeHighlighter: null,  // Per-instance code highlighter
+
+        // Custom toolbar options
+        customToolbarButtons: [],
+        hideButtons: [],
+        buttonOrder: null
       };
       
       // Remove theme and colors from options - these are now global
@@ -403,8 +408,20 @@ class OverType {
      * @private
      */
     _createToolbar() {
-      const toolbarButtons = typeof this.options.toolbar === 'object' ? this.options.toolbar.buttons : null;
-      this.toolbar = new Toolbar(this, toolbarButtons);
+      // Support both old and new toolbar API
+      let toolbarOptions = {
+        customToolbarButtons: this.options.customToolbarButtons,
+        hideButtons: this.options.hideButtons,
+        buttonOrder: this.options.buttonOrder
+      };
+
+      // Backward compatibility: support toolbar: { buttons: [...] }
+      if (typeof this.options.toolbar === 'object' && this.options.toolbar.buttons) {
+        toolbarOptions.buttonConfig = this.options.toolbar.buttons;
+      }
+
+      // Pass all toolbar options to the Toolbar constructor
+      this.toolbar = new Toolbar(this, toolbarOptions);
       this.toolbar.create();
 
       // Store listener references for cleanup
@@ -482,8 +499,11 @@ class OverType {
       const cursorPos = this.textarea.selectionStart;
       const activeLine = this._getCurrentLine(text, cursorPos);
 
+      // Detect if we're in preview mode
+      const isPreviewMode = this.container.dataset.mode === 'preview';
+
       // Parse markdown
-      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter);
+      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
       this.preview.innerHTML = html || '<span style="color: #808080;">Start typing...</span>';
       
       // Apply code block backgrounds

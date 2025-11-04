@@ -41,6 +41,29 @@ export interface Stats {
   column: number;
 }
 
+export interface DropdownItem {
+  id: string;
+  label: string;
+  icon?: string;
+}
+
+export interface CustomToolbarButton {
+  name: string;
+  icon: string;  // SVG markup
+  title: string;
+  type?: 'button' | 'dropdown';  // Default: 'button'
+  position?: 'start' | 'end' | string;  // 'after:buttonName'
+  isEnabled?: (editor: OverType) => boolean;
+  dropdownItems?: DropdownItem[];  // Required if type is 'dropdown'
+  action: (context: {
+    editor: OverType;
+    getValue: () => string;
+    setValue: (value: string) => void;
+    event: MouseEvent;
+    item?: DropdownItem;  // Present when dropdown item is clicked
+  }) => void;
+}
+
 export interface MobileOptions {
   fontSize?: string;
   padding?: string;
@@ -71,18 +94,24 @@ export interface Options {
   // Features
   showActiveLineRaw?: boolean;
   showStats?: boolean;
-  toolbar?: boolean | {
+  toolbar?: boolean | {  // Support both boolean and object for backward compatibility
     buttons?: Array<{
       name?: string;
       icon?: string;
       title?: string;
       action?: string;
       separator?: boolean;
+      hasDropdown?: boolean;
     }>;
   };
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   statsFormatter?: (stats: Stats) => string;
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
+
+  // Custom toolbar options (new API)
+  customToolbarButtons?: CustomToolbarButton[];
+  hideButtons?: string[];
+  buttonOrder?: string[];
 
   // Theme (deprecated in favor of global theme)
   theme?: string | Theme;
