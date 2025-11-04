@@ -132,33 +132,30 @@ await runTest('Falls back to plain text when highlighter returns whitespace', ()
 
 console.log('\n📋 Test Suite: Async Highlighters\n');
 
-await runTest('Async highlighter works with DOM manipulation', async () => {
-  // For async highlighters to work, we need to use the actual DOM created during parsing
-  // Not a copy created by setting innerHTML (which creates new elements)
+await runTest('Async highlighters are not supported (logs warning)', async () => {
+  // Async highlighters are not supported in parse() because it returns an HTML string.
+  // Once the caller sets innerHTML with that string, new DOM elements are created,
+  // breaking references to the elements that the async callback would update.
 
-  // Create a test container that we'll parse into
-  const container = document.createElement('div');
+  // Capture console.warn calls
+  const originalWarn = console.warn;
+  let warningMessage = '';
+  console.warn = (msg) => { warningMessage = msg; };
+
   const markdown = '```js\nconst x = 1;\n```';
-
-  // Parse and immediately insert into container
   const html = MarkdownParser.parse(markdown, -1, false, mockAsyncHighlighter);
-  container.innerHTML = html;
 
-  // Get the code element immediately after parsing
-  const codeBlock = container.querySelector('code');
-  if (!codeBlock) throw new Error('Code block not found');
+  // Restore console.warn
+  console.warn = originalWarn;
 
-  // Store the initial state
-  const initialHTML = codeBlock.innerHTML;
+  // Should have logged a warning
+  if (!warningMessage.includes('Async highlighters are not supported')) {
+    throw new Error('Expected warning about async highlighters not being supported');
+  }
 
-  // Wait for async highlighter to potentially resolve
-  await new Promise(resolve => setTimeout(resolve, 50));
-
-  // Note: Async highlighting only works if you keep the same DOM elements
-  // Setting innerHTML creates new elements, breaking the reference
-  // For now, we'll just verify the highlighter was called and didn't throw
-  if (!initialHTML.includes('const x = 1;')) {
-    throw new Error('Code content missing');
+  // Should still render with plain text fallback
+  if (!html.includes('const x = 1;')) {
+    throw new Error('Code content missing - should fall back to plain text');
   }
 });
 

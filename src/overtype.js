@@ -1234,11 +1234,11 @@ class OverType {
       });
 
       // Update web components (shadow DOM instances)
-      const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
+      // Call refreshTheme() directly to handle cases where the theme name stays the same
+      // but the theme object's properties have changed
       document.querySelectorAll('overtype-editor').forEach(webComponent => {
-        if (themeName && typeof webComponent.setAttribute === 'function') {
-          // Setting the attribute triggers the web component's attributeChangedCallback
-          webComponent.setAttribute('theme', themeName);
+        if (typeof webComponent.refreshTheme === 'function') {
+          webComponent.refreshTheme();
         }
       });
     }

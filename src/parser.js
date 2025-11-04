@@ -554,16 +554,8 @@ export class MarkdownParser {
 
                 // Check if result is a Promise (async highlighter)
                 if (result && typeof result.then === 'function') {
-                  // Store reference to code element for async update
-                  const codeElementRef = currentCodeBlock._codeElement;
-                  result.then(highlightedCode => {
-                    // Verify highlighter returned non-empty string
-                    if (highlightedCode && typeof highlightedCode === 'string' && highlightedCode.trim()) {
-                      codeElementRef.innerHTML = highlightedCode;
-                    }
-                  }).catch(error => {
-                    console.warn('Async code highlighting failed:', error);
-                  });
+                  console.warn('Async highlighters are not supported in parse() because it returns an HTML string. The caller creates new DOM elements from that string, breaking references to the elements we would update. Use synchronous highlighters only.');
+                  // Keep the plain text fallback that was already set
                 } else {
                   // Synchronous highlighter
                   // Verify highlighter returned non-empty string
