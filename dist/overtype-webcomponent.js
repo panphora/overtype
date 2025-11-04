@@ -2451,45 +2451,6 @@ ${blockSuffix}` : suffix;
       text-align: center;
     }
 
-    /* Custom toolbar buttons */
-    .overtype-toolbar-button[data-custom="true"] {
-      background: transparent;
-      border: 1px solid var(--border-color, #e0e0e0);
-      color: var(--text-color, #333);
-      cursor: pointer;
-      padding: 6px 10px;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-
-    .overtype-toolbar-button[data-custom="true"]:hover:not(:disabled) {
-      /* Use theme primary color with opacity for hover */
-      background: rgba(59, 130, 246, 0.1);
-      border-color: var(--theme-primary, #3b82f6);
-    }
-
-    .overtype-toolbar-button[data-custom="true"]:active:not(:disabled) {
-      /* Slightly darker on active */
-      background: rgba(59, 130, 246, 0.2);
-      transform: translateY(1px);
-    }
-
-    .overtype-toolbar-button[data-custom="true"]:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .overtype-toolbar-button[data-custom="true"].error {
-      animation: buttonError 0.3s;
-      border-color: #ef4444;
-    }
-
-    @keyframes buttonError {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-4px); }
-      75% { transform: translateX(4px); }
-    }
-
     /* Preview mode styles */
     .overtype-container[data-mode="preview"] .overtype-input {
       display: none !important;
@@ -2675,525 +2636,120 @@ ${blockSuffix}` : suffix;
   `;
   }
 
-  // src/icons.js
-  var boldIcon = `<svg viewBox="0 0 18 18">
-  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5,4H9.5A2.5,2.5,0,0,1,12,6.5v0A2.5,2.5,0,0,1,9.5,9H5A0,0,0,0,1,5,9V4A0,0,0,0,1,5,4Z"></path>
-  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5,9h5.5A2.5,2.5,0,0,1,13,11.5v0A2.5,2.5,0,0,1,10.5,14H5a0,0,0,0,1,0,0V9A0,0,0,0,1,5,9Z"></path>
-</svg>`;
-  var italicIcon = `<svg viewBox="0 0 18 18">
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="13" y1="4" y2="4"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="5" x2="11" y1="14" y2="14"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="10" y1="14" y2="4"></line>
-</svg>`;
-  var h1Icon = `<svg viewBox="0 0 18 18">
-  <path fill="currentColor" d="M10,4V14a1,1,0,0,1-2,0V10H3v4a1,1,0,0,1-2,0V4A1,1,0,0,1,3,4V8H8V4a1,1,0,0,1,2,0Zm6.06787,9.209H14.98975V7.59863a.54085.54085,0,0,0-.605-.60547h-.62744a1.01119,1.01119,0,0,0-.748.29688L11.645,8.56641a.5435.5435,0,0,0-.022.8584l.28613.30762a.53861.53861,0,0,0,.84717.0332l.09912-.08789a1.2137,1.2137,0,0,0,.2417-.35254h.02246s-.01123.30859-.01123.60547V13.209H12.041a.54085.54085,0,0,0-.605.60547v.43945a.54085.54085,0,0,0,.605.60547h4.02686a.54085.54085,0,0,0,.605-.60547v-.43945A.54085.54085,0,0,0,16.06787,13.209Z"></path>
-</svg>`;
-  var h2Icon = `<svg viewBox="0 0 18 18">
-  <path fill="currentColor" d="M16.73975,13.81445v.43945a.54085.54085,0,0,1-.605.60547H11.855a.58392.58392,0,0,1-.64893-.60547V14.0127c0-2.90527,3.39941-3.42187,3.39941-4.55469a.77675.77675,0,0,0-.84717-.78125,1.17684,1.17684,0,0,0-.83594.38477c-.2749.26367-.561.374-.85791.13184l-.4292-.34082c-.30811-.24219-.38525-.51758-.1543-.81445a2.97155,2.97155,0,0,1,2.45361-1.17676,2.45393,2.45393,0,0,1,2.68408,2.40918c0,2.45312-3.1792,2.92676-3.27832,3.93848h2.79443A.54085.54085,0,0,1,16.73975,13.81445ZM9,3A.99974.99974,0,0,0,8,4V8H3V4A1,1,0,0,0,1,4V14a1,1,0,0,0,2,0V10H8v4a1,1,0,0,0,2,0V4A.99974.99974,0,0,0,9,3Z"></path>
-</svg>`;
-  var h3Icon = `<svg viewBox="0 0 18 18">
-  <path fill="currentColor" d="M16.65186,12.30664a2.6742,2.6742,0,0,1-2.915,2.68457,3.96592,3.96592,0,0,1-2.25537-.6709.56007.56007,0,0,1-.13232-.83594L11.64648,13c.209-.34082.48389-.36328.82471-.1543a2.32654,2.32654,0,0,0,1.12256.33008c.71484,0,1.12207-.35156,1.12207-.78125,0-.61523-.61621-.86816-1.46338-.86816H13.2085a.65159.65159,0,0,1-.68213-.41895l-.05518-.10937a.67114.67114,0,0,1,.14307-.78125l.71533-.86914a8.55289,8.55289,0,0,1,.68213-.7373V8.58887a3.93913,3.93913,0,0,1-.748.05469H11.9873a.54085.54085,0,0,1-.605-.60547V7.59863a.54085.54085,0,0,1,.605-.60547h3.75146a.53773.53773,0,0,1,.60547.59375v.17676a1.03723,1.03723,0,0,1-.27539.748L14.74854,10.0293A2.31132,2.31132,0,0,1,16.65186,12.30664ZM9,3A.99974.99974,0,0,0,8,4V8H3V4A1,1,0,0,0,1,4V14a1,1,0,0,0,2,0V10H8v4a1,1,0,0,0,2,0V4A.99974.99974,0,0,0,9,3Z"></path>
-</svg>`;
-  var linkIcon = `<svg viewBox="0 0 18 18">
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="11" y1="7" y2="11"></line>
-  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.9,4.577a3.476,3.476,0,0,1,.36,4.679A3.476,3.476,0,0,1,4.577,8.9C3.185,7.5,2.035,6.4,4.217,4.217S7.5,3.185,8.9,4.577Z"></path>
-  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.423,9.1a3.476,3.476,0,0,0-4.679-.36,3.476,3.476,0,0,0,.36,4.679c1.392,1.392,2.5,2.542,4.679.36S14.815,10.5,13.423,9.1Z"></path>
-</svg>`;
-  var codeIcon = `<svg viewBox="0 0 18 18">
-  <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="5 7 3 9 5 11"></polyline>
-  <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="13 7 15 9 13 11"></polyline>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="10" x2="8" y1="5" y2="13"></line>
-</svg>`;
-  var bulletListIcon = `<svg viewBox="0 0 18 18">
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="6" x2="15" y1="4" y2="4"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="6" x2="15" y1="9" y2="9"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="6" x2="15" y1="14" y2="14"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="3" y1="4" y2="4"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="3" y1="9" y2="9"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="3" y1="14" y2="14"></line>
-</svg>`;
-  var orderedListIcon = `<svg viewBox="0 0 18 18">
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="15" y1="4" y2="4"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="15" y1="9" y2="9"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="15" y1="14" y2="14"></line>
-  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" x1="2.5" x2="4.5" y1="5.5" y2="5.5"></line>
-  <path fill="currentColor" d="M3.5,6A0.5,0.5,0,0,1,3,5.5V3.085l-0.276.138A0.5,0.5,0,0,1,2.053,3c-0.124-.247-0.023-0.324.224-0.447l1-.5A0.5,0.5,0,0,1,4,2.5v3A0.5,0.5,0,0,1,3.5,6Z"></path>
-  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.5,10.5h-2c0-.234,1.85-1.076,1.85-2.234A0.959,0.959,0,0,0,2.5,8.156"></path>
-  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.5,14.846a0.959,0.959,0,0,0,1.85-.109A0.7,0.7,0,0,0,3.75,14a0.688,0.688,0,0,0,.6-0.736,0.959,0.959,0,0,0-1.85-.109"></path>
-</svg>`;
-  var quoteIcon = `<svg viewBox="2 2 20 20">
-  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 10.8182L9 10.8182C8.80222 10.8182 8.60888 10.7649 8.44443 10.665C8.27998 10.5651 8.15181 10.4231 8.07612 10.257C8.00043 10.0909 7.98063 9.90808 8.01922 9.73174C8.0578 9.55539 8.15304 9.39341 8.29289 9.26627C8.43275 9.13913 8.61093 9.05255 8.80491 9.01747C8.99889 8.98239 9.19996 9.00039 9.38268 9.0692C9.56541 9.13801 9.72159 9.25453 9.83147 9.40403C9.94135 9.55353 10 9.72929 10 9.90909L10 12.1818C10 12.664 9.78929 13.1265 9.41421 13.4675C9.03914 13.8084 8.53043 14 8 14"></path>
-  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 10.8182L15 10.8182C14.8022 10.8182 14.6089 10.7649 14.4444 10.665C14.28 10.5651 14.1518 10.4231 14.0761 10.257C14.0004 10.0909 13.9806 9.90808 14.0192 9.73174C14.0578 9.55539 14.153 9.39341 14.2929 9.26627C14.4327 9.13913 14.6109 9.05255 14.8049 9.01747C14.9989 8.98239 15.2 9.00039 15.3827 9.0692C15.5654 9.13801 15.7216 9.25453 15.8315 9.40403C15.9414 9.55353 16 9.72929 16 9.90909L16 12.1818C16 12.664 15.7893 13.1265 15.4142 13.4675C15.0391 13.8084 14.5304 14 14 14"></path>
-</svg>`;
-  var eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none"></path>
-  <circle cx="12" cy="12" r="3" fill="none"></circle>
-</svg>`;
-
   // src/toolbar.js
-  var BUILTIN_BUTTONS = [
-    "bold",
-    "italic",
-    "strikethrough",
-    "code",
-    "link",
-    "h1",
-    "h2",
-    "h3",
-    "bulletList",
-    "orderedList",
-    "quote",
-    "viewMode"
-    // Special dropdown button
-  ];
   var Toolbar = class {
     constructor(editor, options = {}) {
       this.editor = editor;
       this.container = null;
       this.buttons = {};
-      this.buttonConfig = options.buttonConfig || null;
-      this.customButtons = options.customToolbarButtons || [];
-      this.hideButtons = options.hideButtons || [];
-      this.buttonOrder = options.buttonOrder || null;
-      this.buttonRegistry = this.buildButtonRegistry();
+      this.toolbarButtons = options.toolbarButtons || [];
     }
     /**
-     * Build registry of all buttons (built-in + custom)
-     */
-    buildButtonRegistry() {
-      const registry = /* @__PURE__ */ new Map();
-      this.customButtons.forEach((button) => {
-        if (BUILTIN_BUTTONS.includes(button.name)) {
-          console.warn(`Custom button "${button.name}" conflicts with built-in button. Using "custom-${button.name}" instead.`);
-          button.name = `custom-${button.name}`;
-        }
-      });
-      BUILTIN_BUTTONS.forEach((name) => {
-        if (!this.hideButtons.includes(name)) {
-          registry.set(name, {
-            type: "builtin",
-            name,
-            ...this.getBuiltinButtonConfig(name)
-          });
-        }
-      });
-      this.customButtons.forEach((button) => {
-        registry.set(button.name, { type: "custom", ...button });
-      });
-      return registry;
-    }
-    /**
-     * Get configuration for built-in buttons
-     */
-    getBuiltinButtonConfig(name) {
-      const configs = {
-        bold: {
-          icon: boldIcon,
-          title: "Bold (Ctrl+B)",
-          action: (editor) => {
-            toggleBold(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        italic: {
-          icon: italicIcon,
-          title: "Italic (Ctrl+I)",
-          action: (editor) => {
-            toggleItalic(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        strikethrough: {
-          icon: void 0 || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4H9a3 3 0 0 0 0 6h11a3 3 0 0 0 0-6h-1M8 20h7M4 12h16"/></svg>',
-          title: "Strikethrough",
-          action: (editor) => {
-            if (void 0) {
-              (void 0)(editor.textarea);
-            }
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        code: {
-          icon: codeIcon,
-          title: "Code (Ctrl+`)",
-          action: (editor) => {
-            toggleCode(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        link: {
-          icon: linkIcon,
-          title: "Insert Link (Ctrl+K)",
-          action: (editor) => {
-            insertLink(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        h1: {
-          icon: h1Icon,
-          title: "Heading 1",
-          action: (editor) => {
-            toggleH1(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        h2: {
-          icon: h2Icon,
-          title: "Heading 2",
-          action: (editor) => {
-            toggleH2(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        h3: {
-          icon: h3Icon,
-          title: "Heading 3",
-          action: (editor) => {
-            toggleH3(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        bulletList: {
-          icon: bulletListIcon,
-          title: "Bullet List",
-          action: (editor) => {
-            toggleBulletList(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        orderedList: {
-          icon: orderedListIcon,
-          title: "Numbered List",
-          action: (editor) => {
-            toggleNumberedList(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        quote: {
-          icon: quoteIcon,
-          title: "Quote",
-          action: (editor) => {
-            toggleQuote(editor.textarea);
-            editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-        },
-        viewMode: {
-          icon: eyeIcon,
-          title: "View mode",
-          type: "dropdown",
-          dropdownItems: [
-            { id: "normal", label: "Normal Edit", icon: "\u2713" },
-            { id: "plain", label: "Plain Textarea", icon: "\u2713" },
-            { id: "preview", label: "Preview Mode", icon: "\u2713" }
-          ],
-          action: (editor, item) => {
-            switch (item.id) {
-              case "plain":
-                editor.showPlainTextarea();
-                break;
-              case "preview":
-                editor.showPreviewMode();
-                break;
-              case "normal":
-              default:
-                editor.showNormalEditMode();
-                break;
-            }
-          }
-        }
-      };
-      return configs[name] || {};
-    }
-    /**
-     * Sanitize SVG to prevent XSS
-     */
-    sanitizeSVG(svgString) {
-      if (typeof svgString !== "string") {
-        throw new Error("Icon must be a string");
-      }
-      const clean = svgString.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/on\w+\s*=\s*"[^"]*"/gi, "").replace(/on\w+\s*=\s*'[^']*'/gi, "").replace(/javascript:/gi, "").replace(/data:text\/html/gi, "");
-      if (!clean.trim().startsWith("<svg")) {
-        console.warn("Icon should start with <svg> tag");
-      }
-      return clean;
-    }
-    /**
-     * Create and attach toolbar to editor
+     * Create and render toolbar
      */
     create() {
       this.container = document.createElement("div");
       this.container.className = "overtype-toolbar";
       this.container.setAttribute("role", "toolbar");
-      this.container.setAttribute("aria-label", "Text formatting");
-      if (this.buttonConfig) {
-        this.createOldStyleButtons(this.buttonConfig);
-      } else {
-        const buttonsToCreate = this.getButtonsToCreate();
-        buttonsToCreate.forEach((config) => {
-          const button = this.createButton(config);
-          this.buttons[config.name] = button;
-          this.positionButton(button, config);
-        });
-        this.initializeCustomButtonStates();
-      }
-      const container = this.editor.element.querySelector(".overtype-container");
-      const wrapper = this.editor.element.querySelector(".overtype-wrapper");
-      if (container && wrapper) {
-        container.insertBefore(this.container, wrapper);
-      }
-      return this.container;
-    }
-    /**
-     * Create buttons using old buttonConfig format (backward compatibility)
-     */
-    createOldStyleButtons(buttonConfig) {
-      buttonConfig.forEach((config) => {
-        if (config.separator) {
-          const separator = document.createElement("div");
-          separator.className = "overtype-toolbar-separator";
-          separator.setAttribute("role", "separator");
+      this.container.setAttribute("aria-label", "Formatting toolbar");
+      this.toolbarButtons.forEach((buttonConfig) => {
+        if (buttonConfig.name === "separator") {
+          const separator = this.createSeparator();
           this.container.appendChild(separator);
         } else {
-          const button = this.createOldStyleButton(config);
-          this.buttons[config.name] = button;
+          const button = this.createButton(buttonConfig);
+          this.buttons[buttonConfig.name] = button;
           this.container.appendChild(button);
         }
       });
+      this.editor.wrapper.insertBefore(this.container, this.editor.wrapper.firstChild);
     }
     /**
-     * Create button using old format (backward compatibility)
+     * Create a toolbar separator
      */
-    createOldStyleButton(config) {
-      const button = document.createElement("button");
-      button.className = "overtype-toolbar-button";
-      button.type = "button";
-      button.title = config.title;
-      button.setAttribute("aria-label", config.title);
-      button.setAttribute("data-action", config.action);
-      button.setAttribute("data-button", config.name);
-      button.innerHTML = config.icon;
-      if (config.hasDropdown) {
-        button.classList.add("has-dropdown");
-        if (config.name === "viewMode") {
-          this.viewModeButton = button;
-        }
-      }
-      button.addEventListener("click", (e) => {
-        e.preventDefault();
-        this.handleOldAction(config.action, button);
-      });
-      return button;
+    createSeparator() {
+      const separator = document.createElement("div");
+      separator.className = "overtype-toolbar-separator";
+      separator.setAttribute("role", "separator");
+      return separator;
     }
     /**
-     * Handle old-style toolbar button actions (backward compatibility)
-     */
-    async handleOldAction(action, button) {
-      const textarea = this.editor.textarea;
-      if (!textarea)
-        return;
-      if (action === "toggle-view-menu") {
-        this.toggleViewDropdown(button);
-        return;
-      }
-      textarea.focus();
-      try {
-        switch (action) {
-          case "toggleBold":
-            toggleBold(textarea);
-            break;
-          case "toggleItalic":
-            toggleItalic(textarea);
-            break;
-          case "insertH1":
-            toggleH1(textarea);
-            break;
-          case "insertH2":
-            toggleH2(textarea);
-            break;
-          case "insertH3":
-            toggleH3(textarea);
-            break;
-          case "insertLink":
-            insertLink(textarea);
-            break;
-          case "toggleCode":
-            toggleCode(textarea);
-            break;
-          case "toggleBulletList":
-            toggleBulletList(textarea);
-            break;
-          case "toggleNumberedList":
-            toggleNumberedList(textarea);
-            break;
-          case "toggleQuote":
-            toggleQuote(textarea);
-            break;
-          case "toggleTaskList":
-            toggleTaskList(textarea);
-            break;
-        }
-        textarea.dispatchEvent(new Event("input", { bubbles: true }));
-      } catch (error) {
-        console.error("Error loading markdown-actions:", error);
-      }
-    }
-    /**
-     * Toggle view mode dropdown (old API compatibility)
-     */
-    toggleViewDropdown(button) {
-      const buttonConfig = {
-        name: "viewMode",
-        type: "dropdown",
-        dropdownItems: [
-          { id: "normal", label: "Normal Edit", icon: "\u2713" },
-          { id: "plain", label: "Plain Textarea", icon: "\u2713" },
-          { id: "preview", label: "Preview Mode", icon: "\u2713" }
-        ],
-        action: (editor, item) => {
-          switch (item.id) {
-            case "plain":
-              editor.showPlainTextarea();
-              break;
-            case "preview":
-              editor.showPreviewMode();
-              break;
-            case "normal":
-            default:
-              editor.showNormalEditMode();
-              break;
-          }
-        }
-      };
-      this.toggleDropdown(button, buttonConfig);
-    }
-    /**
-     * Get ordered list of buttons to create
-     */
-    getButtonsToCreate() {
-      if (this.buttonOrder) {
-        const ordered = [];
-        this.buttonOrder.forEach((name) => {
-          const config = this.buttonRegistry.get(name);
-          if (config) {
-            ordered.push(config);
-          } else {
-            console.warn(`Button "${name}" in buttonOrder not found in registry`);
-          }
-        });
-        this.buttonRegistry.forEach((config, name) => {
-          if (!this.buttonOrder.includes(name)) {
-            ordered.push(config);
-          }
-        });
-        return ordered;
-      } else {
-        return Array.from(this.buttonRegistry.values());
-      }
-    }
-    /**
-     * Create individual toolbar button (unified for built-in and custom)
+     * Create a toolbar button
      */
     createButton(buttonConfig) {
       const button = document.createElement("button");
       button.className = "overtype-toolbar-button";
       button.type = "button";
       button.setAttribute("data-button", buttonConfig.name);
-      button.title = buttonConfig.title;
-      button.setAttribute("aria-label", buttonConfig.title);
-      if (buttonConfig.type === "custom") {
-        button.innerHTML = this.sanitizeSVG(buttonConfig.icon);
-        button.dataset.custom = "true";
-      } else {
-        button.innerHTML = buttonConfig.icon;
-        button.dataset.builtin = "true";
-      }
-      if (buttonConfig.type === "dropdown" || buttonConfig.dropdownItems) {
+      button.title = buttonConfig.title || "";
+      button.setAttribute("aria-label", buttonConfig.title || buttonConfig.name);
+      button.innerHTML = this.sanitizeSVG(buttonConfig.icon || "");
+      if (buttonConfig.name === "viewMode") {
         button.classList.add("has-dropdown");
         button.dataset.dropdown = "true";
+        button.addEventListener("click", (e) => {
+          e.preventDefault();
+          this.toggleViewModeDropdown(button);
+        });
+        return button;
       }
-      const clickHandler = (event) => {
-        event.preventDefault();
-        if (buttonConfig.type === "dropdown" || buttonConfig.dropdownItems) {
-          this.toggleDropdown(button, buttonConfig);
-          return;
-        }
-        if (this.editor.textarea) {
-          this.editor.textarea.focus();
-        }
+      button._clickHandler = async (e) => {
+        e.preventDefault();
+        this.editor.textarea.focus();
         try {
-          if (buttonConfig.type === "custom") {
-            buttonConfig.action({
+          if (buttonConfig.action) {
+            await buttonConfig.action({
               editor: this.editor,
               getValue: () => this.editor.getValue(),
               setValue: (value) => this.editor.setValue(value),
-              event
+              event: e
             });
-          } else {
-            buttonConfig.action(this.editor);
           }
         } catch (error) {
           console.error(`Button "${buttonConfig.name}" error:`, error);
           this.editor.wrapper.dispatchEvent(new CustomEvent("button-error", {
             detail: { buttonName: buttonConfig.name, error }
           }));
-          button.classList.add("error");
-          setTimeout(() => button.classList.remove("error"), 300);
+          button.classList.add("button-error");
+          button.style.animation = "buttonError 0.3s";
+          setTimeout(() => {
+            button.classList.remove("button-error");
+            button.style.animation = "";
+          }, 300);
         }
       };
-      button.addEventListener("click", clickHandler);
-      button._clickHandler = clickHandler;
-      if (typeof buttonConfig.isEnabled === "function") {
-        button._isEnabled = buttonConfig.isEnabled;
-        button._buttonConfig = buttonConfig;
-      }
+      button.addEventListener("click", button._clickHandler);
       return button;
     }
     /**
-     * Position button in toolbar
+     * Sanitize SVG to prevent XSS
      */
-    positionButton(button, config) {
-      if (!config.position || config.position === "end") {
-        this.container.appendChild(button);
-      } else if (config.position === "start") {
-        this.container.insertBefore(button, this.container.firstChild);
-      } else if (config.position.startsWith("after:")) {
-        const targetName = config.position.substring(6);
-        const targetButton = this.container.querySelector(`[data-button="${targetName}"]`);
-        if (targetButton && targetButton.nextSibling) {
-          this.container.insertBefore(button, targetButton.nextSibling);
-        } else if (targetButton) {
-          this.container.appendChild(button);
-        } else {
-          console.warn(`Position target "${targetName}" not found, appending to end`);
-          this.container.appendChild(button);
-        }
-      } else {
-        this.container.appendChild(button);
-      }
+    sanitizeSVG(svg) {
+      if (typeof svg !== "string")
+        return "";
+      const cleaned = svg.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "").replace(/\son\w+\s*=\s*["'][^"']*["']/gi, "").replace(/\son\w+\s*=\s*[^\s>]*/gi, "");
+      return cleaned;
     }
     /**
-     * Toggle dropdown menu for a button
+     * Toggle view mode dropdown (internal implementation)
+     * Not exposed to users - viewMode button behavior is fixed
      */
-    toggleDropdown(button, buttonConfig) {
-      var _a;
+    toggleViewModeDropdown(button) {
       const existingDropdown = document.querySelector(".overtype-dropdown-menu");
       if (existingDropdown) {
         existingDropdown.remove();
-        (_a = document.querySelector(".dropdown-active")) == null ? void 0 : _a.classList.remove("dropdown-active");
-        document.removeEventListener("click", this.handleDocumentClick);
-      }
-      if (button.classList.contains("dropdown-active")) {
         button.classList.remove("dropdown-active");
         return;
       }
-      const dropdown = this.createDropdown(button, buttonConfig);
+      button.classList.add("dropdown-active");
+      const dropdown = this.createViewModeDropdown(button);
       const rect = button.getBoundingClientRect();
-      dropdown.style.top = `${rect.bottom + 4}px`;
+      dropdown.style.position = "absolute";
+      dropdown.style.top = `${rect.bottom + 5}px`;
       dropdown.style.left = `${rect.left}px`;
       document.body.appendChild(dropdown);
-      button.classList.add("dropdown-active");
       this.handleDocumentClick = (e) => {
-        if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+        if (!dropdown.contains(e.target) && !button.contains(e.target)) {
           dropdown.remove();
           button.classList.remove("dropdown-active");
           document.removeEventListener("click", this.handleDocumentClick);
@@ -3204,130 +2760,64 @@ ${blockSuffix}` : suffix;
       }, 0);
     }
     /**
-     * Create dropdown menu
+     * Create view mode dropdown menu (internal implementation)
      */
-    createDropdown(button, buttonConfig) {
+    createViewModeDropdown(button) {
       const dropdown = document.createElement("div");
       dropdown.className = "overtype-dropdown-menu";
-      const items = buttonConfig.dropdownItems || [];
-      if (buttonConfig.name === "viewMode") {
-        const currentMode = this.editor.container.dataset.mode || "normal";
-        items.forEach((item) => {
-          const menuItem = document.createElement("button");
-          menuItem.className = "overtype-dropdown-item";
-          menuItem.type = "button";
-          const check = document.createElement("span");
-          check.className = "overtype-dropdown-check";
-          check.textContent = currentMode === item.id ? item.icon : "";
-          const label = document.createElement("span");
-          label.textContent = item.label;
-          menuItem.appendChild(check);
-          menuItem.appendChild(label);
-          if (currentMode === item.id) {
-            menuItem.classList.add("active");
+      const items = [
+        { id: "normal", label: "Normal Edit", icon: "\u2713" },
+        { id: "plain", label: "Plain Textarea", icon: "\u2713" },
+        { id: "preview", label: "Preview Mode", icon: "\u2713" }
+      ];
+      const currentMode = this.editor.container.dataset.mode || "normal";
+      items.forEach((item) => {
+        const menuItem = document.createElement("button");
+        menuItem.className = "overtype-dropdown-item";
+        menuItem.type = "button";
+        menuItem.textContent = item.label;
+        if (item.id === currentMode) {
+          menuItem.classList.add("active");
+          menuItem.setAttribute("aria-current", "true");
+          const checkmark = document.createElement("span");
+          checkmark.className = "overtype-dropdown-icon";
+          checkmark.textContent = item.icon;
+          menuItem.prepend(checkmark);
+        }
+        menuItem.addEventListener("click", (e) => {
+          e.preventDefault();
+          switch (item.id) {
+            case "plain":
+              this.editor.showPlainTextarea();
+              break;
+            case "preview":
+              this.editor.showPreviewMode();
+              break;
+            case "normal":
+            default:
+              this.editor.showNormalEditMode();
+              break;
           }
-          menuItem.addEventListener("click", (e) => {
-            e.stopPropagation();
-            buttonConfig.action(this.editor, item);
-            dropdown.remove();
-            button.classList.remove("dropdown-active");
-            document.removeEventListener("click", this.handleDocumentClick);
-          });
-          dropdown.appendChild(menuItem);
+          dropdown.remove();
+          button.classList.remove("dropdown-active");
+          document.removeEventListener("click", this.handleDocumentClick);
         });
-      } else {
-        items.forEach((item) => {
-          const menuItem = document.createElement("button");
-          menuItem.className = "overtype-dropdown-item";
-          menuItem.type = "button";
-          if (item.icon) {
-            const icon = document.createElement("span");
-            icon.className = "overtype-dropdown-icon";
-            icon.textContent = item.icon;
-            menuItem.appendChild(icon);
-          }
-          const label = document.createElement("span");
-          label.textContent = item.label;
-          menuItem.appendChild(label);
-          menuItem.addEventListener("click", (e) => {
-            var _a;
-            e.stopPropagation();
-            try {
-              if (buttonConfig.type === "custom") {
-                buttonConfig.action({
-                  editor: this.editor,
-                  getValue: () => this.editor.getValue(),
-                  setValue: (value) => this.editor.setValue(value),
-                  item,
-                  event: e
-                });
-              } else {
-                buttonConfig.action(this.editor, item);
-              }
-            } catch (error) {
-              console.error(`Dropdown item "${item.id}" error:`, error);
-              this.editor.wrapper.dispatchEvent(new CustomEvent("button-error", {
-                detail: { buttonName: buttonConfig.name, item, error }
-              }));
-            }
-            dropdown.remove();
-            (_a = document.querySelector(".dropdown-active")) == null ? void 0 : _a.classList.remove("dropdown-active");
-            document.removeEventListener("click", this.handleDocumentClick);
-          });
-          dropdown.appendChild(menuItem);
-        });
-      }
+        dropdown.appendChild(menuItem);
+      });
       return dropdown;
     }
     /**
-     * Update button states (including custom buttons)
+     * Update active states of toolbar buttons
      */
-    updateButtonState(button) {
-      if (button._isEnabled && button._buttonConfig) {
-        const enabled = button._isEnabled(this.editor);
-        button.disabled = !enabled;
-        button.classList.toggle("disabled", !enabled);
-      }
-    }
-    /**
-     * Initialize state management for custom buttons
-     */
-    initializeCustomButtonStates() {
+    updateButtonStates() {
       var _a;
-      this.updateCustomButtonStates = this.debounce(() => {
-        Object.values(this.buttons).forEach((button) => {
-          if (button.dataset.custom === "true") {
-            this.updateButtonState(button);
-          }
-        });
-      }, 100);
-      (_a = this.editor.textarea) == null ? void 0 : _a.addEventListener("input", () => {
-        this.updateCustomButtonStates();
-      });
-    }
-    /**
-     * Debounce utility
-     */
-    debounce(func, wait) {
-      let timeout;
-      const debounced = function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-      };
-      debounced.cancel = () => clearTimeout(timeout);
-      return debounced;
-    }
-    /**
-     * Update toolbar button states based on current selection
-     */
-    async updateButtonStates() {
-      const textarea = this.editor.textarea;
-      if (!textarea)
-        return;
       try {
-        const activeFormats = getActiveFormats2(textarea);
+        const activeFormats = ((_a = getActiveFormats2) == null ? void 0 : _a(
+          this.editor.textarea,
+          this.editor.textarea.selectionStart
+        )) || [];
         Object.entries(this.buttons).forEach(([name, button]) => {
-          if (button.dataset.builtin !== "true")
+          if (name === "viewMode")
             return;
           let isActive = false;
           switch (name) {
@@ -3345,6 +2835,9 @@ ${blockSuffix}` : suffix;
               break;
             case "orderedList":
               isActive = activeFormats.includes("numbered-list");
+              break;
+            case "taskList":
+              isActive = activeFormats.includes("task-list");
               break;
             case "quote":
               isActive = activeFormats.includes("quote");
@@ -3364,15 +2857,11 @@ ${blockSuffix}` : suffix;
         });
       } catch (error) {
       }
-      if (this.updateCustomButtonStates) {
-        this.updateCustomButtonStates();
-      }
     }
     /**
      * Destroy toolbar and cleanup
      */
     destroy() {
-      var _a;
       if (this.container) {
         if (this.handleDocumentClick) {
           document.removeEventListener("click", this.handleDocumentClick);
@@ -3382,20 +2871,10 @@ ${blockSuffix}` : suffix;
             button.removeEventListener("click", button._clickHandler);
             delete button._clickHandler;
           }
-          if (button._isEnabled) {
-            delete button._isEnabled;
-          }
-          if (button._buttonConfig) {
-            delete button._buttonConfig;
-          }
         });
-        if ((_a = this.updateCustomButtonStates) == null ? void 0 : _a.cancel) {
-          this.updateCustomButtonStates.cancel();
-        }
         this.container.remove();
         this.container = null;
         this.buttons = {};
-        this.buttonRegistry.clear();
       }
     }
   };
@@ -3546,6 +3025,216 @@ ${blockSuffix}` : suffix;
     }
   };
 
+  // src/icons.js
+  var boldIcon = `<svg viewBox="0 0 18 18">
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5,4H9.5A2.5,2.5,0,0,1,12,6.5v0A2.5,2.5,0,0,1,9.5,9H5A0,0,0,0,1,5,9V4A0,0,0,0,1,5,4Z"></path>
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5,9h5.5A2.5,2.5,0,0,1,13,11.5v0A2.5,2.5,0,0,1,10.5,14H5a0,0,0,0,1,0,0V9A0,0,0,0,1,5,9Z"></path>
+</svg>`;
+  var italicIcon = `<svg viewBox="0 0 18 18">
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="13" y1="4" y2="4"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="5" x2="11" y1="14" y2="14"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="10" y1="14" y2="4"></line>
+</svg>`;
+  var h1Icon = `<svg viewBox="0 0 18 18">
+  <path fill="currentColor" d="M10,4V14a1,1,0,0,1-2,0V10H3v4a1,1,0,0,1-2,0V4A1,1,0,0,1,3,4V8H8V4a1,1,0,0,1,2,0Zm6.06787,9.209H14.98975V7.59863a.54085.54085,0,0,0-.605-.60547h-.62744a1.01119,1.01119,0,0,0-.748.29688L11.645,8.56641a.5435.5435,0,0,0-.022.8584l.28613.30762a.53861.53861,0,0,0,.84717.0332l.09912-.08789a1.2137,1.2137,0,0,0,.2417-.35254h.02246s-.01123.30859-.01123.60547V13.209H12.041a.54085.54085,0,0,0-.605.60547v.43945a.54085.54085,0,0,0,.605.60547h4.02686a.54085.54085,0,0,0,.605-.60547v-.43945A.54085.54085,0,0,0,16.06787,13.209Z"></path>
+</svg>`;
+  var h2Icon = `<svg viewBox="0 0 18 18">
+  <path fill="currentColor" d="M16.73975,13.81445v.43945a.54085.54085,0,0,1-.605.60547H11.855a.58392.58392,0,0,1-.64893-.60547V14.0127c0-2.90527,3.39941-3.42187,3.39941-4.55469a.77675.77675,0,0,0-.84717-.78125,1.17684,1.17684,0,0,0-.83594.38477c-.2749.26367-.561.374-.85791.13184l-.4292-.34082c-.30811-.24219-.38525-.51758-.1543-.81445a2.97155,2.97155,0,0,1,2.45361-1.17676,2.45393,2.45393,0,0,1,2.68408,2.40918c0,2.45312-3.1792,2.92676-3.27832,3.93848h2.79443A.54085.54085,0,0,1,16.73975,13.81445ZM9,3A.99974.99974,0,0,0,8,4V8H3V4A1,1,0,0,0,1,4V14a1,1,0,0,0,2,0V10H8v4a1,1,0,0,0,2,0V4A.99974.99974,0,0,0,9,3Z"></path>
+</svg>`;
+  var h3Icon = `<svg viewBox="0 0 18 18">
+  <path fill="currentColor" d="M16.65186,12.30664a2.6742,2.6742,0,0,1-2.915,2.68457,3.96592,3.96592,0,0,1-2.25537-.6709.56007.56007,0,0,1-.13232-.83594L11.64648,13c.209-.34082.48389-.36328.82471-.1543a2.32654,2.32654,0,0,0,1.12256.33008c.71484,0,1.12207-.35156,1.12207-.78125,0-.61523-.61621-.86816-1.46338-.86816H13.2085a.65159.65159,0,0,1-.68213-.41895l-.05518-.10937a.67114.67114,0,0,1,.14307-.78125l.71533-.86914a8.55289,8.55289,0,0,1,.68213-.7373V8.58887a3.93913,3.93913,0,0,1-.748.05469H11.9873a.54085.54085,0,0,1-.605-.60547V7.59863a.54085.54085,0,0,1,.605-.60547h3.75146a.53773.53773,0,0,1,.60547.59375v.17676a1.03723,1.03723,0,0,1-.27539.748L14.74854,10.0293A2.31132,2.31132,0,0,1,16.65186,12.30664ZM9,3A.99974.99974,0,0,0,8,4V8H3V4A1,1,0,0,0,1,4V14a1,1,0,0,0,2,0V10H8v4a1,1,0,0,0,2,0V4A.99974.99974,0,0,0,9,3Z"></path>
+</svg>`;
+  var linkIcon = `<svg viewBox="0 0 18 18">
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="11" y1="7" y2="11"></line>
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.9,4.577a3.476,3.476,0,0,1,.36,4.679A3.476,3.476,0,0,1,4.577,8.9C3.185,7.5,2.035,6.4,4.217,4.217S7.5,3.185,8.9,4.577Z"></path>
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.423,9.1a3.476,3.476,0,0,0-4.679-.36,3.476,3.476,0,0,0,.36,4.679c1.392,1.392,2.5,2.542,4.679.36S14.815,10.5,13.423,9.1Z"></path>
+</svg>`;
+  var codeIcon = `<svg viewBox="0 0 18 18">
+  <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="5 7 3 9 5 11"></polyline>
+  <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" points="13 7 15 9 13 11"></polyline>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="10" x2="8" y1="5" y2="13"></line>
+</svg>`;
+  var bulletListIcon = `<svg viewBox="0 0 18 18">
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="6" x2="15" y1="4" y2="4"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="6" x2="15" y1="9" y2="9"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="6" x2="15" y1="14" y2="14"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="3" y1="4" y2="4"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="3" y1="9" y2="9"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="3" y1="14" y2="14"></line>
+</svg>`;
+  var orderedListIcon = `<svg viewBox="0 0 18 18">
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="15" y1="4" y2="4"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="15" y1="9" y2="9"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="7" x2="15" y1="14" y2="14"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" x1="2.5" x2="4.5" y1="5.5" y2="5.5"></line>
+  <path fill="currentColor" d="M3.5,6A0.5,0.5,0,0,1,3,5.5V3.085l-0.276.138A0.5,0.5,0,0,1,2.053,3c-0.124-.247-0.023-0.324.224-0.447l1-.5A0.5,0.5,0,0,1,4,2.5v3A0.5,0.5,0,0,1,3.5,6Z"></path>
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.5,10.5h-2c0-.234,1.85-1.076,1.85-2.234A0.959,0.959,0,0,0,2.5,8.156"></path>
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.5,14.846a0.959,0.959,0,0,0,1.85-.109A0.7,0.7,0,0,0,3.75,14a0.688,0.688,0,0,0,.6-0.736,0.959,0.959,0,0,0-1.85-.109"></path>
+</svg>`;
+  var quoteIcon = `<svg viewBox="2 2 20 20">
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 10.8182L9 10.8182C8.80222 10.8182 8.60888 10.7649 8.44443 10.665C8.27998 10.5651 8.15181 10.4231 8.07612 10.257C8.00043 10.0909 7.98063 9.90808 8.01922 9.73174C8.0578 9.55539 8.15304 9.39341 8.29289 9.26627C8.43275 9.13913 8.61093 9.05255 8.80491 9.01747C8.99889 8.98239 9.19996 9.00039 9.38268 9.0692C9.56541 9.13801 9.72159 9.25453 9.83147 9.40403C9.94135 9.55353 10 9.72929 10 9.90909L10 12.1818C10 12.664 9.78929 13.1265 9.41421 13.4675C9.03914 13.8084 8.53043 14 8 14"></path>
+  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 10.8182L15 10.8182C14.8022 10.8182 14.6089 10.7649 14.4444 10.665C14.28 10.5651 14.1518 10.4231 14.0761 10.257C14.0004 10.0909 13.9806 9.90808 14.0192 9.73174C14.0578 9.55539 14.153 9.39341 14.2929 9.26627C14.4327 9.13913 14.6109 9.05255 14.8049 9.01747C14.9989 8.98239 15.2 9.00039 15.3827 9.0692C15.5654 9.13801 15.7216 9.25453 15.8315 9.40403C15.9414 9.55353 16 9.72929 16 9.90909L16 12.1818C16 12.664 15.7893 13.1265 15.4142 13.4675C15.0391 13.8084 14.5304 14 14 14"></path>
+</svg>`;
+  var taskListIcon = `<svg viewBox="0 0 18 18">
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="16" y1="4" y2="4"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="16" y1="9" y2="9"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" x2="16" y1="14" y2="14"></line>
+  <rect stroke="currentColor" fill="none" stroke-width="1.5" x="2" y="3" width="3" height="3" rx="0.5"></rect>
+  <rect stroke="currentColor" fill="none" stroke-width="1.5" x="2" y="13" width="3" height="3" rx="0.5"></rect>
+  <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" points="2.65 9.5 3.5 10.5 5 8.5"></polyline>
+</svg>`;
+  var eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none"></path>
+  <circle cx="12" cy="12" r="3" fill="none"></circle>
+</svg>`;
+
+  // src/toolbar-buttons.js
+  var toolbarButtons = {
+    bold: {
+      name: "bold",
+      icon: boldIcon,
+      title: "Bold (Ctrl+B)",
+      action: ({ editor, event }) => {
+        toggleBold(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    italic: {
+      name: "italic",
+      icon: italicIcon,
+      title: "Italic (Ctrl+I)",
+      action: ({ editor, event }) => {
+        toggleItalic(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    strikethrough: {
+      name: "strikethrough",
+      icon: void 0 || '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.3 4.9c-2.3-.6-4.4-1-6.2-.9-2.7.1-5.3 1.1-5.7 3.1-.4 1.7.9 2.9 3.2 3.3"/><path d="M7.7 19.4c1.9.7 3.6 1.3 5.3 1.4 2.7.1 5.3-1.1 5.7-3.1.2-1-.2-1.8-.7-2.3"/><line x1="3" y1="12" x2="21" y2="12"/></svg>',
+      title: "Strikethrough",
+      action: ({ editor, event }) => {
+        if (void 0) {
+          (void 0)(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+    },
+    code: {
+      name: "code",
+      icon: codeIcon,
+      title: "Inline Code",
+      action: ({ editor, event }) => {
+        toggleCode(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    separator: {
+      name: "separator"
+      // No icon, title, or action - special separator element
+    },
+    link: {
+      name: "link",
+      icon: linkIcon,
+      title: "Insert Link",
+      action: ({ editor, event }) => {
+        insertLink(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    h1: {
+      name: "h1",
+      icon: h1Icon,
+      title: "Heading 1",
+      action: ({ editor, event }) => {
+        toggleH1(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    h2: {
+      name: "h2",
+      icon: h2Icon,
+      title: "Heading 2",
+      action: ({ editor, event }) => {
+        toggleH2(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    h3: {
+      name: "h3",
+      icon: h3Icon,
+      title: "Heading 3",
+      action: ({ editor, event }) => {
+        toggleH3(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    bulletList: {
+      name: "bulletList",
+      icon: bulletListIcon,
+      title: "Bullet List",
+      action: ({ editor, event }) => {
+        toggleBulletList(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    orderedList: {
+      name: "orderedList",
+      icon: orderedListIcon,
+      title: "Numbered List",
+      action: ({ editor, event }) => {
+        toggleNumberedList(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    taskList: {
+      name: "taskList",
+      icon: taskListIcon,
+      title: "Task List",
+      action: ({ editor, event }) => {
+        if (toggleTaskList) {
+          toggleTaskList(editor.textarea);
+          editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+    },
+    quote: {
+      name: "quote",
+      icon: quoteIcon,
+      title: "Quote",
+      action: ({ editor, event }) => {
+        toggleQuote(editor.textarea);
+        editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    },
+    viewMode: {
+      name: "viewMode",
+      icon: eyeIcon,
+      title: "View mode"
+      // Special: handled internally by Toolbar class as dropdown
+      // No action property - dropdown behavior is internal
+    }
+  };
+  var defaultToolbarButtons = [
+    toolbarButtons.bold,
+    toolbarButtons.italic,
+    toolbarButtons.strikethrough,
+    toolbarButtons.code,
+    toolbarButtons.separator,
+    toolbarButtons.link,
+    toolbarButtons.separator,
+    toolbarButtons.h1,
+    toolbarButtons.h2,
+    toolbarButtons.h3,
+    toolbarButtons.separator,
+    toolbarButtons.bulletList,
+    toolbarButtons.orderedList,
+    toolbarButtons.taskList,
+    toolbarButtons.separator,
+    toolbarButtons.quote,
+    toolbarButtons.separator,
+    toolbarButtons.viewMode
+  ];
+
   // src/overtype.js
   var _OverType = class _OverType {
     /**
@@ -3648,15 +3337,13 @@ ${blockSuffix}` : suffix;
         showActiveLineRaw: false,
         showStats: false,
         toolbar: false,
+        toolbarButtons: null,
+        // Defaults to defaultToolbarButtons if toolbar: true
         statsFormatter: null,
         smartLists: true,
         // Enable smart list continuation
-        codeHighlighter: null,
+        codeHighlighter: null
         // Per-instance code highlighter
-        // Custom toolbar options
-        customToolbarButtons: [],
-        hideButtons: [],
-        buttonOrder: null
       };
       const { theme, colors, ...cleanOptions } = options;
       return {
@@ -3837,15 +3524,8 @@ ${blockSuffix}` : suffix;
      * @private
      */
     _createToolbar() {
-      let toolbarOptions = {
-        customToolbarButtons: this.options.customToolbarButtons,
-        hideButtons: this.options.hideButtons,
-        buttonOrder: this.options.buttonOrder
-      };
-      if (typeof this.options.toolbar === "object" && this.options.toolbar.buttons) {
-        toolbarOptions.buttonConfig = this.options.toolbar.buttons;
-      }
-      this.toolbar = new Toolbar(this, toolbarOptions);
+      const toolbarButtons2 = this.options.toolbarButtons || defaultToolbarButtons;
+      this.toolbar = new Toolbar(this, { toolbarButtons: toolbarButtons2 });
       this.toolbar.create();
       this._toolbarSelectionListener = () => {
         if (this.toolbar) {

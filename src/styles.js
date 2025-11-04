@@ -661,45 +661,6 @@ export function generateStyles(options = {}) {
       text-align: center;
     }
 
-    /* Custom toolbar buttons */
-    .overtype-toolbar-button[data-custom="true"] {
-      background: transparent;
-      border: 1px solid var(--border-color, #e0e0e0);
-      color: var(--text-color, #333);
-      cursor: pointer;
-      padding: 6px 10px;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-
-    .overtype-toolbar-button[data-custom="true"]:hover:not(:disabled) {
-      /* Use theme primary color with opacity for hover */
-      background: rgba(59, 130, 246, 0.1);
-      border-color: var(--theme-primary, #3b82f6);
-    }
-
-    .overtype-toolbar-button[data-custom="true"]:active:not(:disabled) {
-      /* Slightly darker on active */
-      background: rgba(59, 130, 246, 0.2);
-      transform: translateY(1px);
-    }
-
-    .overtype-toolbar-button[data-custom="true"]:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .overtype-toolbar-button[data-custom="true"].error {
-      animation: buttonError 0.3s;
-      border-color: #ef4444;
-    }
-
-    @keyframes buttonError {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-4px); }
-      75% { transform: translateX(4px); }
-    }
-
     /* Preview mode styles */
     .overtype-container[data-mode="preview"] .overtype-input {
       display: none !important;

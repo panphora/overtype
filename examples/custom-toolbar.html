@@ -3,123 +3,135 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OverType - Custom Toolbar Buttons Example</title>
+  <title>Custom Toolbar Example - OverType</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       max-width: 900px;
-      margin: 0 auto;
-      padding: 40px 20px;
-      background: #f8f9fa;
+      margin: 40px auto;
+      padding: 0 20px;
     }
     h1 {
-      color: #333;
       margin-bottom: 10px;
     }
-    p {
+    .description {
       color: #666;
       margin-bottom: 30px;
     }
-    .editor-container {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin-bottom: 30px;
+    .example-section {
+      margin-bottom: 40px;
     }
-    .editor-container h2 {
-      margin-top: 0;
-      color: #444;
+    .example-section h2 {
       font-size: 18px;
-      margin-bottom: 15px;
-    }
-    #editor1, #editor2, #editor3 {
-      min-height: 200px;
-    }
-    .status {
-      padding: 10px;
-      background: #e7f3ff;
-      border-radius: 4px;
-      margin-top: 10px;
-      font-size: 14px;
-      color: #0066cc;
-    }
-    .error {
-      background: #fee;
-      color: #c00;
-    }
-    code {
-      background: #f4f4f4;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 14px;
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>OverType Custom Toolbar Buttons</h1>
-  <p>This example demonstrates how to add custom buttons to the OverType toolbar.</p>
+  <h1>Custom Toolbar Examples</h1>
+  <p class="description">
+    Demonstrates the new toolbarButtons API with custom buttons, separators, and mixed configurations.
+  </p>
 
-  <div class="editor-container">
-    <h2>Example 1: Save & Export Buttons</h2>
+  <div class="example-section">
+    <h2>Example 1: Default Toolbar</h2>
+    <p>Using the default toolbar with all built-in buttons and separators.</p>
     <div id="editor1"></div>
-    <div id="status1" class="status" style="display:none;"></div>
   </div>
 
-  <div class="editor-container">
-    <h2>Example 2: Custom Dropdown Menu</h2>
+  <div class="example-section">
+    <h2>Example 2: Custom Save Button</h2>
+    <p>Default toolbar with a custom "Save" button at the start.</p>
     <div id="editor2"></div>
-    <div id="status2" class="status" style="display:none;"></div>
   </div>
 
-  <div class="editor-container">
-    <h2>Example 3: Hidden Buttons & Custom Order</h2>
+  <div class="example-section">
+    <h2>Example 3: Minimal Toolbar</h2>
+    <p>Only essential formatting buttons.</p>
     <div id="editor3"></div>
-    <div id="status3" class="status" style="display:none;"></div>
+  </div>
+
+  <div class="example-section">
+    <h2>Example 4: Custom Button with Dynamic State</h2>
+    <p>Export button that's only enabled when there's content.</p>
+    <div id="editor4"></div>
   </div>
 
   <script type="module">
-    import OverType from '../dist/overtype.min.js';
+    import OverType, { toolbarButtons } from '../dist/overtype.esm.js';
 
-    // Helper function to show status
-    function showStatus(id, message, isError = false) {
-      const status = document.getElementById(id);
-      status.textContent = message;
-      status.style.display = 'block';
-      status.classList.toggle('error', isError);
-
-      if (!isError) {
-        setTimeout(() => {
-          status.style.display = 'none';
-        }, 3000);
-      }
-    }
-
-    // Example 1: Save & Export Buttons
-    const editor1 = new OverType('#editor1', {
+    // Example 1: Default toolbar
+    new OverType('#editor1', {
+      value: '# Default Toolbar\n\nAll built-in buttons with separators.',
       toolbar: true,
-      value: '# Custom Toolbar Example\n\nTry the **Save** and **Export** buttons above!',
-      customToolbarButtons: [
+      autoResize: true,
+      minHeight: '150px'
+    });
+
+    // Example 2: Custom save button
+    new OverType('#editor2', {
+      value: '# Custom Save Button\n\nClick the save button to store in localStorage.',
+      toolbar: true,
+      toolbarButtons: [
         {
           name: 'save',
-          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
           title: 'Save to localStorage',
-          position: 'start',
           action: ({ editor, getValue }) => {
             const content = getValue();
-            localStorage.setItem('overtype-document', content);
-            localStorage.setItem('overtype-saved-at', new Date().toISOString());
-            showStatus('status1', '✓ Document saved to localStorage');
+            localStorage.setItem('overtype-demo', content);
+            alert('Saved to localStorage!');
           }
         },
+        toolbarButtons.separator,
+        toolbarButtons.bold,
+        toolbarButtons.italic,
+        toolbarButtons.code,
+        toolbarButtons.separator,
+        toolbarButtons.link,
+        toolbarButtons.separator,
+        toolbarButtons.h1,
+        toolbarButtons.h2,
+        toolbarButtons.separator,
+        toolbarButtons.bulletList,
+        toolbarButtons.orderedList,
+        toolbarButtons.separator,
+        toolbarButtons.viewMode
+      ],
+      autoResize: true,
+      minHeight: '150px'
+    });
+
+    // Example 3: Minimal toolbar
+    new OverType('#editor3', {
+      value: '# Minimal Toolbar\n\nOnly **bold**, *italic*, and `code`.',
+      toolbar: true,
+      toolbarButtons: [
+        toolbarButtons.bold,
+        toolbarButtons.italic,
+        toolbarButtons.code,
+        toolbarButtons.separator,
+        toolbarButtons.link,
+        toolbarButtons.separator,
+        toolbarButtons.viewMode
+      ],
+      autoResize: true,
+      minHeight: '150px'
+    });
+
+    // Example 4: Dynamic state button
+    const editor4 = new OverType('#editor4', {
+      value: '',
+      toolbar: true,
+      toolbarButtons: [
         {
           name: 'export',
-          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
-          title: 'Export as Markdown',
-          position: 'start',
-          isEnabled: (editor) => editor.getValue().trim().length > 0,
-          action: ({ getValue }) => {
+          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+          title: 'Export (only enabled with content)',
+          action: ({ editor, getValue }) => {
             const content = getValue();
+            if (!content.trim()) return;
+
             const blob = new Blob([content], { type: 'text/markdown' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -127,128 +139,31 @@
             a.download = 'document.md';
             a.click();
             URL.revokeObjectURL(url);
-            showStatus('status1', '✓ Document exported as document.md');
-          }
-        }
-      ]
-    });
-
-    // Listen for button errors
-    editor1[0].wrapper.addEventListener('button-error', (event) => {
-      showStatus('status1', `Error: ${event.detail.error.message}`, true);
-    });
-
-    // Example 2: Custom Dropdown Menu
-    const editor2 = new OverType('#editor2', {
-      toolbar: true,
-      value: '## Export Options\n\nUse the **Format** dropdown to export in different formats.',
-      customToolbarButtons: [
-        {
-          name: 'format-menu',
-          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
-          title: 'Export format',
-          type: 'dropdown',
-          position: 'end',
-          dropdownItems: [
-            { id: 'html', label: 'Export as HTML', icon: '📄' },
-            { id: 'pdf', label: 'Export as PDF', icon: '📑' },
-            { id: 'txt', label: 'Export as Plain Text', icon: '📝' },
-            { id: 'json', label: 'Export as JSON', icon: '{ }' }
-          ],
-          action: ({ editor, getValue, item }) => {
-            const content = getValue();
-            let message = '';
-
-            switch(item.id) {
-              case 'html':
-                // In a real app, you'd convert markdown to HTML
-                const html = editor.getRenderedHTML();
-                const htmlBlob = new Blob([html], { type: 'text/html' });
-                const htmlUrl = URL.createObjectURL(htmlBlob);
-                const htmlLink = document.createElement('a');
-                htmlLink.href = htmlUrl;
-                htmlLink.download = 'document.html';
-                htmlLink.click();
-                URL.revokeObjectURL(htmlUrl);
-                message = 'Exported as HTML';
-                break;
-              case 'pdf':
-                message = 'PDF export would require a library like jsPDF';
-                break;
-              case 'txt':
-                const txtBlob = new Blob([content], { type: 'text/plain' });
-                const txtUrl = URL.createObjectURL(txtBlob);
-                const txtLink = document.createElement('a');
-                txtLink.href = txtUrl;
-                txtLink.download = 'document.txt';
-                txtLink.click();
-                URL.revokeObjectURL(txtUrl);
-                message = 'Exported as plain text';
-                break;
-              case 'json':
-                const jsonData = {
-                  content,
-                  stats: editor.getStats(),
-                  timestamp: new Date().toISOString()
-                };
-                const jsonBlob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
-                const jsonUrl = URL.createObjectURL(jsonBlob);
-                const jsonLink = document.createElement('a');
-                jsonLink.href = jsonUrl;
-                jsonLink.download = 'document.json';
-                jsonLink.click();
-                URL.revokeObjectURL(jsonUrl);
-                message = 'Exported as JSON';
-                break;
-            }
-
-            showStatus('status2', `✓ ${message}`);
           }
         },
-        {
-          name: 'char-count',
-          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="15" x2="15" y2="15"/></svg>',
-          title: 'Show character count',
-          action: ({ editor, getValue }) => {
-            const stats = editor.getStats();
-            showStatus('status2', `Characters: ${stats.chars} | Words: ${stats.words} | Lines: ${stats.lines}`);
-          }
+        toolbarButtons.separator,
+        toolbarButtons.bold,
+        toolbarButtons.italic,
+        toolbarButtons.separator,
+        toolbarButtons.h1,
+        toolbarButtons.h2,
+        toolbarButtons.separator,
+        toolbarButtons.bulletList,
+        toolbarButtons.separator,
+        toolbarButtons.viewMode
+      ],
+      autoResize: true,
+      minHeight: '150px',
+      onChange: (content, editor) => {
+        // Update export button state
+        const exportButton = editor.toolbar.buttons.export;
+        if (exportButton) {
+          const hasContent = content.trim().length > 0;
+          exportButton.disabled = !hasContent;
+          exportButton.style.opacity = hasContent ? '1' : '0.5';
         }
-      ]
-    });
-
-    // Example 3: Hidden Buttons & Custom Order
-    const editor3 = new OverType('#editor3', {
-      toolbar: true,
-      value: '### Customized Toolbar\n\n- Some buttons are hidden\n- Custom order is applied\n- Custom "Clear" button at the start',
-      hideButtons: ['h2', 'h3', 'quote', 'hr', 'undo', 'redo'],
-      buttonOrder: ['clear', 'bold', 'italic', 'link', 'h1', 'bulletList', 'orderedList', 'viewMode'],
-      customToolbarButtons: [
-        {
-          name: 'clear',
-          icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>',
-          title: 'Clear content',
-          action: ({ editor, setValue }) => {
-            if (confirm('Are you sure you want to clear all content?')) {
-              setValue('');
-              showStatus('status3', '✓ Content cleared');
-            }
-          }
-        }
-      ]
-    });
-
-    // Load saved content if exists
-    const savedContent = localStorage.getItem('overtype-document');
-    if (savedContent) {
-      const savedAt = localStorage.getItem('overtype-saved-at');
-      if (savedAt) {
-        const date = new Date(savedAt);
-        const formatted = date.toLocaleString();
-        showStatus('status1', `Loaded saved document from ${formatted}`);
-        editor1[0].setValue(savedContent);
       }
-    }
+    });
   </script>
 </body>
 </html>
