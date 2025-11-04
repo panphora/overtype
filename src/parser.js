@@ -717,7 +717,17 @@ export class MarkdownParser {
       const highlighter = instanceHighlighter || this.codeHighlighter;
       if (highlighter) {
         try {
-          highlightedContent = highlighter(codeContent, lang);
+          // CRITICAL: Decode HTML entities before passing to highlighter
+          // In the DOM path, textContent automatically decodes entities.
+          // In the manual path, we need to decode explicitly to avoid double-escaping.
+          const decodedCode = codeContent
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&');  // Must be last to avoid double-decoding
+
+          highlightedContent = highlighter(decodedCode, lang);
         } catch (error) {
           console.warn('Code highlighting failed:', error);
           // Fall back to original content
