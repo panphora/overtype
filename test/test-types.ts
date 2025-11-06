@@ -1,6 +1,6 @@
 // Test file to verify TypeScript definitions work correctly
 // Run: npx tsc --noEmit test-types.ts
-import OverType, { Theme, Options, Stats, OverType as OverTypeInstance } from './src/overtype';
+import OverType, { Theme, Options, Stats, OverType as OverTypeInstance } from '../src/overtype';
 
 // Test basic initialization - constructor returns array
 const editors1: OverTypeInstance[] = new OverType('#editor');

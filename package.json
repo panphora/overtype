@@ -39,7 +39,7 @@
     "test:sanctuary": "node test/sanctuary-parsing.test.js",
     "test:modes": "node test/mode-switching.test.js",
     "test:webcomponent": "node test/webcomponent.test.js",
-    "test:types": "tsc --noEmit test-types.ts",
+    "test:types": "tsc --noEmit test/test-types.ts",
     "preversion": "npm test",
     "size": "gzip-size dist/overtype.min.js",
     "serve": "http-server -p 8080 -c-1",
