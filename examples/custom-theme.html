@@ -149,76 +149,7 @@
         <h1>OverType Custom Theme Example</h1>
         <p class="subtitle">Create and apply custom color themes</p>
         
-        <div class="theme-selector">
-            <div class="theme-button active" onclick="selectTheme('solar')">☀️ Solar</div>
-            <div class="theme-button" onclick="selectTheme('cave')">🌙 Cave</div>
-            <div class="theme-button" onclick="selectTheme('ocean')">🌊 Ocean</div>
-            <div class="theme-button" onclick="selectTheme('forest')">🌲 Forest</div>
-            <div class="theme-button" onclick="selectTheme('sunset')">🌅 Sunset</div>
-            <div class="theme-button" onclick="selectTheme('custom')">🎨 Custom</div>
-        </div>
-        
         <div id="editor" class="editor-container"></div>
-        
-        <div id="customizer" style="display: none;">
-            <h3>Customize Theme Colors</h3>
-            <div class="color-grid">
-                <div class="color-input">
-                    <label for="bgPrimary">Background Primary</label>
-                    <input type="color" id="bgPrimary" value="#faf0ca">
-                </div>
-                <div class="color-input">
-                    <label for="bgSecondary">Background Secondary</label>
-                    <input type="color" id="bgSecondary" value="#ffffff">
-                </div>
-                <div class="color-input">
-                    <label for="text">Text</label>
-                    <input type="color" id="text" value="#0d3b66">
-                </div>
-                <div class="color-input">
-                    <label for="h1">Header 1</label>
-                    <input type="color" id="h1" value="#f95738">
-                </div>
-                <div class="color-input">
-                    <label for="h2">Header 2</label>
-                    <input type="color" id="h2" value="#ee964b">
-                </div>
-                <div class="color-input">
-                    <label for="h3">Header 3</label>
-                    <input type="color" id="h3" value="#3d8a51">
-                </div>
-                <div class="color-input">
-                    <label for="strong">Bold</label>
-                    <input type="color" id="strong" value="#ee964b">
-                </div>
-                <div class="color-input">
-                    <label for="em">Italic</label>
-                    <input type="color" id="em" value="#f95738">
-                </div>
-                <div class="color-input">
-                    <label for="link">Links</label>
-                    <input type="color" id="link" value="#0d3b66">
-                </div>
-                <div class="color-input">
-                    <label for="code">Code</label>
-                    <input type="color" id="code" value="#0d3b66">
-                </div>
-                <div class="color-input">
-                    <label for="blockquote">Blockquote</label>
-                    <input type="color" id="blockquote" value="#5a7a9b">
-                </div>
-                <div class="color-input">
-                    <label for="cursor">Cursor</label>
-                    <input type="color" id="cursor" value="#f95738">
-                </div>
-            </div>
-            
-            <div class="controls">
-                <button onclick="applyCustomTheme()">Apply Custom Theme</button>
-                <button onclick="exportTheme()">Export Theme</button>
-                <button onclick="resetColors()">Reset Colors</button>
-            </div>
-        </div>
         
         <div class="preset-themes">
             <h3>Quick Presets</h3>
@@ -226,9 +157,6 @@
                 <button class="preset-button" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;" onclick="applyPreset('valentine')">Valentine</button>
                 <button class="preset-button" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;" onclick="applyPreset('aqua')">Aqua</button>
                 <button class="preset-button" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;" onclick="applyPreset('mint')">Mint</button>
-                <button class="preset-button" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;" onclick="applyPreset('sunset')">Sunset</button>
-                <button class="preset-button" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white;" onclick="applyPreset('galaxy')">Galaxy</button>
-                <button class="preset-button" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #333;" onclick="applyPreset('pastel')">Pastel</button>
             </div>
         </div>
     </div>
@@ -236,72 +164,6 @@
     <script src="../dist/overtype.js"></script>
     <script>
         const OT = window.OverType?.default || window.OverType;
-        // Custom theme definitions
-        const customThemes = {
-            ocean: {
-                name: 'ocean',
-                colors: {
-                    bgPrimary: '#e0f7fa',
-                    bgSecondary: '#ffffff',
-                    text: '#006064',
-                    h1: '#00acc1',
-                    h2: '#0097a7',
-                    h3: '#00838f',
-                    strong: '#0097a7',
-                    em: '#00acc1',
-                    link: '#0277bd',
-                    code: '#006064',
-                    codeBg: 'rgba(0, 188, 212, 0.1)',
-                    blockquote: '#00838f',
-                    hr: '#0097a7',
-                    syntaxMarker: 'rgba(0, 96, 100, 0.5)',
-                    cursor: '#00acc1',
-                    selection: 'rgba(0, 188, 212, 0.3)'
-                }
-            },
-            forest: {
-                name: 'forest',
-                colors: {
-                    bgPrimary: '#f1f8e9',
-                    bgSecondary: '#ffffff',
-                    text: '#1b5e20',
-                    h1: '#4caf50',
-                    h2: '#66bb6a',
-                    h3: '#81c784',
-                    strong: '#388e3c',
-                    em: '#689f38',
-                    link: '#2e7d32',
-                    code: '#1b5e20',
-                    codeBg: 'rgba(139, 195, 74, 0.15)',
-                    blockquote: '#558b2f',
-                    hr: '#66bb6a',
-                    syntaxMarker: 'rgba(27, 94, 32, 0.5)',
-                    cursor: '#4caf50',
-                    selection: 'rgba(139, 195, 74, 0.3)'
-                }
-            },
-            sunset: {
-                name: 'sunset',
-                colors: {
-                    bgPrimary: '#fff3e0',
-                    bgSecondary: '#ffffff',
-                    text: '#e65100',
-                    h1: '#ff6f00',
-                    h2: '#ff8f00',
-                    h3: '#ffa000',
-                    strong: '#f57c00',
-                    em: '#ff9800',
-                    link: '#e65100',
-                    code: '#e65100',
-                    codeBg: 'rgba(255, 152, 0, 0.15)',
-                    blockquote: '#f57c00',
-                    hr: '#ff8f00',
-                    syntaxMarker: 'rgba(230, 81, 0, 0.5)',
-                    cursor: '#ff6f00',
-                    selection: 'rgba(255, 152, 0, 0.3)'
-                }
-            }
-        };
 
         const presetThemes = {
             valentine: {
@@ -327,23 +189,6 @@
                 h2: '#66bb6a',
                 strong: '#4caf50',
                 em: '#66bb6a'
-            },
-            galaxy: {
-                bgPrimary: '#1a1a2e',
-                bgSecondary: '#16213e',
-                text: '#eaeaea',
-                h1: '#f39c12',
-                h2: '#e74c3c',
-                strong: '#3498db',
-                em: '#9b59b6'
-            },
-            pastel: {
-                bgPrimary: '#ffeaa7',
-                text: '#2d3436',
-                h1: '#fd79a8',
-                h2: '#a29bfe',
-                strong: '#fd79a8',
-                em: '#a29bfe'
             }
         };
 
@@ -351,11 +196,11 @@
         const [editor] = new OT('#editor', {
             value: `# Custom Theme Demo
 
-This editor supports **custom themes** with full color customization.
+This editor supports **custom themes** with color customization.
 
-## Built-in Themes
+## Quick Presets
 
-Choose from **Solar**, *Cave*, or create your own!
+Try the **Valentine**, *Aqua*, or **Mint** themes below!
 
 ## Features
 
@@ -366,11 +211,14 @@ Choose from **Solar**, *Cave*, or create your own!
 
 > Blockquotes look great too!
 
-### Try Different Themes
+### Code Example
 
-1. Click the theme buttons above
-2. Select "Custom" to create your own
-3. Export your theme configuration
+\`\`\`javascript
+const theme = {
+  bgPrimary: '#e0f7fa',
+  text: '#006064'
+};
+\`\`\`
 
 ---
 
@@ -378,48 +226,6 @@ Happy theming! 🎨`,
             theme: 'solar'
         });
 
-        let currentTheme = 'solar';
-        
-        function selectTheme(themeName) {
-            // Update active button
-            document.querySelectorAll('.theme-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            // Show/hide customizer
-            const customizer = document.getElementById('customizer');
-            customizer.style.display = themeName === 'custom' ? 'block' : 'none';
-            
-            // Apply theme
-            if (themeName === 'custom') {
-                applyCustomTheme();
-            } else if (customThemes[themeName]) {
-                OT.setTheme(customThemes[themeName]);
-            } else {
-                OT.setTheme(themeName);
-            }
-            
-            currentTheme = themeName;
-        }
-        
-        function applyCustomTheme() {
-            const colors = {};
-            const inputs = document.querySelectorAll('.color-input input');
-            
-            inputs.forEach(input => {
-                colors[input.id] = input.value;
-            });
-            
-            const customTheme = {
-                name: 'custom',
-                colors: colors
-            };
-            
-            OT.setTheme(customTheme);
-            console.log('Applied custom theme:', customTheme);
-        }
-        
         function applyPreset(presetName) {
             const preset = presetThemes[presetName];
             if (preset) {
@@ -434,47 +240,6 @@ Happy theming! 🎨`,
                 editor.setTheme(theme);
                 console.log('Applied preset:', presetName);
             }
-        }
-        
-        function exportTheme() {
-            const colors = {};
-            const inputs = document.querySelectorAll('.color-input input');
-            
-            inputs.forEach(input => {
-                colors[input.id] = input.value;
-            });
-            
-            const themeConfig = {
-                name: 'my-custom-theme',
-                colors: colors
-            };
-            
-            const json = JSON.stringify(themeConfig, null, 2);
-            console.log('Theme configuration:', json);
-            
-            // Copy to clipboard
-            navigator.clipboard.writeText(json).then(() => {
-                alert('Theme configuration copied to clipboard!');
-            });
-        }
-        
-        function resetColors() {
-            const solarColors = OT.themes.solar.colors;
-            
-            Object.keys(solarColors).forEach(key => {
-                const input = document.getElementById(key);
-                if (input) {
-                    // Convert to hex if needed
-                    let color = solarColors[key];
-                    if (color.startsWith('rgba')) {
-                        // Skip rgba colors for color inputs
-                        return;
-                    }
-                    input.value = color;
-                }
-            });
-            
-            applyCustomTheme();
         }
     </script>
 </body>
