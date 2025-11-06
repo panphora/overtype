@@ -1,15 +1,207 @@
 /**
  * Syntax Highlighting Tests
  * Tests the code highlighter integration with various scenarios
+ * Includes alignment verification tests for Shiki, Highlight.js, and Prism
  */
 
 import { JSDOM } from 'jsdom';
 import { MarkdownParser } from '../src/parser.js';
+import { createHighlighter } from 'shiki';
+import hljs from 'highlight.js';
+import Prism from 'prismjs';
 
 console.log('\n🎨 Running Syntax Highlighting Tests...\n');
 
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
 global.document = dom.window.document;
+
+// Complex code fixtures for alignment testing
+const fixtures = {
+  javascript: `// Complex TypeScript with edge cases
+interface Config {
+  timeout: number;
+  retry: boolean;
+}
+
+const API_URL = "https://api.example.com?param=1&other=2";
+const REGEX = /^[a-z]+\\s+test$/gi;
+
+async function fetchData<T>(url: string): Promise<T> {
+  const response = await fetch(url, {
+    headers: { "Content-Type": "application/json" }
+  });
+
+  if (!response.ok) {
+    throw new Error(\`HTTP \${response.status}\`);
+  }
+
+  return response.json();
+}
+
+// Edge cases: trailing spaces, special chars
+const obj = { key: "value", nested: { a: 1 } };
+const str = 'single "quotes" with \\'escapes\\'';
+`,
+
+  python: `# Complex Python with indentation edge cases
+from typing import Dict, List, Optional
+import asyncio
+
+class DataProcessor:
+    """Process data with async operations"""
+
+    def __init__(self, config: Dict[str, any]):
+        self.config = config
+        self.pattern = r'^\\d{3}-\\d{3}-\\d{4}$'
+
+    async def process(self, items: List[str]) -> Optional[Dict]:
+        """
+        Multi-line docstring with code examples:
+        >>> processor.process(['item1', 'item2'])
+        """
+        results = []
+
+        for item in items:
+            # Trailing space after colon:
+            result = {
+                "id": item,
+                "value": f"processed_{item}",
+                "meta": {'nested': True}
+            }
+            results.append(result)
+
+        await asyncio.sleep(0.1)
+        return {"data": results, "count": len(results)}
+`,
+
+  rust: `// Complex Rust with lifetime/macro edge cases
+use std::collections::HashMap;
+
+#[derive(Debug, Clone)]
+pub struct Config<'a> {
+    timeout_ms: u64,
+    endpoint: &'a str;
+}
+
+impl<'a> Config<'a> {
+    pub fn new(endpoint: &'a str) -> Self {
+        Self {
+            timeout_ms: 5000,
+            endpoint,
+        }
+    }
+}
+
+macro_rules! log_error {
+    ($($arg:tt)*) => {{
+        eprintln!("[ERROR] {}", format!($($arg)*));
+    }};
+}
+
+async fn fetch_data(url: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let response = reqwest::get(url).await?;
+    let text = response.text().await?;
+
+    if text.trim().is_empty() {
+        log_error!("Empty response from {}", url);
+        return Err("empty".into());
+    }
+
+    Ok(text)
+}
+`,
+
+  css: `/* Complex CSS with edge cases */
+:root {
+  --primary-color: #007bff;
+  --spacing: 1rem;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--spacing);
+  padding: 2rem;
+}
+
+.card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Edge cases: URLs in content */
+.bg-image {
+  background: url("https://example.com?param=1&other=2");
+}
+`
+};
+
+// Helper: Convert HTML to text (like browser does)
+function htmlToText(html) {
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  return div.textContent;
+}
+
+// Helper: Verify alignment preservation
+function verifyAlignment(originalCode, highlightedHtml, libraryName) {
+  const rendered = htmlToText(highlightedHtml);
+
+  // Test 1: Character count must match exactly
+  if (rendered.length !== originalCode.length) {
+    throw new Error(
+      `${libraryName}: Character count mismatch - ` +
+      `original ${originalCode.length}, rendered ${rendered.length}`
+    );
+  }
+
+  // Test 2: Content must match exactly (character-for-character)
+  if (rendered !== originalCode) {
+    // Find first mismatch for debugging
+    for (let i = 0; i < Math.min(rendered.length, originalCode.length); i++) {
+      if (rendered[i] !== originalCode[i]) {
+        const context = 20;
+        const start = Math.max(0, i - context);
+        const end = Math.min(originalCode.length, i + context);
+        throw new Error(
+          `${libraryName}: Content mismatch at position ${i}\n` +
+          `  Original: ${JSON.stringify(originalCode.substring(start, end))}\n` +
+          `  Rendered: ${JSON.stringify(rendered.substring(start, end))}`
+        );
+      }
+    }
+  }
+
+  // Test 3: Line count must match
+  const originalLines = originalCode.split('\n').length;
+  const renderedLines = rendered.split('\n').length;
+  if (renderedLines !== originalLines) {
+    throw new Error(
+      `${libraryName}: Line count mismatch - ` +
+      `original ${originalLines}, rendered ${renderedLines}`
+    );
+  }
+
+  // Test 4: Check for alignment-breaking patterns
+  if (highlightedHtml.includes('&nbsp;')) {
+    throw new Error(`${libraryName}: Contains &nbsp; which breaks alignment`);
+  }
+  if (highlightedHtml.includes('&#x20;')) {
+    throw new Error(`${libraryName}: Contains encoded spaces which break alignment`);
+  }
+}
 
 let passedTests = 0;
 let totalTests = 0;
@@ -201,6 +393,108 @@ await runTest('Highlighter output is properly rendered (no double-escaping)', ()
 
     if (!html.includes('lang-js')) throw new Error('JavaScript block not highlighted');
     if (!html.includes('lang-python')) throw new Error('Python block not highlighted');
+  });
+
+  console.log('\n📋 Test Suite: Shiki Alignment Verification\n');
+
+  await runTest('Shiki preserves alignment - JavaScript', async () => {
+    const highlighter = await createHighlighter({
+      themes: ['github-dark'],
+      langs: ['javascript']
+    });
+
+    const shikiHighlighter = (code, lang) => {
+      if (!lang) return null;
+      try {
+        return highlighter.codeToHtml(code, { lang, theme: 'github-dark' });
+      } catch {
+        return null;
+      }
+    };
+
+    const highlighted = shikiHighlighter(fixtures.javascript, 'javascript');
+    verifyAlignment(fixtures.javascript, highlighted, 'Shiki');
+  });
+
+  await runTest('Shiki preserves alignment - Python', async () => {
+    const highlighter = await createHighlighter({
+      themes: ['github-dark'],
+      langs: ['python']
+    });
+
+    const shikiHighlighter = (code, lang) => {
+      if (!lang) return null;
+      try {
+        return highlighter.codeToHtml(code, { lang, theme: 'github-dark' });
+      } catch {
+        return null;
+      }
+    };
+
+    const highlighted = shikiHighlighter(fixtures.python, 'python');
+    verifyAlignment(fixtures.python, highlighted, 'Shiki');
+  });
+
+  console.log('\n📋 Test Suite: Highlight.js Alignment Verification\n');
+
+  await runTest('Highlight.js preserves alignment - JavaScript', () => {
+    const hljsHighlighter = (code, lang) => {
+      if (!lang) return null;
+      try {
+        const result = hljs.highlight(code, { language: lang });
+        return result.value;
+      } catch {
+        return null;
+      }
+    };
+
+    const highlighted = hljsHighlighter(fixtures.javascript, 'javascript');
+    verifyAlignment(fixtures.javascript, highlighted, 'Highlight.js');
+  });
+
+  await runTest('Highlight.js preserves alignment - Rust', () => {
+    const hljsHighlighter = (code, lang) => {
+      if (!lang) return null;
+      try {
+        const result = hljs.highlight(code, { language: lang });
+        return result.value;
+      } catch {
+        return null;
+      }
+    };
+
+    const highlighted = hljsHighlighter(fixtures.rust, 'rust');
+    verifyAlignment(fixtures.rust, highlighted, 'Highlight.js');
+  });
+
+  console.log('\n📋 Test Suite: Prism Alignment Verification\n');
+
+  await runTest('Prism preserves alignment - JavaScript', () => {
+    const prismHighlighter = (code, lang) => {
+      if (!lang || !Prism.languages[lang]) return null;
+      try {
+        return Prism.highlight(code, Prism.languages[lang], lang);
+      } catch {
+        return null;
+      }
+    };
+
+    const highlighted = prismHighlighter(fixtures.javascript, 'javascript');
+    verifyAlignment(fixtures.javascript, highlighted, 'Prism');
+  });
+
+  await runTest('Prism preserves alignment - CSS', () => {
+    const prismHighlighter = (code, lang) => {
+      if (!lang || !Prism.languages[lang]) return null;
+      try {
+        return Prism.highlight(code, Prism.languages[lang], lang);
+      } catch {
+        return null;
+      }
+    };
+
+    const highlighted = prismHighlighter(fixtures.css, 'css');
+    verifyAlignment(fixtures.css, highlighted, 'Prism');
   });
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');

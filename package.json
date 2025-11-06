@@ -62,8 +62,11 @@
   "devDependencies": {
     "esbuild": "^0.19.0",
     "gzip-size-cli": "^5.1.0",
+    "highlight.js": "^11.9.0",
     "http-server": "^14.1.1",
     "jsdom": "^26.1.0",
+    "prismjs": "^1.29.0",
+    "shiki": "^1.22.0",
     "typescript": "^5.9.2"
   },
   "files": [
