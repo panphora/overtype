@@ -131,7 +131,7 @@ var OverType = (() => {
       return html.replace(/^((?:&nbsp;)*)-\s+\[([ xX])\]\s+(.+)$/, (match, indent, checked, content) => {
         if (isPreviewMode) {
           const isChecked = checked.toLowerCase() === "x";
-          return `${indent}<li class="task-list"><input type="checkbox" disabled ${isChecked ? "checked" : ""}> ${content}</li>`;
+          return `${indent}<li class="task-list"><input type="checkbox" ${isChecked ? "checked" : ""}> ${content}</li>`;
         } else {
           return `${indent}<li class="task-list"><span class="syntax-marker">- [${checked}] </span>${content}</li>`;
         }
