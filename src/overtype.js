@@ -1075,6 +1075,7 @@ class OverType {
      */
     showNormalEditMode() {
       this.container.dataset.mode = 'normal';
+      this.updatePreview(); // Re-render with normal mode (e.g., show syntax markers)
 
       // Always sync scroll from preview to textarea
       requestAnimationFrame(() => {
@@ -1110,6 +1111,7 @@ class OverType {
      */
     showPreviewMode() {
       this.container.dataset.mode = 'preview';
+      this.updatePreview(); // Re-render with preview mode (e.g., checkboxes)
       return this;
     }
 

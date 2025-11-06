@@ -4003,6 +4003,7 @@ ${blockSuffix}` : suffix;
      */
     showNormalEditMode() {
       this.container.dataset.mode = "normal";
+      this.updatePreview();
       requestAnimationFrame(() => {
         this.textarea.scrollTop = this.preview.scrollTop;
         this.textarea.scrollLeft = this.preview.scrollLeft;
@@ -4030,6 +4031,7 @@ ${blockSuffix}` : suffix;
      */
     showPreviewMode() {
       this.container.dataset.mode = "preview";
+      this.updatePreview();
       return this;
     }
     /**

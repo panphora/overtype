@@ -3977,6 +3977,7 @@ var _OverType = class _OverType {
    */
   showNormalEditMode() {
     this.container.dataset.mode = "normal";
+    this.updatePreview();
     requestAnimationFrame(() => {
       this.textarea.scrollTop = this.preview.scrollTop;
       this.textarea.scrollLeft = this.preview.scrollLeft;
@@ -4004,6 +4005,7 @@ var _OverType = class _OverType {
    */
   showPreviewMode() {
     this.container.dataset.mode = "preview";
+    this.updatePreview();
     return this;
   }
   /**
