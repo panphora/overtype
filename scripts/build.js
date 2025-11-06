@@ -181,7 +181,15 @@ async function build() {
         fs.copyFileSync(typesSource, typesDest);
         console.log('✅ Copied TypeScript definitions to dist/overtype.d.ts');
       }
-      
+
+      // Copy dist to website for local development
+      const websiteDist = path.join(process.cwd(), 'website', 'dist');
+      if (fs.existsSync(websiteDist)) {
+        fs.rmSync(websiteDist, { recursive: true, force: true });
+      }
+      fs.cpSync(path.join(process.cwd(), 'dist'), websiteDist, { recursive: true });
+      console.log('✅ Copied dist to website/dist');
+
       console.log('\n✨ Build complete!');
     }
   } catch (error) {
