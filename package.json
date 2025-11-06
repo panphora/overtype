@@ -26,10 +26,10 @@
   },
   "type": "module",
   "scripts": {
-    "build": "node build.js",
+    "build": "node scripts/build.js",
     "build:prod": "npm test && npm run build",
     "dev": "http-server website -p 8080 -c-1",
-    "watch": "node build.js --watch",
+    "watch": "node scripts/build.js --watch",
     "test": "node test/overtype.test.js && node test/preview-mode.test.js && node test/links.test.js && node test/api-methods.test.js && node test/comprehensive-alignment.test.js && node test/sanctuary-parsing.test.js && node test/mode-switching.test.js && node test/syntax-highlighting.test.js && node test/webcomponent.test.js && npm run test:types",
     "test:main": "node test/overtype.test.js",
     "test:preview": "node test/preview-mode.test.js",
@@ -43,7 +43,7 @@
     "preversion": "npm test",
     "size": "gzip-size dist/overtype.min.js",
     "serve": "http-server -p 8080 -c-1",
-    "deploy:website": "node deploy-website.js"
+    "deploy:website": "node scripts/deploy-website.js"
   },
   "keywords": [
     "markdown",

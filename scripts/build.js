@@ -169,11 +169,11 @@ async function build() {
         // Test the TypeScript definitions
         console.log('🔍 Testing TypeScript definitions...');
         try {
-          execSync('npx tsc --noEmit --lib ES2020,DOM test-types.ts', { stdio: 'inherit' });
+          execSync('npx tsc --noEmit --lib ES2020,DOM test/test-types.ts', { stdio: 'inherit' });
           console.log('✅ TypeScript definitions test passed');
         } catch (error) {
           console.error('❌ TypeScript definitions test failed');
-          console.error('   Run "npx tsc --noEmit --lib ES2020,DOM test-types.ts" to see the errors');
+          console.error('   Run "npx tsc --noEmit --lib ES2020,DOM test/test-types.ts" to see the errors');
           process.exit(1);
         }
         
