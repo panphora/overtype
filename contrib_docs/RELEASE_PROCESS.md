@@ -55,13 +55,7 @@ git push origin main --tags
 npm publish
 ```
 
-### 9. Create GitHub Release
-- Go to GitHub releases page
-- Create release from tag
-- Copy CHANGELOG entry as release notes
-- Attach dist files if needed
-
-### 10. Post-Release
+### 9. Post-Release
 - Verify npm package is live
 - Test installation in a clean project
 - Update any example repos or documentation sites
