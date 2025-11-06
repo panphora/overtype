@@ -353,25 +353,24 @@ impl ConnectionPool {
 
         // Wrapper for synchronous usage (with caching)
         const highlightCache = new Map();
-        
+
         function syncShikiHighlighter(code, language) {
-            const cacheKey = `${language}:${code.substring(0, 100)}`;
-            
+            // Use full code as cache key to avoid stale data
+            const cacheKey = `${language}:${code}`;
+
             if (highlightCache.has(cacheKey)) {
                 return highlightCache.get(cacheKey);
             }
-            
+
             // Start async highlighting
             shikiHighlighter(code, language).then(result => {
                 highlightCache.set(cacheKey, result);
-                // Force re-render if this was a cache miss
-                if (shikiEnabled) {
-                    setTimeout(() => {
-                        OverType.setCodeHighlighter(syncShikiHighlighter);
-                    }, 10);
+                // Force re-render after async completion
+                if (shikiEnabled && editor) {
+                    editor.updatePreview();
                 }
             });
-            
+
             // Return unhighlighted code while async highlighting is in progress
             return code;
         }
@@ -380,6 +379,7 @@ impl ConnectionPool {
             const statusDiv = document.getElementById('status');
 
             // Enable Shiki
+            highlighter = syncShikiHighlighter;
             OverType.setCodeHighlighter(syncShikiHighlighter);
             shikiEnabled = true;
             statusDiv.className = 'status ready';

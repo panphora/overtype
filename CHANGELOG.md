@@ -59,6 +59,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Single unified stylesheet in Shadow DOM
 - Link tooltip now hides when editor loses focus or page visibility changes
 - Fixed web component `getStats()` method - now calculates stats directly from textarea
+- Fixed Shiki syntax highlighting cache not invalidating on edits
+  - Cache key now uses full code content instead of first 100 characters
+  - Edits beyond position 100 now properly trigger re-highlighting
+  - Fixed highlighter variable not being set, causing onChange to never trigger
+  - Async highlighter completion now triggers preview re-render
 
 ### 📚 Documentation
 
