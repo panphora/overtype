@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-01-XX
+
+### 🚨 Breaking Changes
+
+**Toolbar API Redesigned**
+- Removed: `customToolbarButtons`, `hideButtons`, `buttonOrder` options
+- New: Single `toolbarButtons` array for explicit button configuration
+- Import built-in buttons: `import { toolbarButtons } from 'overtype'`
+- Migration: See README "Migration from v1.x" section
+- If using default toolbar (`toolbar: true` only), no changes needed
+
+### ✨ New Features
+
+**Task Lists (GFM)**
+- Task list syntax (`- [ ]` and `- [x]`) now renders as actual checkboxes in preview mode
+- Edit mode shows syntax for alignment, preview mode shows interactive checkboxes
+- Thanks @dido739 (#60)
+
+**Syntax Highlighting**
+- New `codeHighlighter` option for per-instance code highlighting
+- New `OverType.setCodeHighlighter()` for global highlighting
+- Library-agnostic: works with Shiki, Highlight.js, Prism, or custom highlighters
+- See docs/SYNTAX_HIGHLIGHTING.md
+
+**Web Component**
+- Native `<overtype-editor>` custom element with Shadow DOM
+- 15 reactive HTML attributes
+- Framework-agnostic (React, Vue, Angular)
+- Thanks @ChasLui (#40)
+
+### 🐛 Bug Fixes
+
+- Fixed double-escaping of URLs with special characters - @lyricat (#63, #64)
+- Fixed toolbar option being ignored in reinit() - @kristiankostecky (#62)
+- Added proper event listener cleanup in toolbar destroy()
+- Fixed web component preview not updating due to Shadow DOM event boundary
+  - Added local input and keydown event listeners inside Shadow DOM
+  - Fixes toolbar operations, keyboard shortcuts, deletions, and all text modifications
+- Fixed scroll sync not working in web component due to Shadow DOM event boundary
+- Fixed link tooltip always visible in web component
+  - `_reinjectStyles()` was accidentally removing tooltip stylesheet instead of base stylesheet
+  - Now tracks base stylesheet explicitly to preserve dynamically-added styles
+- Fixed link tooltip not appearing in web component
+  - Added Shadow DOM-aware `selectionchange` listener
+  - `document.activeElement` returns shadow host, not elements inside shadow root
+  - Also fixes stats bar cursor position updates in Shadow DOM
+- Fixed link tooltip styles not applying in web component
+  - Moved tooltip styles from separate injection into main stylesheet
+  - Eliminates style ordering issues on reinject
+  - Single unified stylesheet in Shadow DOM
+- Link tooltip now hides when editor loses focus or page visibility changes
+- Fixed web component `getStats()` method - now calculates stats directly from textarea
+
+### 📚 Documentation
+
+- Complete README rewrite with v2.0 features
+- New migration guide for v1.x users
+- examples/custom-toolbar.html with 4 complete examples
+- docs/SYNTAX_HIGHLIGHTING.md guide
+- docs/WEB-COMPONENT.md guide
+
 ## [1.2.7] - 2025-09-30
 
 ### Fixed

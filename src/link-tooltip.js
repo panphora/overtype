@@ -10,21 +10,14 @@ export class LinkTooltip {
     this.tooltip = null;
     this.currentLink = null;
     this.hideTimeout = null;
+    this.visibilityChangeHandler = null;
 
     this.init();
   }
 
   init() {
-    // Check for CSS anchor positioning support
-    // Add defensive check for CSS object existence (important for testing environments)
-    const supportsAnchor = typeof CSS !== 'undefined' && CSS.supports && CSS.supports('position-anchor: --x') && CSS.supports('position-area: center');
-
-    if (!supportsAnchor) {
-      // Don't show anything if not supported
-      return;
-    }
-
     // Create tooltip element
+    // Note: Styles are now in the main stylesheet (styles.js) with @supports wrapper
     this.createTooltip();
 
     // Listen for cursor position changes
@@ -39,6 +32,17 @@ export class LinkTooltip {
     this.editor.textarea.addEventListener('input', () => this.hide());
     this.editor.textarea.addEventListener('scroll', () => this.hide());
 
+    // Hide tooltip when textarea loses focus
+    this.editor.textarea.addEventListener('blur', () => this.hide());
+
+    // Hide tooltip when page loses visibility (tab switch, minimize, etc.)
+    this.visibilityChangeHandler = () => {
+      if (document.hidden) {
+        this.hide();
+      }
+    };
+    document.addEventListener('visibilitychange', this.visibilityChangeHandler);
+
     // Keep tooltip visible on hover
     this.tooltip.addEventListener('mouseenter', () => this.cancelHide());
     this.tooltip.addEventListener('mouseleave', () => this.scheduleHide());
@@ -46,44 +50,9 @@ export class LinkTooltip {
 
   createTooltip() {
     // Create tooltip element
+    // Styles are now included in the main stylesheet (styles.js)
     this.tooltip = document.createElement('div');
     this.tooltip.className = 'overtype-link-tooltip';
-
-    // Add CSS anchor positioning styles
-    const tooltipStyles = document.createElement('style');
-    tooltipStyles.textContent = `
-      @supports (position-anchor: --x) and (position-area: center) {
-        .overtype-link-tooltip {
-          position: absolute;
-          position-anchor: var(--target-anchor, --link-0);
-          position-area: block-end center;
-          margin-top: 8px !important;
-          
-          background: #333 !important;
-          color: white !important;
-          padding: 6px 10px !important;
-          border-radius: 16px !important;
-          font-size: 12px !important;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-          display: none !important;
-          z-index: 10000 !important;
-          cursor: pointer !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-          max-width: 300px !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          
-          position-try: most-width block-end inline-end, flip-inline, block-start center;
-          position-visibility: anchors-visible;
-        }
-        
-        .overtype-link-tooltip.visible {
-          display: flex !important;
-        }
-      }
-    `;
-    document.head.appendChild(tooltipStyles);
 
     // Add link icon and text container
     this.tooltip.innerHTML = `
@@ -185,6 +154,13 @@ export class LinkTooltip {
 
   destroy() {
     this.cancelHide();
+
+    // Remove visibility change listener
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityChangeHandler);
+      this.visibilityChangeHandler = null;
+    }
+
     if (this.tooltip && this.tooltip.parentNode) {
       this.tooltip.parentNode.removeChild(this.tooltip);
     }

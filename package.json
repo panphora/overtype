@@ -28,7 +28,7 @@
   "scripts": {
     "build": "node build.js",
     "build:prod": "npm test && npm run build",
-    "dev": "http-server -p 8080 -c-1",
+    "dev": "http-server website -p 8080 -c-1",
     "watch": "node build.js --watch",
     "test": "node test/overtype.test.js && node test/preview-mode.test.js && node test/links.test.js && node test/api-methods.test.js && node test/comprehensive-alignment.test.js && node test/sanctuary-parsing.test.js && node test/mode-switching.test.js && node test/syntax-highlighting.test.js && node test/webcomponent.test.js && npm run test:types",
     "test:main": "node test/overtype.test.js",

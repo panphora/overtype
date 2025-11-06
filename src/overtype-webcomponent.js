@@ -34,6 +34,8 @@ class OverTypeEditor extends HTMLElement {
     this._initialized = false;
     this._pendingOptions = {};
     this._styleVersion = 0;
+    this._baseStyleElement = null; // Track the component's base stylesheet
+    this._selectionChangeHandler = null; // Track selectionchange listener for cleanup
 
     // Track initialization state
     this._isConnected = false;
@@ -135,6 +137,54 @@ class OverTypeEditor extends HTMLElement {
 
       this._initialized = true;
 
+      // Set up event listeners for Shadow DOM
+      // Global document listeners won't work in Shadow DOM, so we need local ones
+      if (this._editor && this._editor.textarea) {
+        // Scroll sync
+        this._editor.textarea.addEventListener('scroll', () => {
+          if (this._editor && this._editor.preview && this._editor.textarea) {
+            this._editor.preview.scrollTop = this._editor.textarea.scrollTop;
+            this._editor.preview.scrollLeft = this._editor.textarea.scrollLeft;
+          }
+        });
+
+        // Input event for preview updates
+        this._editor.textarea.addEventListener('input', (e) => {
+          if (this._editor && this._editor.handleInput) {
+            this._editor.handleInput(e);
+          }
+        });
+
+        // Keydown event for keyboard shortcuts and special key handling
+        this._editor.textarea.addEventListener('keydown', (e) => {
+          if (this._editor && this._editor.handleKeydown) {
+            this._editor.handleKeydown(e);
+          }
+        });
+
+        // Selection change event for link tooltip and stats updates
+        // selectionchange only fires on document, so we need to check if the active element is inside our shadow root
+        this._selectionChangeHandler = () => {
+          // Check if this web component is the active element (focused)
+          if (document.activeElement === this) {
+            // The selection is inside our shadow root
+            const shadowActiveElement = this.shadowRoot.activeElement;
+            if (shadowActiveElement && shadowActiveElement === this._editor.textarea) {
+              // Update stats if enabled
+              if (this._editor.options.showStats && this._editor.statsBar) {
+                this._editor._updateStats();
+              }
+
+              // Trigger link tooltip check
+              if (this._editor.linkTooltip && this._editor.linkTooltip.checkCursorPosition) {
+                this._editor.linkTooltip.checkCursorPosition();
+              }
+            }
+          }
+        };
+        document.addEventListener('selectionchange', this._selectionChangeHandler);
+      }
+
       // Apply any pending option changes
       this._applyPendingOptions();
 
@@ -189,6 +239,9 @@ class OverTypeEditor extends HTMLElement {
     this._styleVersion += 1;
     const versionBanner = `\n/* overtype-webcomponent styles v${this._styleVersion} */\n`;
     style.textContent = versionBanner + styles + webComponentStyles;
+
+    // Store reference to this base stylesheet so we can remove it specifically later
+    this._baseStyleElement = style;
     this.shadowRoot.appendChild(style);
   }
 
@@ -384,9 +437,9 @@ class OverTypeEditor extends HTMLElement {
    * @private
    */
   _reinjectStyles() {
-    const existingStyle = this.shadowRoot.querySelector('style');
-    if (existingStyle) {
-      existingStyle.remove();
+    // Remove only the base stylesheet, not other style elements (e.g., tooltip styles)
+    if (this._baseStyleElement && this._baseStyleElement.parentNode) {
+      this._baseStyleElement.remove();
     }
     this._injectStyles();
   }
@@ -481,6 +534,12 @@ class OverTypeEditor extends HTMLElement {
    * @private
    */
   _cleanup() {
+    // Remove selectionchange listener
+    if (this._selectionChangeHandler) {
+      document.removeEventListener('selectionchange', this._selectionChangeHandler);
+      this._selectionChangeHandler = null;
+    }
+
     if (this._editor && typeof this._editor.destroy === 'function') {
       this._editor.destroy();
     }
@@ -569,7 +628,27 @@ class OverTypeEditor extends HTMLElement {
    * @returns {Object} Statistics object
    */
   getStats() {
-    return this._editor ? this._editor.getStats() : null;
+    if (!this._editor || !this._editor.textarea) return null;
+
+    const value = this._editor.textarea.value;
+    const lines = value.split('\n');
+    const chars = value.length;
+    const words = value.split(/\s+/).filter(w => w.length > 0).length;
+
+    // Calculate line and column from cursor position
+    const selectionStart = this._editor.textarea.selectionStart;
+    const beforeCursor = value.substring(0, selectionStart);
+    const linesBefore = beforeCursor.split('\n');
+    const currentLine = linesBefore.length;
+    const currentColumn = linesBefore[linesBefore.length - 1].length + 1;
+
+    return {
+      characters: chars,
+      words: words,
+      lines: lines.length,
+      line: currentLine,
+      column: currentColumn
+    };
   }
 
   /**

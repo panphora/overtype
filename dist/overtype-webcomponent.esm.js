@@ -2609,6 +2609,38 @@ function generateStyles(options = {}) {
       height: 2px !important;
     }
 
+    /* Link Tooltip - CSS Anchor Positioning */
+    @supports (position-anchor: --x) and (position-area: center) {
+      .overtype-link-tooltip {
+        position: absolute;
+        position-anchor: var(--target-anchor, --link-0);
+        position-area: block-end center;
+        margin-top: 8px !important;
+
+        background: #333 !important;
+        color: white !important;
+        padding: 6px 10px !important;
+        border-radius: 16px !important;
+        font-size: 12px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+        display: none !important;
+        z-index: 10000 !important;
+        cursor: pointer !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        max-width: 300px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+
+        position-try: most-width block-end inline-end, flip-inline, block-start center;
+        position-visibility: anchors-visible;
+      }
+
+      .overtype-link-tooltip.visible {
+        display: flex !important;
+      }
+    }
+
     ${mobileStyles}
   `;
 }
@@ -2863,13 +2895,10 @@ var LinkTooltip = class {
     this.tooltip = null;
     this.currentLink = null;
     this.hideTimeout = null;
+    this.visibilityChangeHandler = null;
     this.init();
   }
   init() {
-    const supportsAnchor = typeof CSS !== "undefined" && CSS.supports && CSS.supports("position-anchor: --x") && CSS.supports("position-area: center");
-    if (!supportsAnchor) {
-      return;
-    }
     this.createTooltip();
     this.editor.textarea.addEventListener("selectionchange", () => this.checkCursorPosition());
     this.editor.textarea.addEventListener("keyup", (e) => {
@@ -2879,46 +2908,19 @@ var LinkTooltip = class {
     });
     this.editor.textarea.addEventListener("input", () => this.hide());
     this.editor.textarea.addEventListener("scroll", () => this.hide());
+    this.editor.textarea.addEventListener("blur", () => this.hide());
+    this.visibilityChangeHandler = () => {
+      if (document.hidden) {
+        this.hide();
+      }
+    };
+    document.addEventListener("visibilitychange", this.visibilityChangeHandler);
     this.tooltip.addEventListener("mouseenter", () => this.cancelHide());
     this.tooltip.addEventListener("mouseleave", () => this.scheduleHide());
   }
   createTooltip() {
     this.tooltip = document.createElement("div");
     this.tooltip.className = "overtype-link-tooltip";
-    const tooltipStyles = document.createElement("style");
-    tooltipStyles.textContent = `
-      @supports (position-anchor: --x) and (position-area: center) {
-        .overtype-link-tooltip {
-          position: absolute;
-          position-anchor: var(--target-anchor, --link-0);
-          position-area: block-end center;
-          margin-top: 8px !important;
-          
-          background: #333 !important;
-          color: white !important;
-          padding: 6px 10px !important;
-          border-radius: 16px !important;
-          font-size: 12px !important;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-          display: none !important;
-          z-index: 10000 !important;
-          cursor: pointer !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-          max-width: 300px !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          
-          position-try: most-width block-end inline-end, flip-inline, block-start center;
-          position-visibility: anchors-visible;
-        }
-        
-        .overtype-link-tooltip.visible {
-          display: flex !important;
-        }
-      }
-    `;
-    document.head.appendChild(tooltipStyles);
     this.tooltip.innerHTML = `
       <span style="display: flex; align-items: center; gap: 6px;">
         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink: 0;">
@@ -2994,6 +2996,10 @@ var LinkTooltip = class {
   }
   destroy() {
     this.cancelHide();
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener("visibilitychange", this.visibilityChangeHandler);
+      this.visibilityChangeHandler = null;
+    }
     if (this.tooltip && this.tooltip.parentNode) {
       this.tooltip.parentNode.removeChild(this.tooltip);
     }
@@ -4216,6 +4222,8 @@ var OverTypeEditor = class extends HTMLElement {
     this._initialized = false;
     this._pendingOptions = {};
     this._styleVersion = 0;
+    this._baseStyleElement = null;
+    this._selectionChangeHandler = null;
     this._isConnected = false;
     this._handleChange = this._handleChange.bind(this);
     this._handleKeydown = this._handleKeydown.bind(this);
@@ -4292,6 +4300,38 @@ var OverTypeEditor = class extends HTMLElement {
       const editorInstances = new overtype_default(container, options);
       this._editor = editorInstances[0];
       this._initialized = true;
+      if (this._editor && this._editor.textarea) {
+        this._editor.textarea.addEventListener("scroll", () => {
+          if (this._editor && this._editor.preview && this._editor.textarea) {
+            this._editor.preview.scrollTop = this._editor.textarea.scrollTop;
+            this._editor.preview.scrollLeft = this._editor.textarea.scrollLeft;
+          }
+        });
+        this._editor.textarea.addEventListener("input", (e) => {
+          if (this._editor && this._editor.handleInput) {
+            this._editor.handleInput(e);
+          }
+        });
+        this._editor.textarea.addEventListener("keydown", (e) => {
+          if (this._editor && this._editor.handleKeydown) {
+            this._editor.handleKeydown(e);
+          }
+        });
+        this._selectionChangeHandler = () => {
+          if (document.activeElement === this) {
+            const shadowActiveElement = this.shadowRoot.activeElement;
+            if (shadowActiveElement && shadowActiveElement === this._editor.textarea) {
+              if (this._editor.options.showStats && this._editor.statsBar) {
+                this._editor._updateStats();
+              }
+              if (this._editor.linkTooltip && this._editor.linkTooltip.checkCursorPosition) {
+                this._editor.linkTooltip.checkCursorPosition();
+              }
+            }
+          }
+        };
+        document.addEventListener("selectionchange", this._selectionChangeHandler);
+      }
       this._applyPendingOptions();
       this._dispatchEvent("ready", { editor: this._editor });
     } catch (error) {
@@ -4336,6 +4376,7 @@ var OverTypeEditor = class extends HTMLElement {
 /* overtype-webcomponent styles v${this._styleVersion} */
 `;
     style.textContent = versionBanner + styles + webComponentStyles;
+    this._baseStyleElement = style;
     this.shadowRoot.appendChild(style);
   }
   /**
@@ -4511,9 +4552,8 @@ var OverTypeEditor = class extends HTMLElement {
    * @private
    */
   _reinjectStyles() {
-    const existingStyle = this.shadowRoot.querySelector("style");
-    if (existingStyle) {
-      existingStyle.remove();
+    if (this._baseStyleElement && this._baseStyleElement.parentNode) {
+      this._baseStyleElement.remove();
     }
     this._injectStyles();
   }
@@ -4589,6 +4629,10 @@ var OverTypeEditor = class extends HTMLElement {
    * @private
    */
   _cleanup() {
+    if (this._selectionChangeHandler) {
+      document.removeEventListener("selectionchange", this._selectionChangeHandler);
+      this._selectionChangeHandler = null;
+    }
     if (this._editor && typeof this._editor.destroy === "function") {
       this._editor.destroy();
     }
@@ -4664,7 +4708,24 @@ var OverTypeEditor = class extends HTMLElement {
    * @returns {Object} Statistics object
    */
   getStats() {
-    return this._editor ? this._editor.getStats() : null;
+    if (!this._editor || !this._editor.textarea)
+      return null;
+    const value = this._editor.textarea.value;
+    const lines = value.split("\n");
+    const chars = value.length;
+    const words = value.split(/\s+/).filter((w) => w.length > 0).length;
+    const selectionStart = this._editor.textarea.selectionStart;
+    const beforeCursor = value.substring(0, selectionStart);
+    const linesBefore = beforeCursor.split("\n");
+    const currentLine = linesBefore.length;
+    const currentColumn = linesBefore[linesBefore.length - 1].length + 1;
+    return {
+      characters: chars,
+      words,
+      lines: lines.length,
+      line: currentLine,
+      column: currentColumn
+    };
   }
   /**
    * Check if editor is ready

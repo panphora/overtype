@@ -2635,6 +2635,38 @@ ${blockSuffix}` : suffix;
       height: 2px !important;
     }
 
+    /* Link Tooltip - CSS Anchor Positioning */
+    @supports (position-anchor: --x) and (position-area: center) {
+      .overtype-link-tooltip {
+        position: absolute;
+        position-anchor: var(--target-anchor, --link-0);
+        position-area: block-end center;
+        margin-top: 8px !important;
+
+        background: #333 !important;
+        color: white !important;
+        padding: 6px 10px !important;
+        border-radius: 16px !important;
+        font-size: 12px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+        display: none !important;
+        z-index: 10000 !important;
+        cursor: pointer !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        max-width: 300px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+
+        position-try: most-width block-end inline-end, flip-inline, block-start center;
+        position-visibility: anchors-visible;
+      }
+
+      .overtype-link-tooltip.visible {
+        display: flex !important;
+      }
+    }
+
     ${mobileStyles}
   `;
   }
@@ -2889,13 +2921,10 @@ ${blockSuffix}` : suffix;
       this.tooltip = null;
       this.currentLink = null;
       this.hideTimeout = null;
+      this.visibilityChangeHandler = null;
       this.init();
     }
     init() {
-      const supportsAnchor = typeof CSS !== "undefined" && CSS.supports && CSS.supports("position-anchor: --x") && CSS.supports("position-area: center");
-      if (!supportsAnchor) {
-        return;
-      }
       this.createTooltip();
       this.editor.textarea.addEventListener("selectionchange", () => this.checkCursorPosition());
       this.editor.textarea.addEventListener("keyup", (e) => {
@@ -2905,46 +2934,19 @@ ${blockSuffix}` : suffix;
       });
       this.editor.textarea.addEventListener("input", () => this.hide());
       this.editor.textarea.addEventListener("scroll", () => this.hide());
+      this.editor.textarea.addEventListener("blur", () => this.hide());
+      this.visibilityChangeHandler = () => {
+        if (document.hidden) {
+          this.hide();
+        }
+      };
+      document.addEventListener("visibilitychange", this.visibilityChangeHandler);
       this.tooltip.addEventListener("mouseenter", () => this.cancelHide());
       this.tooltip.addEventListener("mouseleave", () => this.scheduleHide());
     }
     createTooltip() {
       this.tooltip = document.createElement("div");
       this.tooltip.className = "overtype-link-tooltip";
-      const tooltipStyles = document.createElement("style");
-      tooltipStyles.textContent = `
-      @supports (position-anchor: --x) and (position-area: center) {
-        .overtype-link-tooltip {
-          position: absolute;
-          position-anchor: var(--target-anchor, --link-0);
-          position-area: block-end center;
-          margin-top: 8px !important;
-          
-          background: #333 !important;
-          color: white !important;
-          padding: 6px 10px !important;
-          border-radius: 16px !important;
-          font-size: 12px !important;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-          display: none !important;
-          z-index: 10000 !important;
-          cursor: pointer !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-          max-width: 300px !important;
-          white-space: nowrap !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          
-          position-try: most-width block-end inline-end, flip-inline, block-start center;
-          position-visibility: anchors-visible;
-        }
-        
-        .overtype-link-tooltip.visible {
-          display: flex !important;
-        }
-      }
-    `;
-      document.head.appendChild(tooltipStyles);
       this.tooltip.innerHTML = `
       <span style="display: flex; align-items: center; gap: 6px;">
         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink: 0;">
@@ -3020,6 +3022,10 @@ ${blockSuffix}` : suffix;
     }
     destroy() {
       this.cancelHide();
+      if (this.visibilityChangeHandler) {
+        document.removeEventListener("visibilitychange", this.visibilityChangeHandler);
+        this.visibilityChangeHandler = null;
+      }
       if (this.tooltip && this.tooltip.parentNode) {
         this.tooltip.parentNode.removeChild(this.tooltip);
       }

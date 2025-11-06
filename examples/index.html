@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType Examples</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #888;
+            margin-bottom: 3rem;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .example-card {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s;
+            display: block;
+        }
+
+        .example-card:hover {
+            background: #1a1a1a;
+            border-color: #666;
+            transform: translateY(-2px);
+        }
+
+        .example-card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+
+        .example-card p {
+            font-size: 0.9rem;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        .example-card .tag {
+            display: inline-block;
+            background: #333;
+            color: #aaa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #4251de;
+            text-decoration: none;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to Home</a>
+
+        <h1>Examples</h1>
+        <p class="subtitle">Explore different ways to use OverType in your projects</p>
+
+        <div class="examples-grid">
+            <a href="/examples/basic.html" class="example-card">
+                <h2>Basic Usage</h2>
+                <p>Simple editor setup with default configuration. Perfect for getting started.</p>
+                <span class="tag">Beginner</span>
+            </a>
+
+            <a href="/examples/custom-toolbar.html" class="example-card">
+                <h2>Custom Toolbar</h2>
+                <p>Customize the toolbar with your own buttons, separators, and actions.</p>
+                <span class="tag">Toolbar</span>
+            </a>
+
+            <a href="/examples/custom-theme.html" class="example-card">
+                <h2>Custom Theme</h2>
+                <p>Create your own color theme or customize existing themes.</p>
+                <span class="tag">Theming</span>
+            </a>
+
+            <a href="/examples/multiple.html" class="example-card">
+                <h2>Multiple Instances</h2>
+                <p>Run multiple independent editors on the same page.</p>
+                <span class="tag">Advanced</span>
+            </a>
+
+            <a href="/examples/dynamic.html" class="example-card">
+                <h2>Dynamic Editing</h2>
+                <p>Programmatically control editor content and options.</p>
+                <span class="tag">API</span>
+            </a>
+
+            <a href="/examples/webcomponent.html" class="example-card">
+                <h2>Web Component</h2>
+                <p>Use the native &lt;overtype-editor&gt; custom element with Shadow DOM.</p>
+                <span class="tag">Web Components</span>
+            </a>
+
+            <a href="/examples/shiki-integration.html" class="example-card">
+                <h2>Shiki Integration</h2>
+                <p>Beautiful syntax highlighting for code blocks using Shiki.</p>
+                <span class="tag">Highlighting</span>
+            </a>
+
+            <a href="/examples/highlightjs-integration.html" class="example-card">
+                <h2>Highlight.js Integration</h2>
+                <p>Syntax highlighting for code blocks using Highlight.js.</p>
+                <span class="tag">Highlighting</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
