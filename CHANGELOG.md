@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-01-06
+
+### 🐛 Bug Fixes
+
+- Fixed checkbox rendering in preview mode - task list checkboxes now properly render as interactive `<input type="checkbox">` elements when switching to preview mode
+- Fixed mode switching not triggering preview re-render - `showPreviewMode()` and `showNormalEditMode()` now call `updatePreview()` to regenerate HTML with correct mode
+- Removed `disabled` attribute from checkboxes in preview mode - checkboxes are now interactive
+
+### 🔧 Improvements
+
+- Simplified website architecture - moved `assets/` and `examples/` into `website/` directory, removed symlinks
+- Build script now automatically copies `dist/` to `website/dist/`
+- Massively simplified DEVELOPER.md documentation
+- Added comprehensive alignment verification tests for Shiki, Highlight.js, and Prism with complex code fixtures
+- Moved build scripts to `./scripts/` directory for better organization
+- Moved `test-types.ts` to `./test/` directory for consistency
+
 ## [2.0.0] - 2025-01-05
 
 ### 🚨 Breaking Changes
