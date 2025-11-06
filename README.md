@@ -766,11 +766,11 @@ MIT
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+<p>&nbsp;</p>
+
 ---
 
 Built with the radical idea that sometimes dumb ideas work.
-
----
 
 **Ready for another radical idea?**  
 Let's remove every layer of the web application stack.
