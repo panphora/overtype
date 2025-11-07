@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2025-01-07
+
+### 🔧 Improvements
+
+- Fixed build banner to show correct author (David Miranda) and GitHub URL
+
 ## [2.0.2] - 2025-01-06
 
 ### 🐛 Bug Fixes
