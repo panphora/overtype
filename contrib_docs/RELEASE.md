@@ -57,9 +57,9 @@ npm publish
 
 ### 9. Prime unpkg Cache
 ```bash
-curl -I https://unpkg.com/overtype@{version}/dist/overtype.min.js
+curl -I https://unpkg.com/overtype/dist/overtype.min.js
 ```
-This ensures the CDN cache is primed for the new version.
+This ensures the CDN cache is primed for the new version (uses latest version).
 
 ### 10. Post-Release
 - Verify npm package is live
