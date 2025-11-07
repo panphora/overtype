@@ -2,8 +2,8 @@
  * OverType v2.0.2
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
- * @author Demo User
- * https://github.com/demo/overtype
+ * @author David Miranda
+ * https://github.com/panphora/overtype
  */
 var OverTypeEditor = (() => {
   var __defProp = Object.defineProperty;

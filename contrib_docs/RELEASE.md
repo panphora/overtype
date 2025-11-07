@@ -55,7 +55,13 @@ git push origin main --tags
 npm publish
 ```
 
-### 9. Post-Release
+### 9. Prime unpkg Cache
+```bash
+curl -I https://unpkg.com/overtype@{version}/dist/overtype.min.js
+```
+This ensures the CDN cache is primed for the new version.
+
+### 10. Post-Release
 - Verify npm package is live
 - Test installation in a clean project
 - Update any example repos or documentation sites
