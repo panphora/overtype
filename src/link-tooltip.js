@@ -1,7 +1,7 @@
 /**
- * Link Tooltip - CSS Anchor Positioning with index-based anchors
+ * Link Tooltip - CSS Anchor Positioning with Floating UI fallback
  * Shows a clickable tooltip when cursor is within a link
- * Uses CSS anchor positioning with dynamically selected anchor
+ * Uses CSS anchor positioning for modern browsers, Floating UI for older browsers
  */
 
 export class LinkTooltip {
@@ -11,11 +11,35 @@ export class LinkTooltip {
     this.currentLink = null;
     this.hideTimeout = null;
     this.visibilityChangeHandler = null;
+    this.useFloatingUI = false;
+    this.floatingUI = null;
 
     this.init();
   }
 
-  init() {
+  async init() {
+    // Detect CSS anchor positioning support
+    const supportsAnchorPositioning = CSS.supports('position-anchor: --x') &&
+                                      CSS.supports('position-area: center');
+
+    // Load Floating UI if needed
+    if (!supportsAnchorPositioning) {
+      try {
+        // Use indirect eval to prevent bundler from processing the import
+        const importFn = new Function('url', 'return import(url)');
+        const { computePosition, offset, shift, flip } = await importFn(
+          'https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm'
+        );
+        this.floatingUI = { computePosition, offset, shift, flip };
+        this.useFloatingUI = true;
+      } catch (error) {
+        // If dynamic import fails, tooltips simply won't show
+        console.warn('Failed to load Floating UI fallback:', error);
+        this.floatingUI = null;
+        this.useFloatingUI = false;
+      }
+    }
+
     // Create tooltip element
     // Note: Styles are now in the main stylesheet (styles.js) with @supports wrapper
     this.createTooltip();
@@ -28,9 +52,19 @@ export class LinkTooltip {
       }
     });
 
-    // Hide tooltip when typing or scrolling
+    // Hide tooltip when typing
     this.editor.textarea.addEventListener('input', () => this.hide());
-    this.editor.textarea.addEventListener('scroll', () => this.hide());
+
+    // Reposition or hide tooltip when scrolling
+    this.editor.textarea.addEventListener('scroll', () => {
+      if (this.useFloatingUI && this.currentLink) {
+        // Reposition the tooltip for Floating UI
+        this.showWithFloatingUI(this.currentLink);
+      } else {
+        // Hide for CSS anchor positioning (native browser behavior handles this)
+        this.hide();
+      }
+    });
 
     // Hide tooltip when textarea loses focus
     this.editor.textarea.addEventListener('blur', () => this.hide());
@@ -43,9 +77,8 @@ export class LinkTooltip {
     };
     document.addEventListener('visibilitychange', this.visibilityChangeHandler);
 
-    // Keep tooltip visible on hover
+    // Keep tooltip visible on hover (only prevent hide, don't schedule hide on leave)
     this.tooltip.addEventListener('mouseenter', () => this.cancelHide());
-    this.tooltip.addEventListener('mouseleave', () => this.scheduleHide());
   }
 
   createTooltip() {
@@ -128,11 +161,67 @@ export class LinkTooltip {
     const urlSpan = this.tooltip.querySelector('.overtype-link-tooltip-url');
     urlSpan.textContent = linkInfo.url;
 
+    if (this.useFloatingUI) {
+      this.showWithFloatingUI(linkInfo);
+    } else {
+      this.showWithAnchorPositioning(linkInfo);
+    }
+
+    this.tooltip.classList.add('visible');
+  }
+
+  showWithAnchorPositioning(linkInfo) {
     // Set the CSS variable to point to the correct anchor
     this.tooltip.style.setProperty('--target-anchor', `--link-${linkInfo.index}`);
+  }
 
-    // Show tooltip (CSS anchor positioning handles the rest)
-    this.tooltip.classList.add('visible');
+  async showWithFloatingUI(linkInfo) {
+    // Find the <a> element in preview that corresponds to this link
+    const anchorElement = this.findAnchorElement(linkInfo.index);
+
+    if (!anchorElement) {
+      return;
+    }
+
+    // Check if anchor element is visible and in viewport
+    const rect = anchorElement.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      return;
+    }
+
+    try {
+      // Compute position using Floating UI
+      const { x, y } = await this.floatingUI.computePosition(
+        anchorElement,
+        this.tooltip,
+        {
+          placement: 'bottom',
+          middleware: [
+            this.floatingUI.offset(8),
+            this.floatingUI.shift({ padding: 8 }),
+            this.floatingUI.flip()
+          ]
+        }
+      );
+
+      // Apply position
+      Object.assign(this.tooltip.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+        position: 'absolute'
+      });
+    } catch (error) {
+      // If Floating UI computation fails, don't show tooltip
+      console.warn('Floating UI positioning failed:', error);
+      return;
+    }
+  }
+
+  findAnchorElement(linkIndex) {
+    // Find the <a> element with the matching anchor-name style
+    const preview = this.editor.preview;
+    // Direct query for the specific link - more efficient than iterating
+    return preview.querySelector(`a[style*="--link-${linkIndex}"]`);
   }
 
   hide() {
@@ -166,5 +255,7 @@ export class LinkTooltip {
     }
     this.tooltip = null;
     this.currentLink = null;
+    this.floatingUI = null;
+    this.useFloatingUI = false;
   }
 }

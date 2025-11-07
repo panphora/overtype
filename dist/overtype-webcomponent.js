@@ -1,5 +1,5 @@
 /**
- * OverType v2.0.1
+ * OverType v2.0.2
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author Demo User
@@ -1862,8 +1862,8 @@ ${blockSuffix}` : suffix;
     
     /* Container base styles after reset */
     .overtype-container {
-      display: grid !important;
-      grid-template-rows: auto 1fr auto !important;
+      display: flex !important;
+      flex-direction: column !important;
       width: 100% !important;
       height: 100% !important;
       position: relative !important; /* Override reset - needed for absolute children */
@@ -1883,10 +1883,10 @@ ${blockSuffix}` : suffix;
     /* Auto-resize mode styles */
     .overtype-container.overtype-auto-resize {
       height: auto !important;
-      grid-template-rows: auto auto auto !important;
     }
-    
+
     .overtype-container.overtype-auto-resize .overtype-wrapper {
+      flex: 0 0 auto !important; /* Don't grow/shrink, use explicit height */
       height: auto !important;
       min-height: 60px !important;
       overflow: visible !important;
@@ -1895,11 +1895,10 @@ ${blockSuffix}` : suffix;
     .overtype-wrapper {
       position: relative !important; /* Override reset - needed for absolute children */
       width: 100% !important;
-      height: 100% !important; /* Take full height of grid cell */
+      flex: 1 1 0 !important; /* Grow to fill remaining space, with flex-basis: 0 */
       min-height: 60px !important; /* Minimum usable height */
       overflow: hidden !important;
       background: var(--bg-secondary, #ffffff) !important;
-      grid-row: 2 !important; /* Always second row in grid */
       z-index: 1; /* Below toolbar and dropdown */
     }
 
@@ -2234,7 +2233,7 @@ ${blockSuffix}` : suffix;
 
     /* Stats bar */
     
-    /* Stats bar - positioned by grid, not absolute */
+    /* Stats bar - positioned by flexbox */
     .overtype-stats {
       height: 40px !important;
       padding: 0 20px !important;
@@ -2246,7 +2245,7 @@ ${blockSuffix}` : suffix;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       font-size: 0.85rem !important;
       color: #666 !important;
-      grid-row: 3 !important; /* Always third row in grid */
+      flex-shrink: 0 !important; /* Don't shrink */
     }
     
     /* Dark theme stats bar */
@@ -2289,7 +2288,6 @@ ${blockSuffix}` : suffix;
       -webkit-overflow-scrolling: touch !important;
       flex-shrink: 0 !important;
       height: auto !important;
-      grid-row: 1 !important; /* Always first row in grid */
       position: relative !important; /* Override reset */
       z-index: 100 !important; /* Ensure toolbar is above wrapper */
       scrollbar-width: thin; /* Thin scrollbar on Firefox */
@@ -2359,9 +2357,6 @@ ${blockSuffix}` : suffix;
     }
 
     /* Adjust wrapper when toolbar is present */
-    .overtype-container .overtype-toolbar + .overtype-wrapper {
-    }
-
     /* Mobile toolbar adjustments */
     @media (max-width: 640px) {
       .overtype-toolbar {
@@ -2632,35 +2627,41 @@ ${blockSuffix}` : suffix;
       height: 2px !important;
     }
 
-    /* Link Tooltip - CSS Anchor Positioning */
+    /* Link Tooltip - Base styles (all browsers) */
+    .overtype-link-tooltip {
+      /* Visual styles that work for both positioning methods */
+      background: #333 !important;
+      color: white !important;
+      padding: 6px 10px !important;
+      border-radius: 16px !important;
+      font-size: 12px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      display: none !important;
+      z-index: 10000 !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+      max-width: 300px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+
+      /* Base positioning for Floating UI fallback */
+      position: absolute;
+    }
+
+    .overtype-link-tooltip.visible {
+      display: flex !important;
+    }
+
+    /* CSS Anchor Positioning (modern browsers only) */
     @supports (position-anchor: --x) and (position-area: center) {
       .overtype-link-tooltip {
-        position: absolute;
+        /* Only anchor positioning specific properties */
         position-anchor: var(--target-anchor, --link-0);
         position-area: block-end center;
         margin-top: 8px !important;
-
-        background: #333 !important;
-        color: white !important;
-        padding: 6px 10px !important;
-        border-radius: 16px !important;
-        font-size: 12px !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-        display: none !important;
-        z-index: 10000 !important;
-        cursor: pointer !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-        max-width: 300px !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-
         position-try: most-width block-end inline-end, flip-inline, block-start center;
         position-visibility: anchors-visible;
-      }
-
-      .overtype-link-tooltip.visible {
-        display: flex !important;
       }
     }
 
@@ -2694,7 +2695,7 @@ ${blockSuffix}` : suffix;
           this.container.appendChild(button);
         }
       });
-      this.editor.wrapper.insertBefore(this.container, this.editor.wrapper.firstChild);
+      this.editor.container.insertBefore(this.container, this.editor.wrapper);
     }
     /**
      * Create a toolbar separator
@@ -2919,9 +2920,26 @@ ${blockSuffix}` : suffix;
       this.currentLink = null;
       this.hideTimeout = null;
       this.visibilityChangeHandler = null;
+      this.useFloatingUI = false;
+      this.floatingUI = null;
       this.init();
     }
-    init() {
+    async init() {
+      const supportsAnchorPositioning = CSS.supports("position-anchor: --x") && CSS.supports("position-area: center");
+      if (!supportsAnchorPositioning) {
+        try {
+          const importFn = new Function("url", "return import(url)");
+          const { computePosition, offset, shift, flip } = await importFn(
+            "https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.4/+esm"
+          );
+          this.floatingUI = { computePosition, offset, shift, flip };
+          this.useFloatingUI = true;
+        } catch (error) {
+          console.warn("Failed to load Floating UI fallback:", error);
+          this.floatingUI = null;
+          this.useFloatingUI = false;
+        }
+      }
       this.createTooltip();
       this.editor.textarea.addEventListener("selectionchange", () => this.checkCursorPosition());
       this.editor.textarea.addEventListener("keyup", (e) => {
@@ -2930,7 +2948,13 @@ ${blockSuffix}` : suffix;
         }
       });
       this.editor.textarea.addEventListener("input", () => this.hide());
-      this.editor.textarea.addEventListener("scroll", () => this.hide());
+      this.editor.textarea.addEventListener("scroll", () => {
+        if (this.useFloatingUI && this.currentLink) {
+          this.showWithFloatingUI(this.currentLink);
+        } else {
+          this.hide();
+        }
+      });
       this.editor.textarea.addEventListener("blur", () => this.hide());
       this.visibilityChangeHandler = () => {
         if (document.hidden) {
@@ -2939,7 +2963,6 @@ ${blockSuffix}` : suffix;
       };
       document.addEventListener("visibilitychange", this.visibilityChangeHandler);
       this.tooltip.addEventListener("mouseenter", () => this.cancelHide());
-      this.tooltip.addEventListener("mouseleave", () => this.scheduleHide());
     }
     createTooltip() {
       this.tooltip = document.createElement("div");
@@ -3000,8 +3023,51 @@ ${blockSuffix}` : suffix;
       this.cancelHide();
       const urlSpan = this.tooltip.querySelector(".overtype-link-tooltip-url");
       urlSpan.textContent = linkInfo.url;
-      this.tooltip.style.setProperty("--target-anchor", `--link-${linkInfo.index}`);
+      if (this.useFloatingUI) {
+        this.showWithFloatingUI(linkInfo);
+      } else {
+        this.showWithAnchorPositioning(linkInfo);
+      }
       this.tooltip.classList.add("visible");
+    }
+    showWithAnchorPositioning(linkInfo) {
+      this.tooltip.style.setProperty("--target-anchor", `--link-${linkInfo.index}`);
+    }
+    async showWithFloatingUI(linkInfo) {
+      const anchorElement = this.findAnchorElement(linkInfo.index);
+      if (!anchorElement) {
+        return;
+      }
+      const rect = anchorElement.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return;
+      }
+      try {
+        const { x, y } = await this.floatingUI.computePosition(
+          anchorElement,
+          this.tooltip,
+          {
+            placement: "bottom",
+            middleware: [
+              this.floatingUI.offset(8),
+              this.floatingUI.shift({ padding: 8 }),
+              this.floatingUI.flip()
+            ]
+          }
+        );
+        Object.assign(this.tooltip.style, {
+          left: `${x}px`,
+          top: `${y}px`,
+          position: "absolute"
+        });
+      } catch (error) {
+        console.warn("Floating UI positioning failed:", error);
+        return;
+      }
+    }
+    findAnchorElement(linkIndex) {
+      const preview = this.editor.preview;
+      return preview.querySelector(`a[style*="--link-${linkIndex}"]`);
     }
     hide() {
       this.tooltip.classList.remove("visible");
@@ -3028,6 +3094,8 @@ ${blockSuffix}` : suffix;
       }
       this.tooltip = null;
       this.currentLink = null;
+      this.floatingUI = null;
+      this.useFloatingUI = false;
     }
   };
 
@@ -3482,22 +3550,10 @@ ${blockSuffix}` : suffix;
         this._updateStats();
       }
       this.element.appendChild(this.container);
-      if (window.location.pathname.includes("demo.html")) {
-        console.log("_createDOM completed:", {
-          elementId: this.element.id,
-          autoResize: this.options.autoResize,
-          containerClasses: this.container.className,
-          hasStats: !!this.statsBar,
-          hasToolbar: this.options.toolbar
-        });
-      }
       if (this.options.autoResize) {
         this._setupAutoResize();
       } else {
         this.container.classList.remove("overtype-auto-resize");
-        if (window.location.pathname.includes("demo.html")) {
-          console.log("Removed auto-resize class from:", this.element.id);
-        }
       }
     }
     /**

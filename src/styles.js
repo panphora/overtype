@@ -72,8 +72,8 @@ export function generateStyles(options = {}) {
     
     /* Container base styles after reset */
     .overtype-container {
-      display: grid !important;
-      grid-template-rows: auto 1fr auto !important;
+      display: flex !important;
+      flex-direction: column !important;
       width: 100% !important;
       height: 100% !important;
       position: relative !important; /* Override reset - needed for absolute children */
@@ -93,10 +93,10 @@ export function generateStyles(options = {}) {
     /* Auto-resize mode styles */
     .overtype-container.overtype-auto-resize {
       height: auto !important;
-      grid-template-rows: auto auto auto !important;
     }
-    
+
     .overtype-container.overtype-auto-resize .overtype-wrapper {
+      flex: 0 0 auto !important; /* Don't grow/shrink, use explicit height */
       height: auto !important;
       min-height: 60px !important;
       overflow: visible !important;
@@ -105,11 +105,10 @@ export function generateStyles(options = {}) {
     .overtype-wrapper {
       position: relative !important; /* Override reset - needed for absolute children */
       width: 100% !important;
-      height: 100% !important; /* Take full height of grid cell */
+      flex: 1 1 0 !important; /* Grow to fill remaining space, with flex-basis: 0 */
       min-height: 60px !important; /* Minimum usable height */
       overflow: hidden !important;
       background: var(--bg-secondary, #ffffff) !important;
-      grid-row: 2 !important; /* Always second row in grid */
       z-index: 1; /* Below toolbar and dropdown */
     }
 
@@ -444,7 +443,7 @@ export function generateStyles(options = {}) {
 
     /* Stats bar */
     
-    /* Stats bar - positioned by grid, not absolute */
+    /* Stats bar - positioned by flexbox */
     .overtype-stats {
       height: 40px !important;
       padding: 0 20px !important;
@@ -456,7 +455,7 @@ export function generateStyles(options = {}) {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
       font-size: 0.85rem !important;
       color: #666 !important;
-      grid-row: 3 !important; /* Always third row in grid */
+      flex-shrink: 0 !important; /* Don't shrink */
     }
     
     /* Dark theme stats bar */
@@ -499,7 +498,6 @@ export function generateStyles(options = {}) {
       -webkit-overflow-scrolling: touch !important;
       flex-shrink: 0 !important;
       height: auto !important;
-      grid-row: 1 !important; /* Always first row in grid */
       position: relative !important; /* Override reset */
       z-index: 100 !important; /* Ensure toolbar is above wrapper */
       scrollbar-width: thin; /* Thin scrollbar on Firefox */
@@ -569,9 +567,6 @@ export function generateStyles(options = {}) {
     }
 
     /* Adjust wrapper when toolbar is present */
-    .overtype-container .overtype-toolbar + .overtype-wrapper {
-    }
-
     /* Mobile toolbar adjustments */
     @media (max-width: 640px) {
       .overtype-toolbar {
@@ -842,35 +837,41 @@ export function generateStyles(options = {}) {
       height: 2px !important;
     }
 
-    /* Link Tooltip - CSS Anchor Positioning */
+    /* Link Tooltip - Base styles (all browsers) */
+    .overtype-link-tooltip {
+      /* Visual styles that work for both positioning methods */
+      background: #333 !important;
+      color: white !important;
+      padding: 6px 10px !important;
+      border-radius: 16px !important;
+      font-size: 12px !important;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      display: none !important;
+      z-index: 10000 !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+      max-width: 300px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+
+      /* Base positioning for Floating UI fallback */
+      position: absolute;
+    }
+
+    .overtype-link-tooltip.visible {
+      display: flex !important;
+    }
+
+    /* CSS Anchor Positioning (modern browsers only) */
     @supports (position-anchor: --x) and (position-area: center) {
       .overtype-link-tooltip {
-        position: absolute;
+        /* Only anchor positioning specific properties */
         position-anchor: var(--target-anchor, --link-0);
         position-area: block-end center;
         margin-top: 8px !important;
-
-        background: #333 !important;
-        color: white !important;
-        padding: 6px 10px !important;
-        border-radius: 16px !important;
-        font-size: 12px !important;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-        display: none !important;
-        z-index: 10000 !important;
-        cursor: pointer !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-        max-width: 300px !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-
         position-try: most-width block-end inline-end, flip-inline, block-start center;
         position-visibility: anchors-visible;
-      }
-
-      .overtype-link-tooltip.visible {
-        display: flex !important;
       }
     }
 

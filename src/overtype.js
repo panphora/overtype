@@ -362,27 +362,12 @@ class OverType {
       // Add container to element
       this.element.appendChild(this.container);
       
-      // Debug logging
-      if (window.location.pathname.includes('demo.html')) {
-        console.log('_createDOM completed:', {
-          elementId: this.element.id,
-          autoResize: this.options.autoResize,
-          containerClasses: this.container.className,
-          hasStats: !!this.statsBar,
-          hasToolbar: this.options.toolbar
-        });
-      }
-      
       // Setup auto-resize if enabled
       if (this.options.autoResize) {
         this._setupAutoResize();
       } else {
         // Ensure auto-resize class is removed if not using auto-resize
         this.container.classList.remove('overtype-auto-resize');
-        
-        if (window.location.pathname.includes('demo.html')) {
-          console.log('Removed auto-resize class from:', this.element.id);
-        }
       }
     }
 

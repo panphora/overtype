@@ -36,7 +36,8 @@ export class Toolbar {
       }
     });
 
-    this.editor.wrapper.insertBefore(this.container, this.editor.wrapper.firstChild);
+    // Insert toolbar before the wrapper (as sibling, not child)
+    this.editor.container.insertBefore(this.container, this.editor.wrapper);
   }
 
   /**

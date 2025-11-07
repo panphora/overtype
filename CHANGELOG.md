@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2025-01-06
+
+### 🐛 Bug Fixes
+
+- Fixed link tooltips not working in Firefox and browsers without CSS Anchor Positioning support (#68)
+  - Implemented Floating UI as a dynamic fallback for older browsers
+  - Tooltips now work in Firefox, Safari, and older Chrome/Edge versions
+  - Zero bundle size increase for modern browsers (Chrome 125+, Edge 125+)
+  - Floating UI loads dynamically only when needed via CDN
+
+### 🔧 Improvements
+
+- Fixed toolbar positioning to not overlap content (#69)
+- Improved tooltip behavior in Firefox: tooltips now reposition on scroll instead of hiding
+- Removed debug console.log statements from production builds
+- Added graceful error handling for tooltip failures
+
+### 🙏 Thanks
+
+- @kozi for reporting issues #68 and #69
+
 ## [2.0.1] - 2025-01-06
 
 ### 🐛 Bug Fixes
