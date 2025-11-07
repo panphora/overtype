@@ -456,6 +456,8 @@ export function generateStyles(options = {}) {
       font-size: 0.85rem !important;
       color: #666 !important;
       flex-shrink: 0 !important; /* Don't shrink */
+      z-index: 10001 !important; /* Above link tooltip */
+      position: relative !important; /* Enable z-index */
     }
     
     /* Dark theme stats bar */

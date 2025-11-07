@@ -1,5 +1,5 @@
 /**
- * OverType v2.0.3
+ * OverType v2.0.4
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -2223,6 +2223,8 @@ function generateStyles(options = {}) {
       font-size: 0.85rem !important;
       color: #666 !important;
       flex-shrink: 0 !important; /* Don't shrink */
+      z-index: 10001 !important; /* Above link tooltip */
+      position: relative !important; /* Enable z-index */
     }
     
     /* Dark theme stats bar */
@@ -3333,6 +3335,12 @@ var _OverType = class _OverType {
     }
     this.shortcuts = new ShortcutsManager(this);
     this.linkTooltip = new LinkTooltip(this);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.textarea.scrollTop = this.preview.scrollTop;
+        this.textarea.scrollLeft = this.preview.scrollLeft;
+      });
+    });
     this.initialized = true;
     if (this.options.onChange) {
       this.options.onChange(this.getValue(), this);

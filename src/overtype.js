@@ -103,6 +103,16 @@ class OverType {
       // Setup link tooltip
       this.linkTooltip = new LinkTooltip(this);
 
+      // Sync scroll positions on initial render
+      // This ensures textarea matches preview scroll if page is reloaded while scrolled
+      // Double requestAnimationFrame waits for browser to restore scroll position
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          this.textarea.scrollTop = this.preview.scrollTop;
+          this.textarea.scrollLeft = this.preview.scrollLeft;
+        });
+      });
+
       // Mark as initialized
       this.initialized = true;
 

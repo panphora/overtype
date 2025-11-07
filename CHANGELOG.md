@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.4] - 2025-01-07
+
+### 🐛 Bug Fixes
+
+- Fixed stats bar z-index to appear above link tooltips
+- Fixed scroll position desync on page reload - textarea now syncs to preview scroll position after browser restoration
+
 ## [2.0.3] - 2025-01-07
 
 ### 🔧 Improvements
