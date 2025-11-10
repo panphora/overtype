@@ -1,35 +1,41 @@
 // Type definitions for OverType
 // Project: https://github.com/panphora/overtype
-// Definitions generated from JSDoc comments and implementation
+// Definitions generated from themes.js and styles.js
+// DO NOT EDIT MANUALLY - Run 'npm run generate:types' to regenerate
 
 export interface Theme {
   name: string;
   colors: {
     bgPrimary?: string;
     bgSecondary?: string;
-    text?: string;
-    textSecondary?: string;
+    blockquote?: string;
+    border?: string;
+    code?: string;
+    codeBg?: string;
+    cursor?: string;
+    del?: string;
+    em?: string;
     h1?: string;
     h2?: string;
     h3?: string;
-    strong?: string;
-    em?: string;
-    link?: string;
-    code?: string;
-    codeBg?: string;
-    blockquote?: string;
+    hoverBg?: string;
     hr?: string;
-    syntaxMarker?: string;
+    link?: string;
     listMarker?: string;
-    cursor?: string;
-    selection?: string;
+    primary?: string;
     rawLine?: string;
-    // Toolbar theme colors
-    toolbarBg?: string;
-    toolbarIcon?: string;
-    toolbarHover?: string;
+    selection?: string;
+    strong?: string;
+    syntax?: string;
+    syntaxMarker?: string;
+    text?: string;
+    textPrimary?: string;
+    textSecondary?: string;
     toolbarActive?: string;
-    border?: string;
+    toolbarBg?: string;
+    toolbarBorder?: string;
+    toolbarHover?: string;
+    toolbarIcon?: string;
   };
 }
 
@@ -166,12 +172,12 @@ export interface OverTypeInstance {
   setTheme(theme: string | Theme): this;
   setCodeHighlighter(highlighter: ((code: string, language: string) => string) | null): void;
   updatePreview(): void;
-  
+
   // HTML output methods
   getRenderedHTML(options?: RenderOptions): string;
   getCleanHTML(): string;
   getPreviewHTML(): string;
-  
+
   // View mode methods
   showNormalEditMode(): this;
   showPlainTextarea(): this;

@@ -225,7 +225,7 @@
                     <label>Font Size:
                         <select id="wc-fontsize-select" onchange="wcChangeFontSize()" style="background:#111; color:#fff; border:1px solid #333; padding:4px;">
                             <option value="12px">12px</option>
-                            <option value="14px">14px</option>
+                            <option value="14px" selected>14px</option>
                             <option value="16px">16px</option>
                             <option value="18px">18px</option>
                         </select>
@@ -243,12 +243,11 @@
                         Auto Resize
                     </label>
                 </div>
-                <overtype-editor 
+                <overtype-editor
                     id="wc-editor"
                     value="# Web Component Demo\n\nThis demo showcases the **native** `<overtype-editor>` custom element with full functionality!\n\n## Features\n\n- **Real-time** markdown editing\n- *Live* preview updates\n- `Keyboard shortcuts` support\n- Multiple themes (Solar/Cave)\n- Built-in toolbar\n- Auto-resize capability\n- Event handling\n\n## Try These Features\n\n1. **Bold text** with Cmd/Ctrl + B\n2. *Italic text* with Cmd/Ctrl + I\n3. `Inline code` with Cmd/Ctrl + K\n4. [Links](https://github.com) work great!\n5. Create lists with Cmd/Ctrl + Shift + 8\n\n### Code Blocks\n\n```javascript\n// JavaScript code with syntax highlighting\nfunction greet(name) {\n    return `Hello, ${name}!`;\n}\n\nconsole.log(greet('OverType'));\n```\n\n### Blockquotes\n\n> This is a blockquote example.\n> It can span multiple lines\n> and looks great in the preview!\n\n---\n\n**Happy editing!** 🎉\n\n*The Web Component provides the same powerful features as the regular OverType editor, but as a native HTML element.*"
                     theme="solar"
                     height="300px"
-                    font-size="16px"
                     toolbar
                     show-stats>
                 </overtype-editor>

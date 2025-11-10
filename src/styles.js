@@ -495,6 +495,7 @@ export function generateStyles(options = {}) {
       gap: 4px !important;
       padding: 8px !important; /* Override reset */
       background: var(--toolbar-bg, var(--bg-primary, #f8f9fa)) !important; /* Override reset */
+      border-bottom: 1px solid var(--toolbar-border, transparent) !important; /* Override reset */
       overflow-x: auto !important; /* Allow horizontal scrolling */
       overflow-y: hidden !important; /* Hide vertical overflow */
       -webkit-overflow-scrolling: touch !important;

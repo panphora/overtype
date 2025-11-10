@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.5] - 2025-01-10
+
+### 🐛 Bug Fixes
+
+- Fixed web component status bar not updating theme colors (#70, #71)
+  - Web component now calls `setTheme()` on the internal OverType instance when theme attribute changes
+  - This ensures the `data-theme` attribute is set on the container for theme-specific CSS selectors
+  - Status bar now properly switches between light and dark themes
+
+### 🔧 Improvements
+
+- **Automatic TypeScript Definition Generation** (#71)
+  - Added `scripts/generate-types.js` to auto-generate `overtype.d.ts` from `themes.js` and `styles.js`
+  - TypeScript definitions now automatically stay in sync with theme properties and CSS variables
+  - Added `generate:types` npm script (runs automatically before builds)
+  - Eliminates manual maintenance and prevents drift between themes, CSS, and types
+
+- **Enhanced Theme System** (#71)
+  - Added missing theme properties for better dark theme support: `del`, `rawLine`, `border`, `hoverBg`, `primary`, `syntax`, `textPrimary`, `textSecondary`
+  - Cave (dark) theme now has proper dark colors for borders, hovers, and UI elements
+  - Toolbar border now defaults to transparent unless explicitly set by user via `toolbarBorder` color option
+  - All 30 theme properties now fully synced across themes.js, styles.js, and TypeScript definitions
+
+### 📚 Documentation
+
+- Updated demo page web component to use consistent 14px font size (matching other editors)
+
+### 🙏 Thanks
+
+- @kozi for reporting theme synchronization issues (#70, #71) and providing detailed analysis
+
 ## [2.0.4] - 2025-01-07
 
 ### 🐛 Bug Fixes

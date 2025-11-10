@@ -1,5 +1,5 @@
 /**
- * OverType v2.0.4
+ * OverType v2.0.5
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -1660,16 +1660,22 @@ var solar = {
     // White - editor background
     text: "#0d3b66",
     // Yale Blue - main text
+    textPrimary: "#0d3b66",
+    // Yale Blue - primary text (same as text)
+    textSecondary: "#5a7a9b",
+    // Muted blue - secondary text
     h1: "#f95738",
     // Tomato - h1 headers
     h2: "#ee964b",
-    // Sandy Brown - h2 headers  
+    // Sandy Brown - h2 headers
     h3: "#3d8a51",
     // Forest green - h3 headers
     strong: "#ee964b",
     // Sandy Brown - bold text
     em: "#f95738",
     // Tomato - italic text
+    del: "#ee964b",
+    // Sandy Brown - deleted text (same as strong)
     link: "#0d3b66",
     // Yale Blue - links
     code: "#0d3b66",
@@ -1682,17 +1688,25 @@ var solar = {
     // Muted blue - horizontal rules
     syntaxMarker: "rgba(13, 59, 102, 0.52)",
     // Yale Blue with transparency
+    syntax: "#999999",
+    // Gray - syntax highlighting fallback
     cursor: "#f95738",
     // Tomato - cursor
     selection: "rgba(244, 211, 94, 0.4)",
     // Naples Yellow with transparency
     listMarker: "#ee964b",
     // Sandy Brown - list markers
+    rawLine: "#5a7a9b",
+    // Muted blue - raw line indicators
+    border: "#e0e0e0",
+    // Light gray - borders
+    hoverBg: "#f0f0f0",
+    // Very light gray - hover backgrounds
+    primary: "#0d3b66",
+    // Yale Blue - primary accent
     // Toolbar colors
     toolbarBg: "#ffffff",
     // White - toolbar background
-    toolbarBorder: "rgba(13, 59, 102, 0.15)",
-    // Yale Blue border
     toolbarIcon: "#0d3b66",
     // Yale Blue - icon color
     toolbarHover: "#f5f5f5",
@@ -1710,6 +1724,10 @@ var cave = {
     // Darker charcoal - editor background
     text: "#c5dde8",
     // Light blue-gray - main text
+    textPrimary: "#c5dde8",
+    // Light blue-gray - primary text (same as text)
+    textSecondary: "#9fcfec",
+    // Brighter blue - secondary text
     h1: "#d4a5ff",
     // Rich lavender - h1 headers
     h2: "#f6ae2d",
@@ -1720,6 +1738,8 @@ var cave = {
     // Hunyadi Yellow - bold text
     em: "#9fcfec",
     // Brighter blue - italic text
+    del: "#f6ae2d",
+    // Hunyadi Yellow - deleted text (same as strong)
     link: "#9fcfec",
     // Brighter blue - links
     code: "#c5dde8",
@@ -1732,17 +1752,25 @@ var cave = {
     // Light blue-gray - horizontal rules
     syntaxMarker: "rgba(159, 207, 236, 0.73)",
     // Brighter blue semi-transparent
+    syntax: "#7a8c98",
+    // Muted gray-blue - syntax highlighting fallback
     cursor: "#f26419",
     // Orange Pantone - cursor
     selection: "rgba(51, 101, 138, 0.4)",
     // Lapis Lazuli with transparency
     listMarker: "#f6ae2d",
     // Hunyadi Yellow - list markers
+    rawLine: "#9fcfec",
+    // Brighter blue - raw line indicators
+    border: "#2a3f52",
+    // Dark blue-gray - borders
+    hoverBg: "#243546",
+    // Slightly lighter charcoal - hover backgrounds
+    primary: "#9fcfec",
+    // Brighter blue - primary accent
     // Toolbar colors for dark theme
     toolbarBg: "#1D2D3E",
     // Darker charcoal - toolbar background
-    toolbarBorder: "rgba(197, 221, 232, 0.1)",
-    // Light blue-gray border
     toolbarIcon: "#c5dde8",
     // Light blue-gray - icon color
     toolbarHover: "#243546",
@@ -2262,6 +2290,7 @@ function generateStyles(options = {}) {
       gap: 4px !important;
       padding: 8px !important; /* Override reset */
       background: var(--toolbar-bg, var(--bg-primary, #f8f9fa)) !important; /* Override reset */
+      border-bottom: 1px solid var(--toolbar-border, transparent) !important; /* Override reset */
       overflow-x: auto !important; /* Allow horizontal scrolling */
       overflow-y: hidden !important; /* Hide vertical overflow */
       -webkit-overflow-scrolling: touch !important;

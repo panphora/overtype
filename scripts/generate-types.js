@@ -1,4 +1,108 @@
-// Type definitions for OverType
+#!/usr/bin/env node
+
+/**
+ * Generate overtype.d.ts from themes.js and styles.js
+ * This ensures TypeScript definitions stay in sync with actual implementation
+ */
+
+import { readFileSync, writeFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const projectRoot = join(__dirname, '..');
+
+// Read source files
+const themesContent = readFileSync(join(projectRoot, 'src/themes.js'), 'utf-8');
+const stylesContent = readFileSync(join(projectRoot, 'src/styles.js'), 'utf-8');
+
+/**
+ * Extract all unique color properties from themes.js
+ */
+function extractThemeProperties(themesContent) {
+  const properties = new Set();
+
+  // Match all properties in the colors objects
+  const colorPropRegex = /colors:\s*{([^}]+)}/gs;
+  const matches = themesContent.matchAll(colorPropRegex);
+
+  for (const match of matches) {
+    const colorBlock = match[1];
+    // Extract property names (camelCase before the colon)
+    const propMatches = colorBlock.matchAll(/\s+(\w+):/g);
+    for (const propMatch of propMatches) {
+      properties.add(propMatch[1]);
+    }
+  }
+
+  return Array.from(properties).sort();
+}
+
+/**
+ * Extract all CSS variables from styles.js
+ */
+function extractCSSVariables(stylesContent) {
+  const variables = new Set();
+
+  // Match all var(--variable-name) patterns (including digits)
+  const varRegex = /var\(--([a-z0-9-]+)(?:,|\))/g;
+  const matches = stylesContent.matchAll(varRegex);
+
+  for (const match of matches) {
+    const varName = match[1];
+    // Convert kebab-case to camelCase
+    const camelCase = varName.replace(/-([a-z0-9])/g, (_, letter) => letter.toUpperCase());
+
+    // Skip instance-specific variables (these are not theme colors)
+    if (!varName.startsWith('instance-') && !varName.startsWith('link-') && !varName.startsWith('target-')) {
+      variables.add(camelCase);
+    }
+  }
+
+  return Array.from(variables).sort();
+}
+
+/**
+ * Generate TypeScript interface for Theme colors
+ */
+function generateThemeInterface(themeProps, cssVars) {
+  // Combine both sources, preferring theme properties as they're more authoritative
+  const allProps = new Set([...themeProps, ...cssVars]);
+
+  const properties = Array.from(allProps)
+    .sort()
+    .map(prop => `    ${prop}?: string;`)
+    .join('\n');
+
+  return properties;
+}
+
+/**
+ * Read the template and inject generated types
+ */
+function generateTypeDefinitions() {
+  const themeProps = extractThemeProperties(themesContent);
+  const cssVars = extractCSSVariables(stylesContent);
+
+  console.log('Theme properties found:', themeProps.length);
+  console.log('CSS variables found:', cssVars.length);
+
+  // Properties that are in CSS but not in themes
+  const missingInThemes = cssVars.filter(v => !themeProps.includes(v));
+  if (missingInThemes.length > 0) {
+    console.log('⚠️  CSS variables missing from themes:', missingInThemes.join(', '));
+  }
+
+  // Properties that are in themes but not used in CSS
+  const unusedInCSS = themeProps.filter(p => !cssVars.includes(p));
+  if (unusedInCSS.length > 0) {
+    console.log('⚠️  Theme properties not used in CSS:', unusedInCSS.join(', '));
+  }
+
+  const colorProperties = generateThemeInterface(themeProps, cssVars);
+
+  const typeDefinitions = `// Type definitions for OverType
 // Project: https://github.com/panphora/overtype
 // Definitions generated from themes.js and styles.js
 // DO NOT EDIT MANUALLY - Run 'npm run generate:types' to regenerate
@@ -6,36 +110,7 @@
 export interface Theme {
   name: string;
   colors: {
-    bgPrimary?: string;
-    bgSecondary?: string;
-    blockquote?: string;
-    border?: string;
-    code?: string;
-    codeBg?: string;
-    cursor?: string;
-    del?: string;
-    em?: string;
-    h1?: string;
-    h2?: string;
-    h3?: string;
-    hoverBg?: string;
-    hr?: string;
-    link?: string;
-    listMarker?: string;
-    primary?: string;
-    rawLine?: string;
-    selection?: string;
-    strong?: string;
-    syntax?: string;
-    syntaxMarker?: string;
-    text?: string;
-    textPrimary?: string;
-    textSecondary?: string;
-    toolbarActive?: string;
-    toolbarBg?: string;
-    toolbarBorder?: string;
-    toolbarHover?: string;
-    toolbarIcon?: string;
+${colorProperties}
   };
 }
 
@@ -216,3 +291,15 @@ export const toolbarButtons: {
  * Default toolbar button layout with separators
  */
 export const defaultToolbarButtons: ToolbarButton[];
+`;
+
+  return typeDefinitions;
+}
+
+// Generate and write the type definitions
+const types = generateTypeDefinitions();
+const outputPath = join(projectRoot, 'src/overtype.d.ts');
+writeFileSync(outputPath, types, 'utf-8');
+
+console.log('✅ Generated overtype.d.ts successfully');
+console.log('   Output:', outputPath);

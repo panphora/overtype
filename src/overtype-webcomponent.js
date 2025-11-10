@@ -315,8 +315,12 @@ class OverTypeEditor extends HTMLElement {
         break;
 
       case 'theme':
-        // Theme changes require re-injecting styles
+        // Theme changes require re-injecting styles and updating the editor instance
         this._reinjectStyles();
+        // Update the OverType instance's theme so it sets data-theme attribute
+        if (this._editor && this._editor.setTheme) {
+          this._editor.setTheme(value || 'solar');
+        }
         break;
 
       case 'placeholder':

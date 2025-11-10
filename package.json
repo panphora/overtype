@@ -1,6 +1,6 @@
 {
   "name": "overtype",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay",
   "main": "dist/overtype.cjs",
   "module": "dist/overtype.esm.js",
@@ -26,7 +26,8 @@
   },
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.js",
+    "generate:types": "node scripts/generate-types.js",
+    "build": "npm run generate:types && node scripts/build.js",
     "build:prod": "npm test && npm run build",
     "dev": "http-server website -p 8080 -c-1",
     "watch": "node scripts/build.js --watch",
