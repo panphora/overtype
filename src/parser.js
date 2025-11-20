@@ -97,7 +97,7 @@ export class MarkdownParser {
    * @returns {string} Parsed bullet list item
    */
   static parseBulletList(html) {
-    return html.replace(/^((?:&nbsp;)*)([-*])\s(.+)$/, (match, indent, marker, content) => {
+    return html.replace(/^((?:&nbsp;)*)([-*+])\s(.+)$/, (match, indent, marker, content) => {
       return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
     });
   }
@@ -165,12 +165,13 @@ export class MarkdownParser {
    */
   static parseItalic(html) {
     // Single asterisk - must not be adjacent to other asterisks
-    html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
-    
+    // Also must not be inside a syntax-marker span (to avoid matching bullet list markers)
+    html = html.replace(/(?<![\*>])\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
+
     // Single underscore - must be at word boundaries to avoid matching inside words
     // This prevents matching underscores in the middle of words like "bold_with_underscore"
     html = html.replace(/(?<=^|\s)_(?!_)(.+?)(?<!_)_(?!_)(?=\s|$)/g, '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
-    
+
     return html;
   }
 

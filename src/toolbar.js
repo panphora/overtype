@@ -113,6 +113,34 @@ export class Toolbar {
   }
 
   /**
+   * Handle button action programmatically (used by keyboard shortcuts)
+   * @param {Object} buttonConfig - Button configuration object with action function
+   */
+  async handleAction(buttonConfig) {
+    // Focus textarea before action
+    this.editor.textarea.focus();
+
+    try {
+      if (buttonConfig.action) {
+        // Call action with consistent context object
+        await buttonConfig.action({
+          editor: this.editor,
+          getValue: () => this.editor.getValue(),
+          setValue: (value) => this.editor.setValue(value),
+          event: null
+        });
+      }
+    } catch (error) {
+      console.error(`Action "${buttonConfig.name}" error:`, error);
+
+      // Dispatch error event
+      this.editor.wrapper.dispatchEvent(new CustomEvent('button-error', {
+        detail: { buttonName: buttonConfig.name, error }
+      }));
+    }
+  }
+
+  /**
    * Sanitize SVG to prevent XSS
    */
   sanitizeSVG(svg) {

@@ -42,6 +42,8 @@ const iifeBaseConfig = {
     js: `
 if (typeof window !== "undefined" && typeof window.document !== "undefined") {
   window.OverType = OverType.default ? OverType.default : OverType;
+  window.toolbarButtons = OverType.toolbarButtons;
+  window.defaultToolbarButtons = OverType.defaultToolbarButtons;
 }
     `
   }

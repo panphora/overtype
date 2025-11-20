@@ -1,5 +1,5 @@
 /**
- * OverType v2.0.5
+ * OverType v2.0.6
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -117,7 +117,7 @@ var MarkdownParser = class {
    * @returns {string} Parsed bullet list item
    */
   static parseBulletList(html) {
-    return html.replace(/^((?:&nbsp;)*)([-*])\s(.+)$/, (match, indent, marker, content) => {
+    return html.replace(/^((?:&nbsp;)*)([-*+])\s(.+)$/, (match, indent, marker, content) => {
       return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
     });
   }
@@ -176,7 +176,7 @@ var MarkdownParser = class {
    * @returns {string} HTML with italic styling
    */
   static parseItalic(html) {
-    html = html.replace(new RegExp("(?<!\\*)\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)", "g"), '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
+    html = html.replace(new RegExp("(?<![\\*>])\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)", "g"), '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
     html = html.replace(new RegExp("(?<=^|\\s)_(?!_)(.+?)(?<!_)_(?!_)(?=\\s|$)", "g"), '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
     return html;
   }
@@ -2789,6 +2789,28 @@ var Toolbar = class {
     return button;
   }
   /**
+   * Handle button action programmatically (used by keyboard shortcuts)
+   * @param {Object} buttonConfig - Button configuration object with action function
+   */
+  async handleAction(buttonConfig) {
+    this.editor.textarea.focus();
+    try {
+      if (buttonConfig.action) {
+        await buttonConfig.action({
+          editor: this.editor,
+          getValue: () => this.editor.getValue(),
+          setValue: (value) => this.editor.setValue(value),
+          event: null
+        });
+      }
+    } catch (error) {
+      console.error(`Action "${buttonConfig.name}" error:`, error);
+      this.editor.wrapper.dispatchEvent(new CustomEvent("button-error", {
+        detail: { buttonName: buttonConfig.name, error }
+      }));
+    }
+  }
+  /**
    * Sanitize SVG to prevent XSS
    */
   sanitizeSVG(svg) {
@@ -3726,10 +3748,13 @@ var _OverType = class _OverType {
    */
   handleKeydown(event) {
     if (event.key === "Tab") {
-      event.preventDefault();
       const start = this.textarea.selectionStart;
       const end = this.textarea.selectionEnd;
       const value = this.textarea.value;
+      if (event.shiftKey && start === end) {
+        return;
+      }
+      event.preventDefault();
       if (start !== end && event.shiftKey) {
         const before = value.substring(0, start);
         const selection = value.substring(start, end);

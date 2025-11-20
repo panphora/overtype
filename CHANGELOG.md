@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.6] - 2025-11-19
+
+### 🐛 Bug Fixes
+
+- Fixed Shift+Tab navigation (#75)
+  - Shift+Tab without text selection now properly allows navigation to previous form elements
+  - Only Tab key (without Shift) is prevented from default behavior for indentation
+
+- Fixed unordered list rendering issues (#74)
+  - Asterisk (`*`) list markers no longer cause incorrect italicization of subsequent text
+  - Plus (`+`) list markers now properly receive syntax highlighting like minus (`-`) markers
+  - All three bullet list markers (`-`, `*`, `+`) now work consistently
+
+- Fixed toolbarButtons not accessible globally (#73)
+  - `toolbarButtons` and `defaultToolbarButtons` now exposed as global variables in IIFE builds
+  - Users can now access `toolbarButtons.bold`, `toolbarButtons.italic`, etc. when using CDN
+
+- Fixed keyboard shortcuts error with toolbar (#72)
+  - Added missing `handleAction` method to Toolbar class
+  - Keyboard shortcuts (Ctrl+I, Ctrl+B, etc.) now work properly when toolbar is enabled
+  - Fixed "this.editor.toolbar.handleAction is not a function" error
+
+### 🙏 Thanks
+
+- @kozi for reporting issues #75 and #72
+- @1951FDG for reporting issue #74
+- @nodesocket for reporting issue #73
+
 ## [2.0.5] - 2025-01-10
 
 ### 🐛 Bug Fixes

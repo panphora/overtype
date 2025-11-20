@@ -561,12 +561,17 @@ class OverType {
     handleKeydown(event) {
       // Handle Tab key to prevent focus loss and insert spaces
       if (event.key === 'Tab') {
-        event.preventDefault();
-        
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
         const value = this.textarea.value;
-        
+
+        // If Shift+Tab without a selection, allow default behavior (navigate to previous element)
+        if (event.shiftKey && start === end) {
+          return;
+        }
+
+        event.preventDefault();
+
         // If there's a selection, indent/outdent based on shift key
         if (start !== end && event.shiftKey) {
           // Outdent: remove 2 spaces from start of each selected line
