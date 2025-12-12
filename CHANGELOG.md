@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.1.0] - 2025-12-12
+
+### Added
+- Comprehensive tests for setCustomSyntax() API
+- npm run release script
+- Examples link to website footer
+- setCustomSyntax() for extending markdown parsing (#79)
+- initFromData() for data attribute configuration (#76)
+- Release automation script
+
+### Changed
+- showStats() to refresh stats when already visible (#77)
+- Pipe test output through cat in release script
+
+### Fixed
+- Release script dumping test output to CHANGELOG
+- Test output breaking release script
+- XSS test output to use simple labels
+- Back link color on examples page
+- toolbarButtons export not being exposed on window (#78)
+
+
+
 All notable changes to OverType will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
