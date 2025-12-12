@@ -1055,12 +1055,15 @@ class OverType {
      */
     showStats(show) {
       this.options.showStats = show;
-      
+
       if (show && !this.statsBar) {
         // Create stats bar (add to container, not wrapper)
         this.statsBar = document.createElement('div');
         this.statsBar.className = 'overtype-stats';
         this.container.appendChild(this.statsBar);
+        this._updateStats();
+      } else if (show && this.statsBar) {
+        // Already visible - refresh stats (useful after changing statsFormatter)
         this._updateStats();
       } else if (!show && this.statsBar) {
         // Remove stats bar

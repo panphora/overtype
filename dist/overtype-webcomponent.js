@@ -4107,6 +4107,8 @@ ${blockSuffix}` : suffix;
         this.statsBar.className = "overtype-stats";
         this.container.appendChild(this.statsBar);
         this._updateStats();
+      } else if (show && this.statsBar) {
+        this._updateStats();
       } else if (!show && this.statsBar) {
         this.statsBar.remove();
         this.statsBar = null;
