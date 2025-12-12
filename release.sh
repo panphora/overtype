@@ -178,9 +178,9 @@ info "Building..."
 npm run build
 success "Build completed"
 
-# Run tests
+# Run tests (pipe through cat to avoid tty issues with test output)
 info "Running tests..."
-if npm test; then
+if npm test | cat; then
     success "All tests passed"
 else
     error "Tests failed"
