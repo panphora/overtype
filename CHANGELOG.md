@@ -5,6 +5,763 @@
 > npm test
 
 
+> overtype@2.1.0 test
+> node test/overtype.test.js && node test/preview-mode.test.js && node test/links.test.js && node test/api-methods.test.js && node test/comprehensive-alignment.test.js && node test/sanctuary-parsing.test.js && node test/mode-switching.test.js && node test/syntax-highlighting.test.js && node test/webcomponent.test.js && node test/custom-syntax.test.js && npm run test:types
+
+🧪 Running OverType Tests...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 Parser Tests
+
+✓ escapeHtml
+✓ Header: # Title
+✓ Header: ## Subtitle
+✓ Header: ### Section
+✓ Header: #### Too Deep
+✓ Bold: **bold text**
+✓ Bold: __bold text__
+✓ Italic: *italic text*
+✓ Italic: _italic text_
+✓ Strikethrough: ~~strikethrough text~~
+✓ Strikethrough: ~strikethrough text~
+✓ Strikethrough: ~~Hi~~ Hello, ~there~ world!
+✓ Strikethrough: ~~~not strikethrough~~~
+✓ Strikethrough: This will ~~~not~~~ strike.
+✓ Inline code
+✓ Links
+✓ List: - Item
+✓ List: * Item
+✓ List: 1. First
+✓ Mixed list: - This is **bold** text
+✓ Mixed list: - This is *italic* text
+✓ Mixed list: - Contains `code` here
+✓ Blockquote
+✓ HR: ---
+✓ HR: ***
+✓ HR: ___
+✓ Empty line
+✓ Indentation preservation
+✓ Full doc: header
+✓ Full doc: bold
+✓ Full doc: italic
+✓ Full doc: markers
+✓ Raw line display
+✓ Inline code protection: `OP_CAT_DOG`
+✓ Inline code protection: `OP_CAT` and *dog*
+✓ Inline code protection: `function_name_here` _should work_
+✓ Inline code protection: `__init__` method
+✓ Inline code protection: Text `with_code` and **bold**
+✓ Inline code protection: `*asterisk*` and _underscore_
+✓ Spanning code: *cat `test` dog*
+✓ Spanning code: **bold `code_here` more bold**
+✓ Spanning code: _italic `with_underscores` still italic_
+✓ Spanning code: __bold `code` and `more_code` bold__
+✓ Spanning code: ~~strike `code_here` more strike~~
+✓ Spanning code: ~strike `with_underscores` still strike~
+✓ Multiple code + format: `first_code` and `second_code` with *italic*
+✓ Multiple code + format: *Before `__code__` between `_more_code_` after*
+✓ Multiple code + format: **Text `code1` middle `code2` end**
+✓ Complex nested code: Normal `code_block` and **bold `with_code` bold** text
+✓ Complex nested code: *italic* `code_here` **bold `spanning_code` bold**
+✓ Complex nested code: ~~strike~~ `code_here` **bold `spanning_code` bold**
+✓ Code protection edge cases: `**not_bold**`
+✓ Code protection edge cases: `__also_not_bold__`
+✓ Code protection edge cases: `*not_italic*`
+✓ Code protection edge cases: `_not_italic_`
+✓ Code protection edge cases: `[not_a_link](url)`
+✓ Code protection edge cases: `~~not_strikethrough~~`
+✓ Code protection edge cases: `~also_not_strikethrough~`
+✓ Code fence: ```
+✓ Code fence: ```js`
+✓ Code fence: ```contains`backtick
+✓ Multi-backtick: ``code with `backtick` inside``
+✓ Multi-backtick: `single` and ``double``
+✓ Multi-backtick: ```triple```
+✓ Multi-backtick: `unmatched``
+✓ Multi-backtick: ``unmatched`
+✓ Multi-backtick: ```unmatched``
+✓ Multi-backtick: ``unmatched```
+
+🔧 Integration Tests
+
+✓ Complex: header
+✓ Complex: bold
+✓ Complex: italic
+✓ Complex: code
+✓ Complex: link
+✓ Complex with strikethrough: header
+✓ Complex with strikethrough: bold
+✓ Complex with strikethrough: italic
+✓ Complex with strikethrough: strikethrough
+✓ Complex with strikethrough: code
+✓ XSS prevention: <img src=x onerror=a...
+✓ XSS prevention events: <img src=x onerror=a...
+✓ XSS escaping: <img src=x onerror=a...
+✓ XSS prevention: <script>alert("XSS")...
+✓ XSS prevention events: <script>alert("XSS")...
+✓ XSS escaping: <script>alert("XSS")...
+✓ XSS prevention: javascript:alert(1)...
+✓ XSS prevention events: javascript:alert(1)...
+✓ XSS escaping: javascript:alert(1)...
+✓ XSS prevention: <a href="javascript:...
+✓ XSS prevention events: <a href="javascript:...
+✓ XSS escaping: <a href="javascript:...
+
+🔤 Character Alignment Tests
+
+✓ HTML entities should be escaped for safety
+✓ Code blocks escape HTML entities for safety
+
+⚡ Performance Tests
+
+✓ Parse 1000 lines
+  ⏱️  Parsed 1000 lines in 10.39ms
+
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+
+📊 Test Results Summary
+
+✅ Passed: 93
+❌ Failed: 0
+📈 Total:  93
+🎯 Success Rate: 100.0%
+
+✨ All tests passed!
+🧪 Running Preview Mode Tests...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 List Consolidation Tests
+
+✓ Consecutive bullet list consolidation
+✓ Consecutive numbered list consolidation
+✓ Mixed list types with separation
+✓ Lists with inline formatting
+
+💻 Code Block Consolidation Tests
+
+✓ Basic code block consolidation
+✓ Code block without language
+✓ Code block with HTML entities
+
+📰 Header Semantic HTML Tests
+
+✓ Headers use semantic HTML tags
+✓ Headers with inline formatting
+
+🔗 Link Safety Tests
+
+✓ Links use real hrefs
+✓ Links with inline code
+
+📄 Complex Document Test
+
+✓ Complex document parsing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Test Results Summary
+
+✅ Passed: 12
+❌ Failed: 0
+📈 Total:  12
+🎯 Success Rate: 100.0%
+
+✨ All tests passed!
+🔗 Link Tests
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 Basic Link Parsing
+
+✓ Simple link href
+✓ Link structure
+✓ No data-href attribute
+
+🌐 URL Types
+
+✓ Relative URL
+✓ Hash link
+✓ Mailto link
+✓ URL with query parameters
+
+🛡️ XSS Prevention
+
+✓ JavaScript URL blocked
+✓ Data URL blocked
+
+🔢 Multiple Links
+
+✓ Multiple links with anchors
+
+✨ Link Text Formatting
+
+✓ Link with bold text
+✓ Link with special characters
+
+⚠️ Edge Cases
+
+✓ Empty link text rejected
+✓ Empty URL rejected
+✓ Link in list item
+✓ Link in header
+
+🔧 URL Escaping (Fix for Issue #63)
+
+✓ URL with ampersands - no double-escaping
+✓ URL with multiple ampersands
+✓ URL with angle brackets - no double-escaping
+✓ URL with quotes - no double-escaping
+✓ URL with fragment and parameters
+✓ mailto URL with parameters
+✓ Image URL with parameters
+✓ FTP URL with parameters
+✓ Alignment preserved with special chars
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Test Results Summary
+
+✅ Passed: 25
+❌ Failed: 0
+📈 Total:  25
+🎯 Success Rate: 100.0%
+
+✨ All tests passed!
+🧪 Running API Methods Tests...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 API Methods Tests
+
+✓ getValue()
+✓ setValue()
+✓ setValue() updates preview
+✓ getRenderedHTML() has h1
+✓ getRenderedHTML() has strong
+✓ getRenderedHTML() has em
+✓ getRenderedHTML() no post-processing
+✓ getRenderedHTML(true) post-processes
+✓ getPreviewHTML() has h3
+✓ getPreviewHTML() has link
+✓ Complex: getValue()
+✓ Complex: rendered has h1
+✓ Complex: rendered has h2
+✓ Complex: rendered has strong
+✓ Complex: rendered has em
+✓ Complex: rendered has code
+✓ Complex: rendered has ul
+✓ Complex: rendered has link
+✓ Complex: processed has code block
+✓ Complex: preview not empty
+✓ Modes: normal getValue
+✓ Modes: plain getValue
+✓ Modes: preview getValue
+✓ Modes: consistent HTML
+
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+
+📊 Test Results Summary
+
+✅ Passed: 24
+❌ Failed: 0
+📈 Total:  24
+🎯 Success Rate: 100.0%
+
+✅ All tests passed!
+🧪 Comprehensive Alignment Test Suite
+
+======================================================================
+
+Test 1: Typing inside code block
+Description: Simulates typing inside panic!() as mentioned in issue
+  Lines: 5 → 5 ✅
+  Fences preserved: ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 2: Incomplete table rows
+Description: Table with varying number of cells per row
+  Lines: 4 → 4 ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 3: Code block with special characters
+Description: Code containing brackets, quotes, and other special chars
+  Lines: 3 → 3 ✅
+  Fences preserved: ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 4: Multiple code blocks
+Description: Document with multiple code blocks
+  Lines: 9 → 9 ✅
+  Fences preserved: ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 5: Nested markdown in table
+Description: Table cells with inline markdown
+  Lines: 2 → 2 ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 6: Code fence with language on same line
+Description: Inline code block syntax
+  Lines: 1 → 1 ✅
+  Fences preserved: ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 7: Empty code block
+Description: Code block with no content
+  Lines: 3 → 3 ✅
+  Fences preserved: ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 8: Table inside blockquote
+Description: Complex nested structure
+  Lines: 2 → 2 ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 9: Code block at end of document
+Description: Ensures proper handling at document end
+  Lines: 5 → 5 ✅
+  Fences preserved: ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+Test 10: Mixed content stress test
+Description: Various markdown elements together
+  Lines: 10 → 10 ✅
+  Fences preserved: ✅
+  Character alignment: ✅
+  Result: ✅ PASS
+
+======================================================================
+
+📊 Test Summary:
+
+✅ Passed: 10/10
+❌ Failed: 0/10
+
+Success rate: 100.0%
+
+✨ All alignment tests passed! Issue #32 is fully resolved.
+Running sanctuary pattern parsing tests...
+
+✓ Link with inline code in text
+✓ Link with multiple inline code segments
+✓ Inline code containing link syntax
+✓ Link with bold text
+✓ Link with italic text
+✓ Complex nested: link with code and bold
+✓ Code with backticks inside using double backticks
+✓ Bold text containing underscore
+✓ Multiple inline elements in sequence
+✓ URL with asterisks should not create bold
+✓ URL with underscores should not create italic
+✓ URL with backticks should not create code
+✓ URL with tildes should not create strikethrough
+✓ URL with mixed formatting characters
+✓ URL with square brackets should not create nested link
+✓ Single backtick code with angle brackets should not double-escape
+✓ Single backtick code with ampersand should not double-escape
+✓ Single backtick code with mixed HTML entities should not double-escape
+✓ Inline code with unmatched angle brackets should not double-escape
+✓ Multiple inline code spans with HTML entities should not double-escape
+✓ Code block with HTML entities should not double-escape
+✓ Double backtick code with HTML entities should not double-escape
+
+22 passed, 0 failed
+🧪 Running Mode Switching Test...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📝 Large Document with Heavy Editing & Mode Switching
+
+Starting test with large document (28 lines)...
+
+Iteration 1: Heavy editing on multiple lines...
+  Alignment after iteration 1: ✅
+Iteration 2: More heavy editing...
+  Alignment after iteration 2: ✅
+Iteration 3: Even more editing...
+  Alignment after iteration 3: ✅
+Iteration 4: Continuing with more edits...
+  Alignment after iteration 4: ✅
+Iteration 5: Final round of heavy editing...
+  Alignment after iteration 5: ✅
+
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+Test Summary:
+
+  Iteration 1: ✅
+  Iteration 2: ✅
+  Iteration 3: ✅
+  Iteration 4: ✅
+  Iteration 5: ✅
+✓ Large document with heavy editing and mode switching
+
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+━
+
+📊 Test Results Summary
+
+✅ Passed: 1
+❌ Failed: 0
+📈 Total:  1
+🎯 Success Rate: 100.0%
+
+✨ All tests passed!
+
+🎨 Running Syntax Highlighting Tests...
+
+📋 Test Suite: Global Highlighter
+
+  ✅ Global highlighter applies to code blocks
+  ✅ Can disable global highlighter with null
+
+📋 Test Suite: Instance Highlighter
+
+  ✅ Instance highlighter overrides global highlighter
+
+📋 Test Suite: Highlighter Fallback
+
+  ✅ Falls back to plain text when highlighter returns null
+  ✅ Falls back to plain text when highlighter returns empty string
+  ✅ Falls back to plain text when highlighter returns whitespace
+
+📋 Test Suite: Async Highlighters
+
+  ✅ Async highlighters are not supported (logs warning)
+
+📋 Test Suite: Special Characters
+
+  ✅ Highlighter receives raw text with special characters
+  ✅ Highlighter output is properly rendered (no double-escaping)
+
+📋 Test Suite: Multiple Code Blocks
+
+  ✅ Multiple code blocks are highlighted independently
+
+📋 Test Suite: Shiki Alignment Verification
+
+  ✅ Shiki preserves alignment - JavaScript
+  ✅ Shiki preserves alignment - Python
+
+📋 Test Suite: Highlight.js Alignment Verification
+
+  ✅ Highlight.js preserves alignment - JavaScript
+  ✅ Highlight.js preserves alignment - Rust
+
+📋 Test Suite: Prism Alignment Verification
+
+  ✅ Prism preserves alignment - JavaScript
+  ✅ Prism preserves alignment - CSS
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Test Results Summary
+
+✅ Passed: 16
+❌ Failed: 0
+📈 Total:  16
+🎯 Success Rate: 100.0%
+
+✨ All syntax highlighting tests passed!
+
+🧪 Starting Web Component Tests...
+✅ Build loaded successfully
+
+📋 Test Suite: Web Component Registration
+  ✅ Custom element is properly registered
+  ✅ Element can be created via document.createElement
+  ✅ Element has shadow root for style isolation
+
+📋 Test Suite: Attribute Handling
+  ✅ Initial attributes are properly set
+  ✅ Attribute changes are handled correctly
+  ✅ Ready event is dispatched on connect
+  ✅ Height/min/max attributes update container styles
+  ✅ Theme change reinjects styles
+  ✅ Toggling toolbar reinitializes editor
+  ✅ Readonly attribute updates textarea.readOnly
+  ✅ Auto-resize attribute reinitializes editor
+  ✅ Show-stats attribute reinitializes editor
+  ✅ Style attributes reinject styles (font-size/line-height/padding)
+  ✅ Smart-lists attribute reinitializes editor
+
+📋 Test Suite: Disconnect/Reconnect (React/Vue patterns)
+  ✅ Element remount cleans up shadow root properly
+
+📋 Test Suite: API Methods
+  ✅ API methods are available
+  ✅ Basic API functionality works
+  ✅ API functionality verification passed
+
+🎉 Web Component Tests Completed!
+✨ Success rate: 100.0%
+✨ All tests passed successfully! The Web Component implementation is working correctly.
+
+🔧 Running Custom Syntax Tests...
+
+📋 Test Suite: Basic Custom Syntax
+
+  ✅ Custom syntax processor is applied to parsed output
+  ✅ Custom syntax can be cleared with null
+  ✅ Custom syntax does not apply inside code blocks
+
+📋 Test Suite: Character Alignment
+
+  ✅ Footnote references preserve alignment
+  ✅ Hashtags preserve alignment
+  ✅ Mentions preserve alignment
+  ✅ Highlight marks preserve alignment
+  ✅ Wiki links preserve alignment
+  ✅ Directives preserve alignment
+
+📋 Test Suite: Chained Processors
+
+  ✅ Multiple patterns can be chained in one processor
+
+📋 Test Suite: Interaction with Standard Markdown
+
+  ✅ Custom syntax works alongside bold/italic
+  ✅ Custom syntax works alongside links
+  ✅ Custom syntax works on header lines
+
+📋 Test Suite: Edge Cases
+
+  ✅ Empty processor function does not break parsing
+  ✅ Processor receives HTML, not raw markdown
+  ✅ Multiline content each line processed
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Test Results Summary
+
+✅ Passed: 16
+❌ Failed: 0
+📈 Total:  16
+🎯 Success Rate: 100.0%
+
+✨ All custom syntax tests passed!
+
+
+> overtype@2.1.0 test:types
+> tsc --noEmit test/test-types.ts
+
+2.1.1] - 2025-12-12
+
+### Added
+- Comprehensive tests for setCustomSyntax() API
+
+
+
+## [
+> preversion
+> npm test
+
+
 > overtype@2.0.6 test
 > node test/overtype.test.js && node test/preview-mode.test.js && node test/links.test.js && node test/api-methods.test.js && node test/comprehensive-alignment.test.js && node test/sanctuary-parsing.test.js && node test/mode-switching.test.js && node test/syntax-highlighting.test.js && node test/webcomponent.test.js && npm run test:types
 
