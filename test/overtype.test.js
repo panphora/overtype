@@ -467,13 +467,13 @@ console.log('\n🔧 Integration Tests\n');
     '<a href="javascript:alert(1)">Click</a>'
   ];
   
-  tests.forEach(test => {
+  tests.forEach((test, i) => {
     const actual = MarkdownParser.parseLine(test);
-    // Sanitize output to avoid terminal issues with "javascript:" URLs
-    const safeLabel = test.substring(0, 20).replace(/:/g, '[:]');
-    assert(!actual.includes('<script'), `XSS prevention: ${safeLabel}...`, 'Should escape dangerous HTML');
-    assert(!actual.includes('<img src=x onerror='), `XSS prevention events: ${safeLabel}...`, 'Should escape event handlers');
-    assert(actual.includes('&lt;') || !test.includes('<'), `XSS escaping: ${safeLabel}...`, 'Should escape HTML tags');
+    // Use index-based labels to avoid terminal issues with HTML/URL chars in output
+    const safeLabel = `test ${i + 1}`;
+    assert(!actual.includes('<script'), `XSS prevention: ${safeLabel}`, 'Should escape dangerous HTML');
+    assert(!actual.includes('<img src=x onerror='), `XSS prevention events: ${safeLabel}`, 'Should escape event handlers');
+    assert(actual.includes('&lt;') || !test.includes('<'), `XSS escaping: ${safeLabel}`, 'Should escape HTML tags');
   });
 })();
 
