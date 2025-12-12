@@ -4348,9 +4348,10 @@ ${blockSuffix}` : suffix;
  */
 
 if (typeof window !== "undefined" && typeof window.document !== "undefined") {
-  window.OverType = OverType.default ? OverType.default : OverType;
+  // Extract exports BEFORE reassigning OverType (var OverType is window.OverType)
   window.toolbarButtons = OverType.toolbarButtons;
   window.defaultToolbarButtons = OverType.defaultToolbarButtons;
+  window.OverType = OverType.default ? OverType.default : OverType;
 }
     
 //# sourceMappingURL=overtype.js.map
