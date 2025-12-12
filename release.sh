@@ -173,14 +173,24 @@ echo "Step 3: Build and Test"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
+# Debug log file
+DEBUG_LOG="/tmp/overtype-release-debug.log"
+echo "Release started at $(date)" > "$DEBUG_LOG"
+
 # Build
 info "Building..."
+echo "[$(date +%H:%M:%S)] Starting build..." >> "$DEBUG_LOG"
 npm run build
+echo "[$(date +%H:%M:%S)] Build finished" >> "$DEBUG_LOG"
 success "Build completed"
 
 # Run tests (pipe through cat to avoid tty issues with test output)
 info "Running tests..."
-if npm test | cat; then
+echo "[$(date +%H:%M:%S)] Starting npm test..." >> "$DEBUG_LOG"
+npm test | cat
+TEST_EXIT=$?
+echo "[$(date +%H:%M:%S)] npm test finished with exit code: $TEST_EXIT" >> "$DEBUG_LOG"
+if [ $TEST_EXIT -eq 0 ]; then
     success "All tests passed"
 else
     error "Tests failed"
@@ -189,6 +199,7 @@ else
         exit 1
     fi
 fi
+echo "[$(date +%H:%M:%S)] Proceeding to version bump..." >> "$DEBUG_LOG"
 
 # ============================================
 # STEP 4: Version Bump
@@ -204,12 +215,12 @@ echo ""
 CURRENT_VERSION=$(node -p "require('./package.json').version")
 info "Current version: $CURRENT_VERSION"
 
-# Bump version
+# Bump version (--ignore-scripts to skip preversion hook since we already ran tests)
 if [ "$VERSION_TYPE" = "custom" ]; then
     NEW_VERSION="$CUSTOM_VERSION"
-    npm version "$NEW_VERSION" --no-git-tag-version
+    npm version "$NEW_VERSION" --no-git-tag-version --ignore-scripts
 else
-    NEW_VERSION=$(npm version "$VERSION_TYPE" --no-git-tag-version | sed 's/^v//')
+    NEW_VERSION=$(npm version "$VERSION_TYPE" --no-git-tag-version --ignore-scripts | sed 's/^v//')
 fi
 
 success "Version bumped to: $NEW_VERSION"
