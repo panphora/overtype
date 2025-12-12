@@ -542,6 +542,10 @@ OverType.setCodeHighlighter(null)  // Disable global highlighting
 // Initialize multiple editors (same as constructor)
 OverType.init(target, options)
 
+// Initialize with per-element config via data-ot-* attributes
+// Uses kebab-case: data-ot-show-stats="true" → showStats: true
+OverType.initFromData('.editor', { /* defaults */ })
+
 // Get instance from element
 OverType.getInstance(element)
 
@@ -730,6 +734,26 @@ OverType uses a unique invisible textarea overlay approach:
 3. **Single source of truth:**
    - Textarea content drives everything
    - One-way data flow: textarea → parser → preview
+
+## Data Attribute Configuration
+
+Use `OverType.initFromData()` to configure multiple editors via HTML data attributes:
+
+```html
+<div class="editor" data-ot-toolbar="true" data-ot-theme="cave"></div>
+<div class="editor" data-ot-auto-resize="true" data-ot-min-height="200px"></div>
+<div class="editor" data-ot-show-stats="true" data-ot-placeholder="Write here..."></div>
+
+<script>
+  OverType.initFromData('.editor', { fontSize: '14px' }); // defaults
+</script>
+```
+
+Uses kebab-case attributes that convert to camelCase options (e.g., `data-ot-show-stats` → `showStats`).
+
+**Supported:** `toolbar`, `theme`, `value`, `placeholder`, `autofocus`, `auto-resize`, `min-height`, `max-height`, `font-size`, `line-height`, `show-stats`, `smart-lists`, `show-active-line-raw`
+
+**Not supported (use JS):** `toolbarButtons`, `textareaProps`, `onChange`, `onKeydown`, `statsFormatter`, `codeHighlighter`, `colors`, `mobile`
 
 ## Contributors
 

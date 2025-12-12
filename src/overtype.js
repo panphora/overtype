@@ -1153,6 +1153,45 @@ class OverType {
     }
 
     /**
+     * Initialize editors with options from data-ot-* attributes
+     * @param {string} selector - CSS selector for target elements
+     * @param {Object} defaults - Default options (data attrs override these)
+     * @returns {Array<OverType>} Array of OverType instances
+     * @example
+     * // HTML: <div class="editor" data-ot-toolbar="true" data-ot-theme="cave"></div>
+     * OverType.initFromData('.editor', { fontSize: '14px' });
+     */
+    static initFromData(selector, defaults = {}) {
+      const elements = document.querySelectorAll(selector);
+      return Array.from(elements).map(el => {
+        const options = { ...defaults };
+
+        // Parse data-ot-* attributes (kebab-case to camelCase)
+        for (const attr of el.attributes) {
+          if (attr.name.startsWith('data-ot-')) {
+            const kebab = attr.name.slice(8); // Remove 'data-ot-'
+            const key = kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+            options[key] = OverType._parseDataValue(attr.value);
+          }
+        }
+
+        return new OverType(el, options);
+      });
+    }
+
+    /**
+     * Parse a data attribute value to the appropriate type
+     * @private
+     */
+    static _parseDataValue(value) {
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      if (value === 'null') return null;
+      if (value !== '' && !isNaN(Number(value))) return Number(value);
+      return value;
+    }
+
+    /**
      * Get instance from element
      * @param {Element} element - DOM element
      * @returns {OverType|null} OverType instance or null
