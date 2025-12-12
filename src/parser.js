@@ -13,6 +13,9 @@ export class MarkdownParser {
   // Global code highlighter function
   static codeHighlighter = null;
 
+  // Custom syntax processor function
+  static customSyntax = null;
+
   /**
    * Reset link index (call before parsing a new document)
    */
@@ -26,6 +29,26 @@ export class MarkdownParser {
    */
   static setCodeHighlighter(highlighter) {
     this.codeHighlighter = highlighter;
+  }
+
+  /**
+   * Set custom syntax processor function
+   * @param {Function|null} processor - Function that takes (html) and returns modified HTML
+   */
+  static setCustomSyntax(processor) {
+    this.customSyntax = processor;
+  }
+
+  /**
+   * Apply custom syntax processor to parsed HTML
+   * @param {string} html - Parsed HTML line
+   * @returns {string} HTML with custom syntax applied
+   */
+  static applyCustomSyntax(html) {
+    if (this.customSyntax) {
+      return this.customSyntax(html);
+    }
+    return html;
   }
 
   /**
@@ -481,7 +504,7 @@ export class MarkdownParser {
       if (codeFenceRegex.test(line)) {
         inCodeBlock = !inCodeBlock;
         // Parse fence markers normally to get styled output
-        return this.parseLine(line, isPreviewMode);
+        return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
       }
 
       // If we're inside a code block, don't parse as markdown
@@ -492,7 +515,7 @@ export class MarkdownParser {
       }
 
       // Otherwise, parse the markdown normally
-      return this.parseLine(line, isPreviewMode);
+      return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
     });
 
     // Join without newlines to prevent extra spacing

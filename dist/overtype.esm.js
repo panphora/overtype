@@ -28,6 +28,24 @@ var MarkdownParser = class {
     this.codeHighlighter = highlighter;
   }
   /**
+   * Set custom syntax processor function
+   * @param {Function|null} processor - Function that takes (html) and returns modified HTML
+   */
+  static setCustomSyntax(processor) {
+    this.customSyntax = processor;
+  }
+  /**
+   * Apply custom syntax processor to parsed HTML
+   * @param {string} html - Parsed HTML line
+   * @returns {string} HTML with custom syntax applied
+   */
+  static applyCustomSyntax(html) {
+    if (this.customSyntax) {
+      return this.customSyntax(html);
+    }
+    return html;
+  }
+  /**
    * Escape HTML special characters
    * @param {string} text - Raw text to escape
    * @returns {string} Escaped HTML-safe text
@@ -365,14 +383,14 @@ var MarkdownParser = class {
       const codeFenceRegex = /^```[^`]*$/;
       if (codeFenceRegex.test(line)) {
         inCodeBlock = !inCodeBlock;
-        return this.parseLine(line, isPreviewMode);
+        return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
       }
       if (inCodeBlock) {
         const escaped = this.escapeHtml(line);
         const indented = this.preserveIndentation(escaped, line);
         return `<div>${indented || "&nbsp;"}</div>`;
       }
-      return this.parseLine(line, isPreviewMode);
+      return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
     });
     const html = parsedLines.join("");
     return this.postProcessHTML(html, instanceHighlighter);
@@ -704,6 +722,8 @@ var MarkdownParser = class {
 __publicField(MarkdownParser, "linkIndex", 0);
 // Global code highlighter function
 __publicField(MarkdownParser, "codeHighlighter", null);
+// Custom syntax processor function
+__publicField(MarkdownParser, "customSyntax", null);
 /**
  * List pattern definitions
  */
@@ -4277,6 +4297,32 @@ var _OverType = class _OverType {
    */
   static setCodeHighlighter(highlighter) {
     MarkdownParser.setCodeHighlighter(highlighter);
+    document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
+      const instance = wrapper._instance;
+      if (instance && instance.updatePreview) {
+        instance.updatePreview();
+      }
+    });
+    document.querySelectorAll("overtype-editor").forEach((webComponent) => {
+      if (typeof webComponent.getEditor === "function") {
+        const instance = webComponent.getEditor();
+        if (instance && instance.updatePreview) {
+          instance.updatePreview();
+        }
+      }
+    });
+  }
+  /**
+   * Set custom syntax processor for extending markdown parsing
+   * @param {Function|null} processor - Function that takes (html) and returns modified HTML
+   * @example
+   * OverType.setCustomSyntax((html) => {
+   *   // Highlight footnote references [^1]
+   *   return html.replace(/\[\^(\w+)\]/g, '<span class="footnote-ref">$&</span>');
+   * });
+   */
+  static setCustomSyntax(processor) {
+    MarkdownParser.setCustomSyntax(processor);
     document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
       const instance = wrapper._instance;
       if (instance && instance.updatePreview) {

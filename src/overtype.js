@@ -1326,6 +1326,36 @@ class OverType {
     }
 
     /**
+     * Set custom syntax processor for extending markdown parsing
+     * @param {Function|null} processor - Function that takes (html) and returns modified HTML
+     * @example
+     * OverType.setCustomSyntax((html) => {
+     *   // Highlight footnote references [^1]
+     *   return html.replace(/\[\^(\w+)\]/g, '<span class="footnote-ref">$&</span>');
+     * });
+     */
+    static setCustomSyntax(processor) {
+      MarkdownParser.setCustomSyntax(processor);
+
+      // Update all existing instances
+      document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
+        const instance = wrapper._instance;
+        if (instance && instance.updatePreview) {
+          instance.updatePreview();
+        }
+      });
+
+      document.querySelectorAll('overtype-editor').forEach(webComponent => {
+        if (typeof webComponent.getEditor === 'function') {
+          const instance = webComponent.getEditor();
+          if (instance && instance.updatePreview) {
+            instance.updatePreview();
+          }
+        }
+      });
+    }
+
+    /**
      * Initialize global event listeners
      */
     static initGlobalListeners() {

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test: Custom Syntax</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.1rem; margin-top: 2rem; color: #666; }
+    pre {
+      background: #1a1a2e;
+      color: #eee;
+      padding: 12px 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    .editor-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* Custom syntax styles */
+    .footnote-ref {
+      color: #9333ea;
+      font-weight: bold;
+    }
+    .footnote-def {
+      color: #9333ea;
+      background: rgba(147, 51, 234, 0.1);
+    }
+    .directive {
+      color: #0891b2;
+    }
+    .directive-name {
+      color: #0891b2;
+      font-weight: bold;
+    }
+    .directive-content {
+      color: #059669;
+    }
+    .directive-attrs {
+      color: #d97706;
+    }
+    .hashtag {
+      color: #2563eb;
+      font-weight: bold;
+    }
+    .mention {
+      color: #db2777;
+      font-weight: bold;
+    }
+    .highlight-mark {
+      background: #fef08a;
+      color: #000;
+    }
+    .wiki-link {
+      color: #7c3aed;
+      text-decoration: underline;
+    }
+    .emoji-shortcode {
+      color: #f59e0b;
+    }
+  </style>
+</head>
+<body>
+  <h1>Custom Syntax Extension</h1>
+  <p>Extend OverType with custom syntax highlighting for footnotes, directives, and more.</p>
+  <p style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin: 16px 0;">
+    <strong>Important:</strong> Your processor must maintain 1-to-1 character alignment.
+    Only wrap text in tags — never add, remove, or change characters.
+    If alignment breaks, it's your responsibility to fix the regex.
+  </p>
+
+  <h2>Registered Custom Patterns</h2>
+  <pre>
+OverType.setCustomSyntax((html) => {
+  return html
+    // Footnote references: [^1], [^note]
+    .replace(/\[\^(\w+)\](?!\:)/g, '&lt;span class="footnote-ref"&gt;$&&lt;/span&gt;')
+
+    // Footnote definitions: [^1]: text
+    .replace(/\[\^(\w+)\]:/g, '&lt;span class="footnote-def"&gt;$&&lt;/span&gt;')
+
+    // Directives: ::name[content]{attrs}
+    .replace(/::([\w-]+)(\[[^\]]*\])?(\{[^}]*\})?/g, ...)
+
+    // Hashtags: #tag
+    .replace(/(^|[^&\w])#([\w-]+)/g, ...)
+
+    // Mentions: @username
+    .replace(/(^|[^\w])@([\w-]+)/g, ...)
+
+    // ==highlights==
+    .replace(/==([^=]+)==/g, ...)
+
+    // Wiki links: [[Page Name]]
+    .replace(/\[\[([^\]]+)\]\]/g, ...)
+
+    // Emoji shortcodes: :smile:
+    .replace(/:(\w+):/g, ...);
+});</pre>
+
+  <h2>Test Editor</h2>
+  <div class="editor-container">
+    <div id="editor"></div>
+  </div>
+
+  <script src="../dist/overtype.js"></script>
+  <script>
+    // Set up custom syntax processor
+    OverType.setCustomSyntax((html) => {
+      return html
+        // Footnote references: [^1], [^note] (not followed by :)
+        .replace(/\[\^(\w+)\](?!:)/g, '<span class="footnote-ref">$&</span>')
+
+        // Footnote definitions: [^1]: text
+        .replace(/\[\^(\w+)\]:/g, '<span class="footnote-def">$&</span>')
+
+        // Directives: ::name[content]{attrs}
+        .replace(/::([\w-]+)(\[[^\]]*\])?(\{[^}]*\})?/g, (match, name, content, attrs) => {
+          let result = '<span class="directive">::<span class="directive-name">' + name + '</span>';
+          if (content) result += '<span class="directive-content">' + content + '</span>';
+          if (attrs) result += '<span class="directive-attrs">' + attrs + '</span>';
+          result += '</span>';
+          return result;
+        })
+
+        // Hashtags: #tag (not inside words or HTML entities)
+        .replace(/(^|[^&\w])#([\w-]+)/g, '$1<span class="hashtag">#$2</span>')
+
+        // Mentions: @username
+        .replace(/(^|[^\w])@([\w-]+)/g, '$1<span class="mention">@$2</span>')
+
+        // ==highlights== (mark syntax)
+        .replace(/==([^=]+)==/g, '<span class="highlight-mark">$&</span>')
+
+        // Wiki links: [[Page Name]]
+        .replace(/\[\[([^\]]+)\]\]/g, '<span class="wiki-link">$&</span>')
+
+        // Emoji shortcodes: :smile: (basic alphanumeric)
+        .replace(/:(\w{2,}?):/g, '<span class="emoji-shortcode">$&</span>');
+    });
+
+    // Initialize editor with sample content
+    const editor = new OverType('#editor', {
+      toolbar: true,
+      theme: 'solar',
+      autoResize: true,
+      minHeight: '400px',
+      value: `# Custom Syntax Demo
+
+## Footnotes
+Here's a sentence with a footnote[^1] and another[^note].
+
+[^1]: This is the first footnote definition.
+[^note]: This is a named footnote.
+
+## Directives
+::youtube[Video title]{#abc123}
+::warning[Be careful!]
+::info{.highlight}
+::simple
+
+## Social Syntax
+Check out #overtype and #markdown for updates!
+Thanks to @david and @anthropic for help.
+
+## Highlights
+This is ==very important== text that stands out.
+
+## Wiki Links
+See [[Getting Started]] and [[Advanced Features]] for more.
+
+## Emoji Shortcodes
+That's awesome :thumbsup: and :rocket: :fire:
+
+## Regular Markdown Still Works
+- **Bold** and *italic*
+- Inline code works too
+- [Regular link](https://example.com)
+`
+    });
+  </script>
+</body>
+</html>
