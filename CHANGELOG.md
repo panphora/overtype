@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.1] - 2025-12-13
+
+### Added
+- Centralized action dispatcher for keyboard shortcuts
+
+### Changed
+- Build dist files
+- Update contributors for v2.1.0 features and fixes
+
+### Fixed
+- Link tooltip disappearing when clicking on it
+
+
+
 ## [2.1.0] - 2025-12-12
 
 ### Added
