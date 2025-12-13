@@ -774,6 +774,7 @@ Special thanks to:
 - [kozi](https://github.com/kozi) - Reported link tooltip issues in Firefox ([#68](https://github.com/panphora/overtype/issues/68)), toolbar positioning ([#69](https://github.com/panphora/overtype/issues/69)), theme synchronization issues ([#70](https://github.com/panphora/overtype/issues/70), [#71](https://github.com/panphora/overtype/issues/71))
 - [1951FDG](https://github.com/1951FDG) - Reported list rendering issues ([#74](https://github.com/panphora/overtype/issues/74)), suggested showStats refresh ([#77](https://github.com/panphora/overtype/issues/77))
 - [nodesocket](https://github.com/nodesocket) - Reported toolbarButtons global access ([#73](https://github.com/panphora/overtype/issues/73), [#78](https://github.com/panphora/overtype/issues/78))
+- [Travis Bell](https://github.com/travisbell) - Reported keyboard shortcuts not working ([#80](https://github.com/panphora/overtype/issues/80))
 
 ### TypeScript & Framework Support
 - [merlinz01](https://github.com/merlinz01) - Initial TypeScript definitions implementation ([#20](https://github.com/panphora/overtype/pull/20))
