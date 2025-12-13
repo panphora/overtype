@@ -13,6 +13,7 @@ export class LinkTooltip {
     this.visibilityChangeHandler = null;
     this.useFloatingUI = false;
     this.floatingUI = null;
+    this.isTooltipHovered = false;
 
     this.init();
   }
@@ -66,8 +67,12 @@ export class LinkTooltip {
       }
     });
 
-    // Hide tooltip when textarea loses focus
-    this.editor.textarea.addEventListener('blur', () => this.hide());
+    // Hide tooltip when textarea loses focus (unless hovering tooltip)
+    this.editor.textarea.addEventListener('blur', () => {
+      if (!this.isTooltipHovered) {
+        this.hide();
+      }
+    });
 
     // Hide tooltip when page loses visibility (tab switch, minimize, etc.)
     this.visibilityChangeHandler = () => {
@@ -77,8 +82,15 @@ export class LinkTooltip {
     };
     document.addEventListener('visibilitychange', this.visibilityChangeHandler);
 
-    // Keep tooltip visible on hover (only prevent hide, don't schedule hide on leave)
-    this.tooltip.addEventListener('mouseenter', () => this.cancelHide());
+    // Track hover state to prevent hiding when clicking tooltip
+    this.tooltip.addEventListener('mouseenter', () => {
+      this.isTooltipHovered = true;
+      this.cancelHide();
+    });
+    this.tooltip.addEventListener('mouseleave', () => {
+      this.isTooltipHovered = false;
+      this.scheduleHide();
+    });
   }
 
   createTooltip() {
@@ -227,6 +239,7 @@ export class LinkTooltip {
   hide() {
     this.tooltip.classList.remove('visible');
     this.currentLink = null;
+    this.isTooltipHovered = false;
   }
 
   scheduleHide() {
@@ -257,5 +270,6 @@ export class LinkTooltip {
     this.currentLink = null;
     this.floatingUI = null;
     this.useFloatingUI = false;
+    this.isTooltipHovered = false;
   }
 }
