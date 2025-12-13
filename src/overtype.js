@@ -13,6 +13,65 @@ import { LinkTooltip } from './link-tooltip.js';
 import { defaultToolbarButtons } from './toolbar-buttons.js';
 
 /**
+ * Build action map from toolbar button configurations
+ * @param {Array} buttons - Array of button config objects
+ * @returns {Object} Map of actionId -> action function
+ */
+function buildActionsMap(buttons) {
+  const map = {};
+  (buttons || []).forEach((btn) => {
+    if (!btn || btn.name === 'separator') return;
+    const id = btn.actionId || btn.name;
+    if (btn.action) {
+      map[id] = btn.action;
+    }
+  });
+  return map;
+}
+
+/**
+ * Normalize toolbar buttons for comparison
+ * @param {Array|null} buttons
+ * @returns {Array|null}
+ */
+function normalizeButtons(buttons) {
+  const list = buttons || defaultToolbarButtons;
+  if (!Array.isArray(list)) return null;
+  return list.map((btn) => ({
+    name: btn?.name || null,
+    actionId: btn?.actionId || btn?.name || null,
+    icon: btn?.icon || null,
+    title: btn?.title || null
+  }));
+}
+
+/**
+ * Determine if toolbar button configuration changed
+ * @param {Array|null} prevButtons
+ * @param {Array|null} nextButtons
+ * @returns {boolean}
+ */
+function toolbarButtonsChanged(prevButtons, nextButtons) {
+  const prev = normalizeButtons(prevButtons);
+  const next = normalizeButtons(nextButtons);
+
+  if (prev === null || next === null) return prev !== next;
+  if (prev.length !== next.length) return true;
+
+  for (let i = 0; i < prev.length; i++) {
+    const a = prev[i];
+    const b = next[i];
+    if (a.name !== b.name ||
+        a.actionId !== b.actionId ||
+        a.icon !== b.icon ||
+        a.title !== b.title) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * OverType Editor Class
  */
 class OverType {
@@ -99,6 +158,9 @@ class OverType {
 
       // Setup shortcuts manager
       this.shortcuts = new ShortcutsManager(this);
+
+      // Build action map from toolbar buttons (works whether or not toolbar UI is shown)
+      this._rebuildActionsMap();
 
       // Setup link tooltip
       this.linkTooltip = new LinkTooltip(this);
@@ -435,6 +497,21 @@ class OverType {
       if (this._toolbarInputListener) {
         this.textarea.removeEventListener('input', this._toolbarInputListener);
         this._toolbarInputListener = null;
+      }
+    }
+
+    /**
+     * Rebuild the action map from current toolbar button configuration
+     * Called during init and reinit to keep shortcuts in sync with toolbar buttons
+     * @private
+     */
+    _rebuildActionsMap() {
+      // Always start with default actions (shortcuts always work regardless of toolbar config)
+      this.actionsById = buildActionsMap(defaultToolbarButtons);
+
+      // Overlay custom toolbar actions (can add/override, but never remove core actions)
+      if (this.options.toolbarButtons) {
+        Object.assign(this.actionsById, buildActionsMap(this.options.toolbarButtons));
       }
     }
 
@@ -807,13 +884,50 @@ class OverType {
     setValue(value) {
       this.textarea.value = value;
       this.updatePreview();
-      
+
       // Update height if auto-resize is enabled
       if (this.options.autoResize) {
         this._updateAutoHeight();
       }
     }
 
+    /**
+     * Execute an action by ID
+     * Central dispatcher used by toolbar clicks, keyboard shortcuts, and programmatic calls
+     * @param {string} actionId - The action identifier (e.g., 'toggleBold', 'insertLink')
+     * @param {Event|null} event - Optional event that triggered the action
+     * @returns {Promise<boolean>} Whether the action was executed successfully
+     */
+    async performAction(actionId, event = null) {
+      const textarea = this.textarea;
+      if (!textarea) return false;
+
+      const action = this.actionsById?.[actionId];
+      if (!action) {
+        console.warn(`OverType: Unknown action "${actionId}"`);
+        return false;
+      }
+
+      textarea.focus();
+
+      try {
+        await action({
+          editor: this,
+          getValue: () => this.getValue(),
+          setValue: (value) => this.setValue(value),
+          event
+        });
+        // Note: actions are responsible for dispatching input event
+        // This preserves behavior for direct consumers of toolbarButtons.*.action
+        return true;
+      } catch (error) {
+        console.error(`OverType: Action "${actionId}" error:`, error);
+        this.wrapper.dispatchEvent(new CustomEvent('button-error', {
+          detail: { actionId, error }
+        }));
+        return false;
+      }
+    }
 
     /**
      * Get the rendered HTML of the current content
@@ -882,7 +996,22 @@ class OverType {
      * @param {Object} options - New options to apply
      */
     reinit(options = {}) {
+      const prevToolbarButtons = this.options?.toolbarButtons;
       this.options = this._mergeOptions({ ...this.options, ...options });
+      const toolbarNeedsRebuild = this.toolbar &&
+        this.options.toolbar &&
+        toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons);
+
+      // Rebuild action map in case toolbarButtons changed
+      this._rebuildActionsMap();
+
+      if (toolbarNeedsRebuild) {
+        this._cleanupToolbarListeners();
+        this.toolbar.destroy();
+        this.toolbar = null;
+        this._createToolbar();
+      }
+
       this._applyOptions();
       this.updatePreview();
     }

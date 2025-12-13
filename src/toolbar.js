@@ -73,39 +73,11 @@ export class Toolbar {
       return button;
     }
 
-    // Standard button click handler
-    button._clickHandler = async (e) => {
+    // Standard button click handler - delegate to performAction
+    button._clickHandler = (e) => {
       e.preventDefault();
-
-      // Focus textarea before action
-      this.editor.textarea.focus();
-
-      try {
-        if (buttonConfig.action) {
-          // Call action with consistent context object
-          await buttonConfig.action({
-            editor: this.editor,
-            getValue: () => this.editor.getValue(),
-            setValue: (value) => this.editor.setValue(value),
-            event: e
-          });
-        }
-      } catch (error) {
-        console.error(`Button "${buttonConfig.name}" error:`, error);
-
-        // Dispatch error event
-        this.editor.wrapper.dispatchEvent(new CustomEvent('button-error', {
-          detail: { buttonName: buttonConfig.name, error }
-        }));
-
-        // Visual feedback
-        button.classList.add('button-error');
-        button.style.animation = 'buttonError 0.3s';
-        setTimeout(() => {
-          button.classList.remove('button-error');
-          button.style.animation = '';
-        }, 300);
-      }
+      const actionId = buttonConfig.actionId || buttonConfig.name;
+      this.editor.performAction(actionId, e);
     };
 
     button.addEventListener('click', button._clickHandler);
@@ -113,31 +85,38 @@ export class Toolbar {
   }
 
   /**
-   * Handle button action programmatically (used by keyboard shortcuts)
-   * @param {Object} buttonConfig - Button configuration object with action function
+   * Handle button action programmatically
+   * Accepts either an actionId string or a buttonConfig object (backwards compatible)
+   * @param {string|Object} actionIdOrConfig - Action identifier string or button config object
+   * @returns {Promise<boolean>} Whether the action was executed
    */
-  async handleAction(buttonConfig) {
-    // Focus textarea before action
-    this.editor.textarea.focus();
-
-    try {
-      if (buttonConfig.action) {
-        // Call action with consistent context object
-        await buttonConfig.action({
+  async handleAction(actionIdOrConfig) {
+    // Old style: buttonConfig object with .action function - execute directly
+    if (actionIdOrConfig && typeof actionIdOrConfig === 'object' && typeof actionIdOrConfig.action === 'function') {
+      this.editor.textarea.focus();
+      try {
+        await actionIdOrConfig.action({
           editor: this.editor,
           getValue: () => this.editor.getValue(),
           setValue: (value) => this.editor.setValue(value),
           event: null
         });
+        return true;
+      } catch (error) {
+        console.error(`Action "${actionIdOrConfig.name}" error:`, error);
+        this.editor.wrapper.dispatchEvent(new CustomEvent('button-error', {
+          detail: { buttonName: actionIdOrConfig.name, error }
+        }));
+        return false;
       }
-    } catch (error) {
-      console.error(`Action "${buttonConfig.name}" error:`, error);
-
-      // Dispatch error event
-      this.editor.wrapper.dispatchEvent(new CustomEvent('button-error', {
-        detail: { buttonName: buttonConfig.name, error }
-      }));
     }
+
+    // New style: string actionId - delegate to performAction
+    if (typeof actionIdOrConfig === 'string') {
+      return this.editor.performAction(actionIdOrConfig, null);
+    }
+
+    return false;
   }
 
   /**

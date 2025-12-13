@@ -8,15 +8,18 @@ import * as markdownActions from 'markdown-actions';
 
 /**
  * Built-in toolbar button definitions
- * Each button has: name, icon, title, action
+ * Each button has: name, actionId, icon, title, action
+ * - name: DOM identifier for the button element
+ * - actionId: Canonical action identifier used by performAction
  * Action signature: ({ editor, getValue, setValue, event }) => void
  */
 export const toolbarButtons = {
   bold: {
     name: 'bold',
+    actionId: 'toggleBold',
     icon: icons.boldIcon,
     title: 'Bold (Ctrl+B)',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleBold(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -24,9 +27,10 @@ export const toolbarButtons = {
 
   italic: {
     name: 'italic',
+    actionId: 'toggleItalic',
     icon: icons.italicIcon,
     title: 'Italic (Ctrl+I)',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleItalic(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -34,9 +38,10 @@ export const toolbarButtons = {
 
   code: {
     name: 'code',
+    actionId: 'toggleCode',
     icon: icons.codeIcon,
     title: 'Inline Code',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleCode(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -49,9 +54,10 @@ export const toolbarButtons = {
 
   link: {
     name: 'link',
+    actionId: 'insertLink',
     icon: icons.linkIcon,
     title: 'Insert Link',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.insertLink(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -59,9 +65,10 @@ export const toolbarButtons = {
 
   h1: {
     name: 'h1',
+    actionId: 'toggleH1',
     icon: icons.h1Icon,
     title: 'Heading 1',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleH1(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -69,9 +76,10 @@ export const toolbarButtons = {
 
   h2: {
     name: 'h2',
+    actionId: 'toggleH2',
     icon: icons.h2Icon,
     title: 'Heading 2',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleH2(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -79,9 +87,10 @@ export const toolbarButtons = {
 
   h3: {
     name: 'h3',
+    actionId: 'toggleH3',
     icon: icons.h3Icon,
     title: 'Heading 3',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleH3(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -89,9 +98,10 @@ export const toolbarButtons = {
 
   bulletList: {
     name: 'bulletList',
+    actionId: 'toggleBulletList',
     icon: icons.bulletListIcon,
     title: 'Bullet List',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleBulletList(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -99,9 +109,10 @@ export const toolbarButtons = {
 
   orderedList: {
     name: 'orderedList',
+    actionId: 'toggleNumberedList',
     icon: icons.orderedListIcon,
     title: 'Numbered List',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleNumberedList(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -109,9 +120,10 @@ export const toolbarButtons = {
 
   taskList: {
     name: 'taskList',
+    actionId: 'toggleTaskList',
     icon: icons.taskListIcon,
     title: 'Task List',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       if (markdownActions.toggleTaskList) {
         markdownActions.toggleTaskList(editor.textarea);
         editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -121,9 +133,10 @@ export const toolbarButtons = {
 
   quote: {
     name: 'quote',
+    actionId: 'toggleQuote',
     icon: icons.quoteIcon,
     title: 'Quote',
-    action: ({ editor, event }) => {
+    action: ({ editor }) => {
       markdownActions.toggleQuote(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
