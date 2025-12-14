@@ -768,32 +768,32 @@ Special thanks to:
 
 ### Core Features & Fixes
 - [Josh Doman](https://github.com/joshdoman) - Fixed inline code formatting preservation ([#6](https://github.com/panphora/overtype/pull/6)), improved code fence detection ([#19](https://github.com/panphora/overtype/pull/19))
-- [kbhomes](https://github.com/kbhomes) - Fixed text selection desynchronization during overscroll ([#17](https://github.com/panphora/overtype/pull/17))
+- [kbhomes](https://github.com/kbhomes) - Fixed text selection desync during overscroll ([#17](https://github.com/panphora/overtype/pull/17))
 - [Kristián Kostecký](https://github.com/kristiankostecky) - Fixed toolbar option being ignored in reinit() ([#62](https://github.com/panphora/overtype/pull/62))
-- [Lyric Wai](https://github.com/lyricat) - Fixed double-escaping of links ([#64](https://github.com/panphora/overtype/pull/64)), reported code block alignment issues ([#65](https://github.com/panphora/overtype/issues/65))
-- [kozi](https://github.com/kozi) - Reported link tooltip issues in Firefox ([#68](https://github.com/panphora/overtype/issues/68)), toolbar positioning ([#69](https://github.com/panphora/overtype/issues/69)), theme synchronization issues ([#70](https://github.com/panphora/overtype/issues/70), [#71](https://github.com/panphora/overtype/issues/71))
-- [1951FDG](https://github.com/1951FDG) - Reported list rendering issues ([#74](https://github.com/panphora/overtype/issues/74)), suggested showStats refresh ([#77](https://github.com/panphora/overtype/issues/77))
-- [nodesocket](https://github.com/nodesocket) - Reported toolbarButtons global access ([#73](https://github.com/panphora/overtype/issues/73), [#78](https://github.com/panphora/overtype/issues/78))
-- [Travis Bell](https://github.com/travisbell) - Reported keyboard shortcuts not working ([#80](https://github.com/panphora/overtype/issues/80))
+- [Lyric Wai](https://github.com/lyricat) - Fixed double-escaping of links ([#64](https://github.com/panphora/overtype/pull/64)), shared code block alignment fix ([#65](https://github.com/panphora/overtype/issues/65))
+- [kozi](https://github.com/kozi) - Reported Firefox link tooltip bug ([#68](https://github.com/panphora/overtype/issues/68)), toolbar positioning ([#69](https://github.com/panphora/overtype/issues/69)), theme CSS variable issues ([#70](https://github.com/panphora/overtype/issues/70), [#71](https://github.com/panphora/overtype/issues/71))
+- [1951FDG](https://github.com/1951FDG) - Reported unordered list rendering bug ([#74](https://github.com/panphora/overtype/issues/74)), suggested showStats() API improvement ([#77](https://github.com/panphora/overtype/issues/77))
+- [nodesocket](https://github.com/nodesocket) - Reported toolbarButtons export issues ([#73](https://github.com/panphora/overtype/issues/73), [#78](https://github.com/panphora/overtype/issues/78))
+- [Travis Bell](https://github.com/travisbell) - Reported keyboard shortcuts bug in ESM build ([#80](https://github.com/panphora/overtype/issues/80))
 
 ### TypeScript & Framework Support
-- [merlinz01](https://github.com/merlinz01) - Initial TypeScript definitions implementation ([#20](https://github.com/panphora/overtype/pull/20))
-- [ChasLui](https://github.com/ChasLui) - Web component implementation (under review) ([#40](https://github.com/panphora/overtype/pull/40))
+- [merlinz01](https://github.com/merlinz01) - Contributed TypeScript declaration file ([#20](https://github.com/panphora/overtype/pull/20))
+- [ChasLui](https://github.com/ChasLui) - Web component implementation ([#40](https://github.com/panphora/overtype/pull/40))
 
 ### New Features & Enhancements
-- [davidlazar](https://github.com/davidlazar) - Suggested view mode feature for toggling overlay and preview modes ([#24](https://github.com/panphora/overtype/issues/24))
-- [Yukai Huang](https://github.com/Yukaii) - Syntax highlighting support (under review) ([#35](https://github.com/panphora/overtype/pull/35))
+- [davidlazar](https://github.com/davidlazar) - Suggested view mode feature ([#24](https://github.com/panphora/overtype/issues/24))
+- [Yukai Huang](https://github.com/Yukaii) - Contributed syntax highlighting implementation ([#35](https://github.com/panphora/overtype/pull/35))
 - [Rognoni](https://github.com/rognoni) - Suggested custom toolbar button API ([#61](https://github.com/panphora/overtype/issues/61))
-- [Deyan Gigov](https://github.com/dido739) - Reported checkbox rendering issue in preview mode ([#60](https://github.com/panphora/overtype/issues/60))
+- [Deyan Gigov](https://github.com/dido739) - Reported checkbox rendering bug in preview mode ([#60](https://github.com/panphora/overtype/issues/60))
 - [GregJohnStewart](https://github.com/GregJohnStewart) - Suggested data attribute configuration ([#76](https://github.com/panphora/overtype/issues/76))
-- [boris-glumpler](https://github.com/boris-glumpler) - Suggested custom syntax/directive highlighting ([#79](https://github.com/panphora/overtype/issues/79))
+- [boris-glumpler](https://github.com/boris-glumpler) - Suggested custom syntax highlighting API ([#79](https://github.com/panphora/overtype/issues/79))
 
 ### Developer Experience
-- [Ned Twigg](https://github.com/nedtwigg) - Browser extension developer feedback, gitcasso extension ([#59](https://github.com/panphora/overtype/issues/59))
-- [Victor](https://github.com/ViggieM) - Suggested exporting MarkdownParser for standalone use ([#58](https://github.com/panphora/overtype/issues/58))
-- [Bernhard Weichel](https://github.com/bwl21) - Reported mode switching scroll sync bug ([#52](https://github.com/panphora/overtype/issues/52))
-- [Colin Devroe](https://github.com/cdevroe) - Reported theme API confusion ([#54](https://github.com/panphora/overtype/issues/54))
-- [Max Bernstein](https://github.com/tekknolagi) - Fixed typo in website ([#11](https://github.com/panphora/overtype/pull/11))
+- [Ned Twigg](https://github.com/nedtwigg) - Built gitcasso browser extension using OverType ([#59](https://github.com/panphora/overtype/issues/59))
+- [Victor](https://github.com/ViggieM) - Suggested exportable MarkdownParser ([#58](https://github.com/panphora/overtype/issues/58))
+- [Bernhard Weichel](https://github.com/bwl21) - Reported preview/edit mode sync bug ([#52](https://github.com/panphora/overtype/issues/52))
+- [Colin Devroe](https://github.com/cdevroe) - Reported setTheme() API bug ([#54](https://github.com/panphora/overtype/issues/54))
+- [Max Bernstein](https://github.com/tekknolagi) - Fixed typo on website ([#11](https://github.com/panphora/overtype/pull/11))
 
 ## License
 
