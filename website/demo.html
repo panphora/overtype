@@ -179,6 +179,14 @@
             <div id="preview-editor" class="editor-wrapper"></div>
         </div>
 
+        <!-- File Uploads -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>File Uploads</h2>
+            </div>
+            <div id="file-uploads-editor" class="editor-wrapper"></div>
+        </div>
+
         <!-- Notes Editor -->
         <div class="demo-section">
             <div class="demo-header">
@@ -513,6 +521,26 @@ const editor = new OverType('#editor', {
                 value: sampleContent.code,
                 fontSize: '13px',
                 showStats: true
+            });
+
+            [editors.fileUploads] = new OT('#file-uploads-editor', {
+                value: `# File Uploads Demo
+\nTry pasting or dragging & dropping files (images or others) into this editor. Placeholders will be inserted while uploading.\n\n- Supported file types: images, documents, etc.\n- Upload handling is simulated in this demo.\n\n**Give it a try!**\n\n`,
+                fileUpload: {
+                    enabled: true,
+                    onInsertFile: async (file) => {
+                        // Simulate upload delay
+                        await new Promise(res => setTimeout(res, 1500));
+                        // Return a mock URL
+                        const url = `/uploads/${encodeURIComponent(file.name)}`;
+
+                        if (file.type.startsWith('image/')) {
+                            return `![${file.name}](${url})`;
+                        } else {
+                            return `[${file.name}](${url})`;
+                        }
+                    },
+                },
             });
         }
 

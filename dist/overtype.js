@@ -1,5 +1,5 @@
 /**
- * OverType v2.1.0
+ * OverType v2.1.1
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -3730,7 +3730,96 @@ ${blockSuffix}` : suffix;
         this.toolbar.destroy();
         this.toolbar = null;
       }
+      if (this.options.fileUpload && !this.fileUploadInitialized) {
+        this._initFileUpload();
+      } else if (!this.options.fileUpload && this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
       this.updatePreview();
+    }
+    _initFileUpload() {
+      const options = this.options.fileUpload;
+      if (!options)
+        return;
+      if (!options.enabled)
+        return;
+      options.maxSize = options.maxSize || 10 * 1024 * 1024;
+      options.mimeTypes = options.mimeTypes || [];
+      if (!options.onInsertFile || typeof options.onInsertFile !== "function") {
+        console.warn("OverType: fileUpload.onInsertFile callback is required for file uploads.");
+        return;
+      }
+      this._boundHandleFilePaste = this._handleFilePaste.bind(this);
+      this._boundHandleFileDrop = this._handleFileDrop.bind(this);
+      this._boundHandleDragOver = this._handleDragOver.bind(this);
+      this._boundHandleDragLeave = this._handleDragLeave.bind(this);
+      this.textarea.addEventListener("paste", this._boundHandleFilePaste);
+      this.textarea.addEventListener("drop", this._boundHandleFileDrop);
+      this.textarea.addEventListener("dragover", this._boundHandleDragOver);
+      this.textarea.addEventListener("dragleave", this._boundHandleDragLeave);
+      this.fileUploadInitialized = true;
+    }
+    _handleFilePaste(e) {
+      var _a, _b;
+      if (!((_b = (_a = e == null ? void 0 : e.clipboardData) == null ? void 0 : _a.files) == null ? void 0 : _b.length))
+        return;
+      e.preventDefault();
+      this._handleDataTransfer(e.clipboardData);
+    }
+    _handleFileDrop(e) {
+      var _a, _b;
+      if (!((_b = (_a = e == null ? void 0 : e.dataTransfer) == null ? void 0 : _a.files) == null ? void 0 : _b.length))
+        return;
+      e.preventDefault();
+      this._handleDataTransfer(e.dataTransfer);
+    }
+    _handleDataTransfer(dataTransfer) {
+      for (const file of dataTransfer.files) {
+        if (file.size > this.options.fileUpload.maxSize) {
+          continue;
+        }
+        if (this.options.fileUpload.mimeTypes.length > 0 && !this.options.fileUpload.mimeTypes.includes(file.type)) {
+          continue;
+        }
+        const prefix = this._isImageFile(file.type) ? "!" : "";
+        const placeholder = `${prefix}[Uploading ${file.name}...]()`;
+        this.insertAtCursor(`${placeholder}
+`);
+        this.options.fileUpload.onInsertFile(file).then((text) => {
+          this.textarea.value = this.textarea.value.replace(placeholder, text);
+          this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }, (error) => {
+          console.error("OverType: File upload failed", error);
+          this.textarea.value = this.textarea.value.replace(placeholder, "[Upload failed]()");
+          this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      }
+    }
+    _isImageFile(type) {
+      return type.startsWith("image/");
+    }
+    _handleDragOver(e) {
+      e.preventDefault();
+    }
+    _handleDragLeave(e) {
+    }
+    _destroyFileUpload() {
+      this.textarea.removeEventListener("paste", this._boundHandleFilePaste || this._handleFilePaste);
+      this.textarea.removeEventListener("drop", this._boundHandleFileDrop || this._handleFileDrop);
+      this._boundHandleFilePaste = null;
+      this._boundHandleFileDrop = null;
+      this.fileUploadInitialized = false;
+    }
+    insertAtCursor(text) {
+      const start = this.textarea.selectionStart;
+      const end = this.textarea.selectionEnd;
+      if (!document.execCommand("insertText", false, text)) {
+        const before = this.textarea.value.slice(0, start);
+        const after = this.textarea.value.slice(end);
+        this.textarea.value = before + text + after;
+        this.textarea.setSelectionRange(start + text.length, start + text.length);
+      }
+      this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
     /**
      * Update preview with parsed markdown
