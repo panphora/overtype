@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0] - 2025-12-26
+
+### Added
+- File upload support with drag-and-drop and paste handling
+
+
+
 ## [2.1.1] - 2025-12-13
 
 ### Added

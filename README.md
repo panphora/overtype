@@ -836,6 +836,7 @@ Special thanks to:
 - [1951FDG](https://github.com/1951FDG) - Reported unordered list rendering bug ([#74](https://github.com/panphora/overtype/issues/74)), suggested showStats() API improvement ([#77](https://github.com/panphora/overtype/issues/77))
 - [nodesocket](https://github.com/nodesocket) - Reported toolbarButtons export issues ([#73](https://github.com/panphora/overtype/issues/73), [#78](https://github.com/panphora/overtype/issues/78))
 - [Travis Bell](https://github.com/travisbell) - Reported keyboard shortcuts bug in ESM build ([#80](https://github.com/panphora/overtype/issues/80))
+- [Richard Leek](https://github.com/sorokya) - Added file upload feature ([#27](https://github.com/panphora/overtype/issues/27))
 
 ### TypeScript & Framework Support
 - [merlinz01](https://github.com/merlinz01) - Contributed TypeScript declaration file ([#20](https://github.com/panphora/overtype/pull/20))
