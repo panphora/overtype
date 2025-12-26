@@ -355,6 +355,52 @@ function MarkdownEditor({ value, onChange }) {
 }
 ```
 
+### File Upload
+
+When enabled, users can paste or drag-and-drop files into the editor. A placeholder is inserted while the file is uploaded asynchronously.
+
+```javascript
+const [editor] = new OverType('#editor', {
+  fileUpload: {
+    enabled: true,
+    onInsertFile: async (file) => {
+      // Upload file to server here
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      // Return markdown to insert
+      return `![${file.name}](${data.url})`;
+    }
+  }
+});
+```
+
+Files can also be uploaded in batch mode by setting `fileUpload.batch` to `true`. In this mode, all files dropped or pasted at once are sent together in a single call to `onInsertFile`, which receives an array of files and should return an array of corresponding markdown strings.
+
+```javascript
+const [editor] = new OverType('#editor', {
+  fileUpload: {
+    enabled: true,
+    batch: true, // Enable batch upload
+    onInsertFile: async (files) => {
+      const formData = new FormData();
+      files.forEach(file => formData.append('file[]', file));
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      // Return array of markdown strings
+      return data.urls.map((url, index) => `![${files[index].name}](${url})`);
+    }
+  }
+});
+```
+
 ### Standalone Parser
 
 Import and use the markdown parser without the full editor for server-side rendering, static site generation, or browser extensions:
@@ -473,7 +519,22 @@ new OverType(target, options)
   
   // Callbacks
   onChange: (value, instance) => {},
-  onKeydown: (event, instance) => {}
+  onKeydown: (event, instance) => {},
+
+  // File Upload
+  fileUpload: {
+    enabled: false, // Enable/disable file upload
+    maxSize: 10 * 1024 * 1024, // Defaults to 10 MB
+    mimeTypes: [], // Allowed mime types. Default is all files allowed
+    onInsertFile: async (file) => {
+      // Callback when placeholder is inserted into editor
+      // Upload to server here
+      // (e.g await fetch('/api/upload'))
+
+      // Return the markdown that should replace the placeholder
+      return `![${file.name}](/uploads/${encodeURIComponent(file.name)})`;
+    },
+  }
 }
 ```
 

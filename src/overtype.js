@@ -564,6 +564,7 @@ class OverType {
 
       options.maxSize = options.maxSize || 10 * 1024 * 1024; // Default 10 MB
       options.mimeTypes = options.mimeTypes || []; // Default: allow all types
+      options.batch = options.batch || false; // Default: upload files individually
       if (!options.onInsertFile || typeof options.onInsertFile !== 'function') {
         console.warn('OverType: fileUpload.onInsertFile callback is required for file uploads.');
         return;
@@ -597,12 +598,13 @@ class OverType {
     }
 
     _handleDataTransfer(dataTransfer) {
+      const files = [];
       for (const file of dataTransfer.files) {
         if (file.size > this.options.fileUpload.maxSize) {
           continue;
         }
 
-        if (this.options.fileUpload.mimeTypes.length > 0
+        if (this.options.fileUpload.mimeTypes?.length > 0
           && !this.options.fileUpload.mimeTypes.includes(file.type)) {
           continue;
         }
@@ -611,12 +613,32 @@ class OverType {
         const placeholder = `${prefix}[Uploading ${file.name}...]()`;
         this.insertAtCursor(`${placeholder}\n`);
 
+        if (this.options.fileUpload.batch) {
+          files.push({ file, placeholder });
+          continue;
+        }
+
         this.options.fileUpload.onInsertFile(file).then((text) => {
           this.textarea.value = this.textarea.value.replace(placeholder, text);
           this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
         }, (error) => {
           console.error('OverType: File upload failed', error);
           this.textarea.value = this.textarea.value.replace(placeholder, '[Upload failed]()');
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+
+      if (this.options.fileUpload.batch && files.length > 0) {
+        this.options.fileUpload.onInsertFile(files.map(f => f.file)).then((texts) => {
+          texts.forEach((text, index) => {
+            this.textarea.value = this.textarea.value.replace(files[index].placeholder, text);
+          });
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }, (error) => {
+          console.error('OverType: File upload failed', error);
+          files.forEach(({ placeholder }) => {
+            this.textarea.value = this.textarea.value.replace(placeholder, '[Upload failed]()');
+          });
           this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
         });
       }
@@ -1120,6 +1142,14 @@ class OverType {
         this.toolbar.destroy();
         this.toolbar = null;
         this._createToolbar();
+      }
+
+      if (this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
+
+      if (this.options.fileUpload) {
+        this._initFileUpload();
       }
 
       this._applyOptions();

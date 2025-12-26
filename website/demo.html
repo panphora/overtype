@@ -184,6 +184,14 @@
             <div class="demo-header">
                 <h2>File Uploads</h2>
             </div>
+            <div style="padding: 10px; background: #0a0a0a;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center;">
+                    <label style="display:flex; gap:6px; align-items:center;">
+                        <input id="file-uploads-batch-check" type="checkbox">
+                        Batch Uploads
+                    </label>
+                </div>
+            </div>
             <div id="file-uploads-editor" class="editor-wrapper"></div>
         </div>
 
@@ -486,7 +494,16 @@ const editor = new OverType('#editor', {
 ## API Methods
 - \`getValue()\` - Get markdown content
 - \`setValue(text)\` - Set content
-- \`setTheme(name)\` - Change theme`
+- \`setTheme(name)\` - Change theme`,
+            fileUploads: `# File Uploads Demo
+
+Try pasting or dragging & dropping files (images or others) into this editor. Placeholders will be inserted while uploading.
+- Supported file types: images, documents, etc.
+- Upload handling is simulated in this demo.
+
+**Give it a try!**
+
+`,
         };
 
         // Initialize all editors
@@ -523,9 +540,8 @@ const editor = new OverType('#editor', {
                 showStats: true
             });
 
-            [editors.fileUploads] = new OT('#file-uploads-editor', {
-                value: `# File Uploads Demo
-\nTry pasting or dragging & dropping files (images or others) into this editor. Placeholders will be inserted while uploading.\n\n- Supported file types: images, documents, etc.\n- Upload handling is simulated in this demo.\n\n**Give it a try!**\n\n`,
+            const fileUploadOptions = {
+                value: sampleContent.fileUploads,
                 fileUpload: {
                     enabled: true,
                     onInsertFile: async (file) => {
@@ -541,6 +557,34 @@ const editor = new OverType('#editor', {
                         }
                     },
                 },
+            };
+
+            const batchUploadOptions = {
+                ...fileUploadOptions,
+                fileUpload: {
+                    ...fileUploadOptions.fileUpload,
+                    batch: true,
+                    onInsertFile: async (files) => {
+                        // Simulate upload delay
+                        await new Promise(res => setTimeout(res, 2000));
+                        // Generate markdown for all files
+                        return files.map((file) => {
+                            const url = `/uploads/${encodeURIComponent(file.name)}`;
+                            if (file.type.startsWith('image/')) {
+                                return `![${file.name}](${url})`;
+                            } else {
+                                return `[${file.name}](${url})`;
+                            }
+                        });
+                    }
+                },
+            }
+
+            const [fileEditor] = new OT('#file-uploads-editor', fileUploadOptions);
+            const batchCheck = document.getElementById('file-uploads-batch-check');
+            batchCheck.addEventListener('change', () => {
+                const isBatch = batchCheck.checked;
+                fileEditor.reinit(isBatch ? batchUploadOptions : fileUploadOptions);
             });
         }
 
