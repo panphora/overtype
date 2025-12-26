@@ -546,8 +546,136 @@ class OverType {
         this.toolbar = null;
       }
 
+      if (this.options.fileUpload && !this.fileUploadInitialized) {
+        this._initFileUpload();
+      } else if (!this.options.fileUpload && this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
+
       // Update preview with initial content
       this.updatePreview();
+    }
+
+    _initFileUpload() {
+      const options = this.options.fileUpload;
+      if (!options) return;
+
+      if (!options.enabled) return;
+
+      options.maxSize = options.maxSize || 10 * 1024 * 1024; // Default 10 MB
+      options.mimeTypes = options.mimeTypes || []; // Default: allow all types
+      options.batch = options.batch || false; // Default: upload files individually
+      if (!options.onInsertFile || typeof options.onInsertFile !== 'function') {
+        console.warn('OverType: fileUpload.onInsertFile callback is required for file uploads.');
+        return;
+      }
+
+      // Bind handlers so `this` inside them is the OverType instance.
+      // Store the bound refs so we can remove them later.
+      this._boundHandleFilePaste = this._handleFilePaste.bind(this);
+      this._boundHandleFileDrop = this._handleFileDrop.bind(this);
+      this._boundHandleDragOver = this._handleDragOver.bind(this);
+
+      this.textarea.addEventListener('paste', this._boundHandleFilePaste);
+      this.textarea.addEventListener('drop', this._boundHandleFileDrop);
+      this.textarea.addEventListener('dragover', this._boundHandleDragOver);
+
+      this.fileUploadInitialized = true;
+    }
+
+    _handleFilePaste(e) {
+      if (!e?.clipboardData?.files?.length) return;
+      e.preventDefault();
+      this._handleDataTransfer(e.clipboardData);
+    }
+
+    _handleFileDrop(e) {
+      if (!e?.dataTransfer?.files?.length) return;
+      e.preventDefault();
+      this._handleDataTransfer(e.dataTransfer);
+    }
+
+    _handleDataTransfer(dataTransfer) {
+      const files = [];
+      for (const file of dataTransfer.files) {
+        if (file.size > this.options.fileUpload.maxSize) {
+          continue;
+        }
+
+        if (this.options.fileUpload.mimeTypes?.length > 0
+          && !this.options.fileUpload.mimeTypes.includes(file.type)) {
+          continue;
+        }
+
+        const prefix = this._isImageFile(file.type) ? '!' : '';
+        const placeholder = `${prefix}[Uploading ${file.name}...]()`;
+        this.insertAtCursor(`${placeholder}\n`);
+
+        if (this.options.fileUpload.batch) {
+          files.push({ file, placeholder });
+          continue;
+        }
+
+        this.options.fileUpload.onInsertFile(file).then((text) => {
+          this.textarea.value = this.textarea.value.replace(placeholder, text);
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }, (error) => {
+          console.error('OverType: File upload failed', error);
+          this.textarea.value = this.textarea.value.replace(placeholder, '[Upload failed]()');
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+
+      if (this.options.fileUpload.batch && files.length > 0) {
+        this.options.fileUpload.onInsertFile(files.map(f => f.file)).then((texts) => {
+          texts.forEach((text, index) => {
+            this.textarea.value = this.textarea.value.replace(files[index].placeholder, text);
+          });
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }, (error) => {
+          console.error('OverType: File upload failed', error);
+          files.forEach(({ placeholder }) => {
+            this.textarea.value = this.textarea.value.replace(placeholder, '[Upload failed]()');
+          });
+          this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      }
+    }
+
+    _isImageFile(type) {
+      return type.startsWith('image/');
+    }
+
+    _handleDragOver(e) {
+      e.preventDefault();
+    }
+
+    _destroyFileUpload() {
+      // Prefer removing the bound handlers if present.
+      this.textarea.removeEventListener('paste', this._boundHandleFilePaste || this._handleFilePaste);
+      this.textarea.removeEventListener('dragover', this._boundHandleDragOver || this._handleDragOver);
+      this.textarea.removeEventListener('drop', this._boundHandleFileDrop || this._handleFileDrop);
+      this._boundHandleFilePaste = null;
+      this._boundHandleFileDrop = null;
+      this._boundHandleDragOver = null;
+      this.fileUploadInitialized = false;
+    }
+
+    insertAtCursor(text) {
+      const start = this.textarea.selectionStart;
+      const end = this.textarea.selectionEnd;
+
+      // Try native method first (preserves undo history)
+      if (!document.execCommand('insertText', false, text)) {
+        // Fallback to direct manipulation
+        const before = this.textarea.value.slice(0, start);
+        const after = this.textarea.value.slice(end);
+        this.textarea.value = before + text + after;
+        this.textarea.setSelectionRange(start + text.length, start + text.length);
+      }
+
+      // Trigger input event to update preview
+      this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
     /**
@@ -1010,6 +1138,14 @@ class OverType {
         this.toolbar.destroy();
         this.toolbar = null;
         this._createToolbar();
+      }
+
+      if (this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
+
+      if (this.options.fileUpload) {
+        this._initFileUpload();
       }
 
       this._applyOptions();
