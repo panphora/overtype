@@ -1,5 +1,5 @@
 /**
- * OverType v2.1.1
+ * OverType v2.2.0
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -3753,11 +3753,9 @@ ${blockSuffix}` : suffix;
       this._boundHandleFilePaste = this._handleFilePaste.bind(this);
       this._boundHandleFileDrop = this._handleFileDrop.bind(this);
       this._boundHandleDragOver = this._handleDragOver.bind(this);
-      this._boundHandleDragLeave = this._handleDragLeave.bind(this);
       this.textarea.addEventListener("paste", this._boundHandleFilePaste);
       this.textarea.addEventListener("drop", this._boundHandleFileDrop);
       this.textarea.addEventListener("dragover", this._boundHandleDragOver);
-      this.textarea.addEventListener("dragleave", this._boundHandleDragLeave);
       this.fileUploadInitialized = true;
     }
     _handleFilePaste(e) {
@@ -3822,13 +3820,13 @@ ${blockSuffix}` : suffix;
     _handleDragOver(e) {
       e.preventDefault();
     }
-    _handleDragLeave(e) {
-    }
     _destroyFileUpload() {
       this.textarea.removeEventListener("paste", this._boundHandleFilePaste || this._handleFilePaste);
+      this.textarea.removeEventListener("dragover", this._boundHandleDragOver || this._handleDragOver);
       this.textarea.removeEventListener("drop", this._boundHandleFileDrop || this._handleFileDrop);
       this._boundHandleFilePaste = null;
       this._boundHandleFileDrop = null;
+      this._boundHandleDragOver = null;
       this.fileUploadInitialized = false;
     }
     insertAtCursor(text) {

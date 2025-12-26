@@ -575,12 +575,10 @@ class OverType {
       this._boundHandleFilePaste = this._handleFilePaste.bind(this);
       this._boundHandleFileDrop = this._handleFileDrop.bind(this);
       this._boundHandleDragOver = this._handleDragOver.bind(this);
-      this._boundHandleDragLeave = this._handleDragLeave.bind(this);
 
       this.textarea.addEventListener('paste', this._boundHandleFilePaste);
       this.textarea.addEventListener('drop', this._boundHandleFileDrop);
       this.textarea.addEventListener('dragover', this._boundHandleDragOver);
-      this.textarea.addEventListener('dragleave', this._boundHandleDragLeave);
 
       this.fileUploadInitialized = true;
     }
@@ -652,16 +650,14 @@ class OverType {
       e.preventDefault();
     }
 
-    _handleDragLeave(e) {
-      //e.preventDefault();
-    }
-
     _destroyFileUpload() {
       // Prefer removing the bound handlers if present.
       this.textarea.removeEventListener('paste', this._boundHandleFilePaste || this._handleFilePaste);
+      this.textarea.removeEventListener('dragover', this._boundHandleDragOver || this._handleDragOver);
       this.textarea.removeEventListener('drop', this._boundHandleFileDrop || this._handleFileDrop);
       this._boundHandleFilePaste = null;
       this._boundHandleFileDrop = null;
+      this._boundHandleDragOver = null;
       this.fileUploadInitialized = false;
     }
 

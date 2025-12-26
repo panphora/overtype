@@ -112,17 +112,6 @@ export interface Options {
   // Callbacks
   onChange?: (value: string, instance: OverTypeInstance) => void;
   onKeydown?: (event: KeyboardEvent, instance: OverTypeInstance) => void;
-
-  // File upload options
-  fileUpload?: {
-    enabled: boolean;
-    maxSize?: number;
-    mimeTypes?: string[];
-    batch?: boolean;
-    onInsertFile: (
-      file: File | File[],
-    ) => Promise<string> | Promise<string[]>;
-  };
 }
 
 // Interface for constructor that returns array
