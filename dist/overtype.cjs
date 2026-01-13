@@ -1,5 +1,5 @@
 /**
- * OverType v2.1.0
+ * OverType v2.1.1
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -4286,7 +4286,7 @@ var _OverType = class _OverType {
           options[key] = _OverType._parseDataValue(attr.value);
         }
       }
-      return new _OverType(el, options);
+      return new _OverType(el, options)[0];
     });
   }
   /**

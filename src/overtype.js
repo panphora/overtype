@@ -1307,7 +1307,7 @@ class OverType {
           }
         }
 
-        return new OverType(el, options);
+        return new OverType(el, options)[0];
       });
     }
 
