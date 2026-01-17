@@ -670,6 +670,18 @@ class OverTypeEditor extends HTMLElement {
   getEditor() {
     return this._editor;
   }
+
+  showToolbar() {
+    if (this._editor) {
+      this._editor.showToolbar();
+    }
+  }
+
+  hideToolbar() {
+    if (this._editor) {
+      this._editor.hideToolbar();
+    }
+  }
 }
 
 // Register the custom element

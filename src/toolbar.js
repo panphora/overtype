@@ -288,6 +288,27 @@ export class Toolbar {
   }
 
   /**
+   * Show the toolbar
+   */
+  show() {
+    if (this.container) {
+      this.container.classList.add('overtype-toolbar');
+      this.container.style.display = '';
+    }
+  }
+
+  /**
+   * Hide the toolbar, but do not destroy it
+   */
+  hide() {
+    if (this.container) {
+      this.container.style.display = 'none';
+      // .overtype-toolbar will override display:none, so we remove it
+      this.container.classList.remove('overtype-toolbar');
+    }
+  }
+
+  /**
    * Destroy toolbar and cleanup
    */
   destroy() {

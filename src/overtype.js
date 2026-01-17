@@ -1016,6 +1016,30 @@ class OverType {
       this.updatePreview();
     }
 
+    
+    /**
+     * reveal the toolbar if it is hidden
+     * create it if it does not exist
+     * @returns {void}
+     */
+    showToolbar(){
+      if (this.toolbar) {
+        this.toolbar.show();
+      } else {
+        this._createToolbar();
+      }
+    }
+
+    /**
+     * hide the toolbar if it exists
+     * @returns {void}
+     */
+    hideToolbar(){
+      if (this.toolbar) {
+        this.toolbar.hide();
+      }
+    }
+
     /**
      * Set theme for this instance
      * @param {string|Object} theme - Theme name or custom theme object

@@ -467,5 +467,34 @@ setTimeout(() => {
       }
     }, 100);
   });
+
+
+  runTest('Show / hide toolbar programmatically via API', () => {
+    const container = dom.window.document.getElementById('test-container');
+    const editor = dom.window.document.createElement('overtype-editor');
+    container.appendChild(editor);
+
+    setTimeout(() => {
+
+      // Initially no toolbar
+      let instance = editor.getEditor();
+      if (instance.toolbar) throw new Error('Toolbar should not be present initially');
+
+      // Show toolbar
+      editor.showToolbar();
+      instance = editor.getEditor();
+      if (!instance.toolbar || !instance.toolbar.container.classList.contains('overtype-toolbar')) throw new Error('Toolbar should be present and visible after showToolbar()');
+
+      // Hide toolbar
+      editor.hideToolbar();
+      instance = editor.getEditor();
+      if (instance.toolbar.container.classList.contains('overtype-toolbar')) throw new Error('Toolbar should not be visible after hideToolbar()');
+
+      container.removeChild(editor);
+      console.log('  ✅ Toolbar show/hide API works correctly');
+
+    }, 100); // Allow initialization
+  });
+
   
 }, 200);
