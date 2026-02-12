@@ -172,6 +172,7 @@ export interface OverTypeInstance {
   setTheme(theme: string | Theme): this;
   setCodeHighlighter(highlighter: ((code: string, language: string) => string) | null): void;
   updatePreview(): void;
+  performAction(actionId: string, event?: Event | null): Promise<boolean>;
 
   // HTML output methods
   getRenderedHTML(options?: RenderOptions): string;
