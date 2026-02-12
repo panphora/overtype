@@ -334,23 +334,23 @@ The stats bar automatically adapts to your theme colors using CSS variables.
 function MarkdownEditor({ value, onChange }) {
   const ref = useRef();
   const editorRef = useRef();
-  
+
   useEffect(() => {
     const [instance] = OverType.init(ref.current, {
       value,
       onChange
     });
     editorRef.current = instance;
-    
+
     return () => editorRef.current?.destroy();
   }, []);
-  
+
   useEffect(() => {
     if (editorRef.current && value !== editorRef.current.getValue()) {
       editorRef.current.setValue(value);
     }
   }, [value]);
-  
+
   return <div ref={ref} style={{ height: '400px' }} />;
 }
 ```
@@ -417,34 +417,34 @@ new OverType(target, options)
   lineHeight: 1.6,
   fontFamily: 'monospace',
   padding: '16px',
-  
+
   // Theme - 'solar', 'cave', or custom theme object
   theme: 'solar',
-  
+
   // Custom colors (override theme colors)
   colors: {
     h1: '#e63946',
     h2: '#457b9d',
     // ... any color variable
   },
-  
+
   // Mobile styles (applied at <= 640px)
   mobile: {
     fontSize: '16px',
     padding: '12px',
     lineHeight: 1.5
   },
-  
+
   // Behavior
   autofocus: false,
   placeholder: 'Start typing...',
   value: '',
-  
+
   // Auto-resize
   autoResize: false,      // Auto-expand height with content
   minHeight: '100px',     // Minimum height when autoResize is enabled
   maxHeight: null,        // Maximum height (null = unlimited)
-  
+
   // Native textarea properties
   textareaProps: {
     required: true,
@@ -452,7 +452,7 @@ new OverType(target, options)
     name: 'content',
     // Any HTML textarea attribute
   },
-  
+
   // Toolbar
   toolbar: false,         // Enable/disable toolbar
   toolbarButtons: [],     // Custom button array (v2.0)
@@ -464,13 +464,13 @@ new OverType(target, options)
 
   // Smart lists
   smartLists: true,       // Enable GitHub-style list continuation on Enter
-  
+
   // Stats bar
   showStats: false,       // Enable/disable stats bar
   statsFormatter: (stats) => {  // Custom stats format
     return `${stats.chars} chars | ${stats.words} words`;
   },
-  
+
   // Callbacks
   onChange: (value, instance) => {},
   onKeydown: (event, instance) => {}
@@ -510,6 +510,9 @@ editor.showPreviewMode()      // Switch to preview mode
 // Focus/blur
 editor.focus()
 editor.blur()
+
+// Perform actions. Equivalent to clicking on the corresponding toolbar button.
+editor.performAction('toggleBold')
 
 // Show or hide stats bar
 editor.showStats(true)   // Show stats
@@ -809,7 +812,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 Built with the radical idea that sometimes dumb ideas work.
 
-**Ready for another radical idea?**  
+**Ready for another radical idea?**
 Let's remove every layer of the web application stack.
 
 ### Hyperclay
