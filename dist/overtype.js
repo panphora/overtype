@@ -3401,7 +3401,7 @@ ${blockSuffix}` : suffix;
     return false;
   }
   var _OverType = class _OverType {
-    // Global auto theme listener
+    // Listener for global auto theme
     /**
      * Constructor - Always returns an array of instances
      * @param {string|Element|NodeList|Array} target - Target element(s)
@@ -4445,7 +4445,7 @@ ${blockSuffix}` : suffix;
       });
       document.querySelectorAll("overtype-editor").forEach((wc) => {
         var _a, _b, _c;
-        (_a = wc.setAttribute) == null ? void 0 : _a.call(wc, isAuto ? "theme" : "theme", isAuto ? "auto" : themeName);
+        (_a = wc.setAttribute) == null ? void 0 : _a.call(wc, "theme", isAuto ? "auto" : themeName);
         if (isAuto)
           (_b = wc.setAttribute) == null ? void 0 : _b.call(wc, "data-resolved-theme", themeName);
         (_c = wc.refreshTheme) == null ? void 0 : _c.call(wc);
@@ -4625,14 +4625,16 @@ ${blockSuffix}` : suffix;
   __publicField(_OverType, "stylesInjected", false);
   __publicField(_OverType, "globalListenersInitialized", false);
   __publicField(_OverType, "instanceCount", 0);
+  // Instance-level auto theme tracking (when individual instances use auto theme)
   __publicField(_OverType, "_mq", null);
-  // Shared media query for auto theme
+  // Shared media query for instance auto themes
   __publicField(_OverType, "_mqListener", null);
-  // Shared listener
+  // Shared listener for instance auto themes
   __publicField(_OverType, "_autoInstances", /* @__PURE__ */ new Set());
-  // Track auto-themed instances
+  // Track instances using auto theme
+  // Global-level auto theme tracking (when OverType.setTheme('auto') is called)
   __publicField(_OverType, "_globalAutoMq", null);
-  // Global auto theme media query
+  // Media query for global auto theme
   __publicField(_OverType, "_globalAutoListener", null);
   var OverType = _OverType;
   OverType.MarkdownParser = MarkdownParser;

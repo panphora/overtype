@@ -80,11 +80,13 @@ class OverType {
     static stylesInjected = false;
     static globalListenersInitialized = false;
     static instanceCount = 0;
-    static _mq = null;  // Shared media query for auto theme
-    static _mqListener = null;  // Shared listener
-    static _autoInstances = new Set();  // Track auto-themed instances
-    static _globalAutoMq = null;  // Global auto theme media query
-    static _globalAutoListener = null;  // Global auto theme listener
+    // Instance-level auto theme tracking (when individual instances use auto theme)
+    static _mq = null;  // Shared media query for instance auto themes
+    static _mqListener = null;  // Shared listener for instance auto themes
+    static _autoInstances = new Set();  // Track instances using auto theme
+    // Global-level auto theme tracking (when OverType.setTheme('auto') is called)
+    static _globalAutoMq = null;  // Media query for global auto theme
+    static _globalAutoListener = null;  // Listener for global auto theme
 
     /**
      * Constructor - Always returns an array of instances
@@ -1464,7 +1466,7 @@ class OverType {
       });
       
       document.querySelectorAll('overtype-editor').forEach(wc => {
-        wc.setAttribute?.(isAuto ? 'theme' : 'theme', isAuto ? 'auto' : themeName);
+        wc.setAttribute?.('theme', isAuto ? 'auto' : themeName);
         if (isAuto) wc.setAttribute?.('data-resolved-theme', themeName);
         wc.refreshTheme?.();
       });
