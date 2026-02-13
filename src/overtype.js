@@ -1036,34 +1036,24 @@ class OverType {
      * @returns {this} Returns this for chaining
      */
     setTheme(theme) {
-      // Clean up existing auto theme listener if any
       this._cleanupAuto();
-
-      // Update instance theme
       this.instanceTheme = theme;
 
-      // Handle auto theme
       if (theme === 'auto') {
         this._setupAuto();
-        // Apply the initial resolved theme
         this._applyTheme(resolveAutoTheme('auto'));
       } else {
-        // Get theme object for non-auto themes
         const themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
-        const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
+        const themeName = themeObj.name || theme;
 
-        // Update container theme attribute
         if (themeName) {
           this.container.setAttribute('data-theme', themeName);
         }
 
-        // Apply CSS variables to container for instance override
-        if (themeObj && themeObj.colors) {
-          const cssVars = themeToCSSVars(themeObj.colors);
-          this.container.style.cssText += cssVars;
+        if (themeObj?.colors) {
+          this.container.style.cssText += themeToCSSVars(themeObj.colors);
         }
 
-        // Update preview to reflect new theme
         this.updatePreview();
       }
 
@@ -1073,21 +1063,16 @@ class OverType {
     /**
      * Apply a resolved theme name (used by auto theme)
      * @private
-     * @param {string} themeName - Resolved theme name
      */
     _applyTheme(themeName) {
       const themeObj = getTheme(themeName);
-      
-      // Update container with resolved theme, but keep auto in data-theme for tracking
       this.container.setAttribute('data-theme', 'auto');
       this.container.setAttribute('data-resolved-theme', themeName);
 
-      // Apply CSS variables
       if (themeObj?.colors) {
         this.container.style.cssText += themeToCSSVars(themeObj.colors);
       }
 
-      // Update preview to reflect new theme
       this.updatePreview();
     }
 
@@ -1098,23 +1083,19 @@ class OverType {
     _setupAuto() {
       if (!window.matchMedia) return;
 
-      // Add this instance to the global auto instances set
       OverType._autoInstances.add(this);
 
-      // Setup global listener if not already setup
       if (!OverType._mq) {
         OverType._mq = window.matchMedia('(prefers-color-scheme: dark)');
         OverType._mqListener = (e) => {
           const theme = e.matches ? 'cave' : 'solar';
-          // Notify all auto-themed instances
           OverType._autoInstances.forEach(inst => inst._applyTheme(theme));
         };
         
-        if (OverType._mq.addEventListener) {
-          OverType._mq.addEventListener('change', OverType._mqListener);
-        } else if (OverType._mq.addListener) {
-          OverType._mq.addListener(OverType._mqListener);
-        }
+        // Use modern addEventListener or fallback to legacy addListener
+        (OverType._mq.addEventListener || OverType._mq.addListener)?.call(
+          OverType._mq, 'change', OverType._mqListener
+        );
       }
     }
 
@@ -1123,16 +1104,13 @@ class OverType {
      * @private
      */
     _cleanupAuto() {
-      // Remove this instance from the auto instances set
       OverType._autoInstances.delete(this);
 
-      // If no more auto instances, cleanup the global listener
       if (OverType._autoInstances.size === 0 && OverType._mq) {
-        if (OverType._mq.removeEventListener) {
-          OverType._mq.removeEventListener('change', OverType._mqListener);
-        } else if (OverType._mq.removeListener) {
-          OverType._mq.removeListener(OverType._mqListener);
-        }
+        // Use modern removeEventListener or fallback to legacy removeListener
+        (OverType._mq.removeEventListener || OverType._mq.removeListener)?.call(
+          OverType._mq, 'change', OverType._mqListener
+        );
         OverType._mq = null;
         OverType._mqListener = null;
       }
@@ -1579,11 +1557,10 @@ class OverType {
         OverType._applyGlobalTheme(e.matches ? 'cave' : 'solar', null, true);
       };
 
-      if (OverType._globalAutoMq.addEventListener) {
-        OverType._globalAutoMq.addEventListener('change', OverType._globalAutoListener);
-      } else if (OverType._globalAutoMq.addListener) {
-        OverType._globalAutoMq.addListener(OverType._globalAutoListener);
-      }
+      // Use modern addEventListener or fallback to legacy addListener
+      (OverType._globalAutoMq.addEventListener || OverType._globalAutoMq.addListener)?.call(
+        OverType._globalAutoMq, 'change', OverType._globalAutoListener
+      );
     }
 
     /**
@@ -1592,11 +1569,10 @@ class OverType {
      */
     static _cleanupGlobalAuto() {
       if (OverType._globalAutoMq && OverType._globalAutoListener) {
-        if (OverType._globalAutoMq.removeEventListener) {
-          OverType._globalAutoMq.removeEventListener('change', OverType._globalAutoListener);
-        } else if (OverType._globalAutoMq.removeListener) {
-          OverType._globalAutoMq.removeListener(OverType._globalAutoListener);
-        }
+        // Use modern removeEventListener or fallback to legacy removeListener
+        (OverType._globalAutoMq.removeEventListener || OverType._globalAutoMq.removeListener)?.call(
+          OverType._globalAutoMq, 'change', OverType._globalAutoListener
+        );
         OverType._globalAutoMq = null;
         OverType._globalAutoListener = null;
       }

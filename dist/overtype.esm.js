@@ -4082,13 +4082,12 @@ var _OverType = class _OverType {
       this._applyTheme(resolveAutoTheme("auto"));
     } else {
       const themeObj = typeof theme === "string" ? getTheme(theme) : theme;
-      const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
+      const themeName = themeObj.name || theme;
       if (themeName) {
         this.container.setAttribute("data-theme", themeName);
       }
-      if (themeObj && themeObj.colors) {
-        const cssVars = themeToCSSVars(themeObj.colors);
-        this.container.style.cssText += cssVars;
+      if (themeObj == null ? void 0 : themeObj.colors) {
+        this.container.style.cssText += themeToCSSVars(themeObj.colors);
       }
       this.updatePreview();
     }
@@ -4097,7 +4096,6 @@ var _OverType = class _OverType {
   /**
    * Apply a resolved theme name (used by auto theme)
    * @private
-   * @param {string} themeName - Resolved theme name
    */
   _applyTheme(themeName) {
     const themeObj = getTheme(themeName);
@@ -4113,6 +4111,7 @@ var _OverType = class _OverType {
    * @private
    */
   _setupAuto() {
+    var _a;
     if (!window.matchMedia)
       return;
     _OverType._autoInstances.add(this);
@@ -4122,11 +4121,11 @@ var _OverType = class _OverType {
         const theme = e.matches ? "cave" : "solar";
         _OverType._autoInstances.forEach((inst) => inst._applyTheme(theme));
       };
-      if (_OverType._mq.addEventListener) {
-        _OverType._mq.addEventListener("change", _OverType._mqListener);
-      } else if (_OverType._mq.addListener) {
-        _OverType._mq.addListener(_OverType._mqListener);
-      }
+      (_a = _OverType._mq.addEventListener || _OverType._mq.addListener) == null ? void 0 : _a.call(
+        _OverType._mq,
+        "change",
+        _OverType._mqListener
+      );
     }
   }
   /**
@@ -4134,13 +4133,14 @@ var _OverType = class _OverType {
    * @private
    */
   _cleanupAuto() {
+    var _a;
     _OverType._autoInstances.delete(this);
     if (_OverType._autoInstances.size === 0 && _OverType._mq) {
-      if (_OverType._mq.removeEventListener) {
-        _OverType._mq.removeEventListener("change", _OverType._mqListener);
-      } else if (_OverType._mq.removeListener) {
-        _OverType._mq.removeListener(_OverType._mqListener);
-      }
+      (_a = _OverType._mq.removeEventListener || _OverType._mq.removeListener) == null ? void 0 : _a.call(
+        _OverType._mq,
+        "change",
+        _OverType._mqListener
+      );
       _OverType._mq = null;
       _OverType._mqListener = null;
     }
@@ -4479,29 +4479,31 @@ var _OverType = class _OverType {
    * @private
    */
   static _setupGlobalAuto() {
+    var _a;
     if (!window.matchMedia || _OverType._globalAutoMq)
       return;
     _OverType._globalAutoMq = window.matchMedia("(prefers-color-scheme: dark)");
     _OverType._globalAutoListener = (e) => {
       _OverType._applyGlobalTheme(e.matches ? "cave" : "solar", null, true);
     };
-    if (_OverType._globalAutoMq.addEventListener) {
-      _OverType._globalAutoMq.addEventListener("change", _OverType._globalAutoListener);
-    } else if (_OverType._globalAutoMq.addListener) {
-      _OverType._globalAutoMq.addListener(_OverType._globalAutoListener);
-    }
+    (_a = _OverType._globalAutoMq.addEventListener || _OverType._globalAutoMq.addListener) == null ? void 0 : _a.call(
+      _OverType._globalAutoMq,
+      "change",
+      _OverType._globalAutoListener
+    );
   }
   /**
    * Clean up global auto theme listener
    * @private
    */
   static _cleanupGlobalAuto() {
+    var _a;
     if (_OverType._globalAutoMq && _OverType._globalAutoListener) {
-      if (_OverType._globalAutoMq.removeEventListener) {
-        _OverType._globalAutoMq.removeEventListener("change", _OverType._globalAutoListener);
-      } else if (_OverType._globalAutoMq.removeListener) {
-        _OverType._globalAutoMq.removeListener(_OverType._globalAutoListener);
-      }
+      (_a = _OverType._globalAutoMq.removeEventListener || _OverType._globalAutoMq.removeListener) == null ? void 0 : _a.call(
+        _OverType._globalAutoMq,
+        "change",
+        _OverType._globalAutoListener
+      );
       _OverType._globalAutoMq = null;
       _OverType._globalAutoListener = null;
     }

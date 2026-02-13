@@ -141,8 +141,11 @@ export function resolveAutoTheme(themeName) {
  * @returns {string} 'dark' or 'light'
  */
 export function getSystemColorScheme() {
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return isDarkMode ? 'dark' : 'light';
+  // Reuse cached media query if available
+  if (!_mq && window.matchMedia) {
+    _mq = window.matchMedia('(prefers-color-scheme: dark)');
+  }
+  return _mq?.matches ? 'dark' : 'light';
 }
 
 /**
