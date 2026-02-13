@@ -1,5 +1,5 @@
 /**
- * OverType v2.1.0
+ * OverType v2.1.1
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -914,9 +914,16 @@ var cave = {
     // Even lighter - active button background
   }
 };
+var auto = {
+  name: "auto",
+  // The auto theme doesn't have its own colors; it uses solar or cave dynamically
+  colors: solar.colors
+  // Default to solar colors for initial render
+};
 var themes = {
   solar,
   cave,
+  auto,
   // Aliases for backward compatibility
   light: solar,
   dark: cave
@@ -927,6 +934,13 @@ function getTheme(theme) {
     return { ...themeObj, name: theme };
   }
   return theme;
+}
+function resolveAutoTheme(themeName) {
+  if (themeName !== "auto") {
+    return themeName;
+  }
+  const isDarkMode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return isDarkMode ? "cave" : "solar";
 }
 function themeToCSSVars(colors) {
   const vars = [];
@@ -3359,6 +3373,7 @@ function toolbarButtonsChanged(prevButtons, nextButtons) {
   return false;
 }
 var _OverType = class _OverType {
+  // Listener function for auto theme changes
   /**
    * Constructor - Always returns an array of instances
    * @param {string|Element|NodeList|Array} target - Target element(s)
@@ -3402,6 +3417,8 @@ var _OverType = class _OverType {
   _init(element, options = {}) {
     this.element = element;
     this.instanceTheme = options.theme || null;
+    this.autoThemeMediaQuery = null;
+    this.autoThemeListener = null;
     this.options = this._mergeOptions(options);
     this.instanceId = ++_OverType.instanceCount;
     this.initialized = false;
@@ -3413,6 +3430,9 @@ var _OverType = class _OverType {
       this._recoverFromDOM(container, wrapper);
     } else {
       this._buildFromScratch();
+    }
+    if (this.instanceTheme) {
+      this.setTheme(this.instanceTheme);
     }
     this.shortcuts = new ShortcutsManager(this);
     this._rebuildActionsMap();
@@ -4053,18 +4073,73 @@ var _OverType = class _OverType {
    * @returns {this} Returns this for chaining
    */
   setTheme(theme) {
+    this._cleanupAutoThemeListener();
     this.instanceTheme = theme;
-    const themeObj = typeof theme === "string" ? getTheme(theme) : theme;
-    const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
-    if (themeName) {
-      this.container.setAttribute("data-theme", themeName);
+    if (theme === "auto") {
+      this._setupAutoThemeListener();
+      const resolvedTheme = resolveAutoTheme("auto");
+      this._applyResolvedTheme(resolvedTheme);
+    } else {
+      const themeObj = typeof theme === "string" ? getTheme(theme) : theme;
+      const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
+      if (themeName) {
+        this.container.setAttribute("data-theme", themeName);
+      }
+      if (themeObj && themeObj.colors) {
+        const cssVars = themeToCSSVars(themeObj.colors);
+        this.container.style.cssText += cssVars;
+      }
+      this.updatePreview();
     }
+    return this;
+  }
+  /**
+   * Apply a resolved theme name (used by auto theme)
+   * @private
+   * @param {string} themeName - Resolved theme name
+   */
+  _applyResolvedTheme(themeName) {
+    const themeObj = getTheme(themeName);
+    this.container.setAttribute("data-theme", "auto");
+    this.container.setAttribute("data-resolved-theme", themeName);
     if (themeObj && themeObj.colors) {
       const cssVars = themeToCSSVars(themeObj.colors);
       this.container.style.cssText += cssVars;
     }
     this.updatePreview();
-    return this;
+  }
+  /**
+   * Setup auto theme listener for instance
+   * @private
+   */
+  _setupAutoThemeListener() {
+    if (!window.matchMedia)
+      return;
+    this.autoThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    this.autoThemeListener = (event) => {
+      const resolvedTheme = event.matches ? "cave" : "solar";
+      this._applyResolvedTheme(resolvedTheme);
+    };
+    if (this.autoThemeMediaQuery.addEventListener) {
+      this.autoThemeMediaQuery.addEventListener("change", this.autoThemeListener);
+    } else if (this.autoThemeMediaQuery.addListener) {
+      this.autoThemeMediaQuery.addListener(this.autoThemeListener);
+    }
+  }
+  /**
+   * Clean up auto theme listener for instance
+   * @private
+   */
+  _cleanupAutoThemeListener() {
+    if (this.autoThemeMediaQuery && this.autoThemeListener) {
+      if (this.autoThemeMediaQuery.removeEventListener) {
+        this.autoThemeMediaQuery.removeEventListener("change", this.autoThemeListener);
+      } else if (this.autoThemeMediaQuery.removeListener) {
+        this.autoThemeMediaQuery.removeListener(this.autoThemeListener);
+      }
+      this.autoThemeMediaQuery = null;
+      this.autoThemeListener = null;
+    }
   }
   /**
    * Set instance-specific code highlighter
@@ -4218,6 +4293,7 @@ var _OverType = class _OverType {
    * Destroy the editor instance
    */
   destroy() {
+    this._cleanupAutoThemeListener();
     this.element.overTypeInstance = null;
     _OverType.instances.delete(this.element);
     if (this.shortcuts) {
@@ -4323,39 +4399,116 @@ var _OverType = class _OverType {
    * @param {Object} customColors - Optional color overrides
    */
   static setTheme(theme, customColors = null) {
-    let themeObj = typeof theme === "string" ? getTheme(theme) : theme;
+    _OverType._cleanupGlobalAutoThemeListener();
+    if (theme === "auto") {
+      _OverType._setupGlobalAutoThemeListener();
+      const resolvedTheme = resolveAutoTheme("auto");
+      _OverType._applyGlobalResolvedTheme(resolvedTheme, customColors);
+    } else {
+      let themeObj = typeof theme === "string" ? getTheme(theme) : theme;
+      if (customColors) {
+        themeObj = mergeTheme(themeObj, customColors);
+      }
+      _OverType.currentTheme = themeObj;
+      _OverType.injectStyles(true);
+      document.querySelectorAll(".overtype-container").forEach((container) => {
+        const themeName2 = typeof themeObj === "string" ? themeObj : themeObj.name;
+        if (themeName2) {
+          container.setAttribute("data-theme", themeName2);
+        }
+      });
+      document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
+        if (!wrapper.closest(".overtype-container")) {
+          const themeName2 = typeof themeObj === "string" ? themeObj : themeObj.name;
+          if (themeName2) {
+            wrapper.setAttribute("data-theme", themeName2);
+          }
+        }
+        const instance = wrapper._instance;
+        if (instance) {
+          instance.updatePreview();
+        }
+      });
+      const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
+      document.querySelectorAll("overtype-editor").forEach((webComponent) => {
+        if (themeName && typeof webComponent.setAttribute === "function") {
+          webComponent.setAttribute("theme", themeName);
+        }
+        if (typeof webComponent.refreshTheme === "function") {
+          webComponent.refreshTheme();
+        }
+      });
+    }
+  }
+  /**
+   * Apply a resolved theme globally (used by auto theme)
+   * @private
+   * @param {string} themeName - Resolved theme name
+   * @param {Object} customColors - Optional color overrides
+   */
+  static _applyGlobalResolvedTheme(themeName, customColors = null) {
+    let themeObj = getTheme(themeName);
     if (customColors) {
       themeObj = mergeTheme(themeObj, customColors);
     }
     _OverType.currentTheme = themeObj;
     _OverType.injectStyles(true);
     document.querySelectorAll(".overtype-container").forEach((container) => {
-      const themeName2 = typeof themeObj === "string" ? themeObj : themeObj.name;
-      if (themeName2) {
-        container.setAttribute("data-theme", themeName2);
-      }
+      container.setAttribute("data-theme", "auto");
+      container.setAttribute("data-resolved-theme", themeName);
     });
     document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
       if (!wrapper.closest(".overtype-container")) {
-        const themeName2 = typeof themeObj === "string" ? themeObj : themeObj.name;
-        if (themeName2) {
-          wrapper.setAttribute("data-theme", themeName2);
-        }
+        wrapper.setAttribute("data-theme", "auto");
+        wrapper.setAttribute("data-resolved-theme", themeName);
       }
       const instance = wrapper._instance;
       if (instance) {
         instance.updatePreview();
       }
     });
-    const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
     document.querySelectorAll("overtype-editor").forEach((webComponent) => {
-      if (themeName && typeof webComponent.setAttribute === "function") {
-        webComponent.setAttribute("theme", themeName);
+      if (typeof webComponent.setAttribute === "function") {
+        webComponent.setAttribute("theme", "auto");
+        webComponent.setAttribute("data-resolved-theme", themeName);
       }
       if (typeof webComponent.refreshTheme === "function") {
         webComponent.refreshTheme();
       }
     });
+  }
+  /**
+   * Setup global auto theme listener
+   * @private
+   */
+  static _setupGlobalAutoThemeListener() {
+    if (!window.matchMedia)
+      return;
+    _OverType.autoThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    _OverType.autoThemeListener = (event) => {
+      const resolvedTheme = event.matches ? "cave" : "solar";
+      _OverType._applyGlobalResolvedTheme(resolvedTheme);
+    };
+    if (_OverType.autoThemeMediaQuery.addEventListener) {
+      _OverType.autoThemeMediaQuery.addEventListener("change", _OverType.autoThemeListener);
+    } else if (_OverType.autoThemeMediaQuery.addListener) {
+      _OverType.autoThemeMediaQuery.addListener(_OverType.autoThemeListener);
+    }
+  }
+  /**
+   * Clean up global auto theme listener
+   * @private
+   */
+  static _cleanupGlobalAutoThemeListener() {
+    if (_OverType.autoThemeMediaQuery && _OverType.autoThemeListener) {
+      if (_OverType.autoThemeMediaQuery.removeEventListener) {
+        _OverType.autoThemeMediaQuery.removeEventListener("change", _OverType.autoThemeListener);
+      } else if (_OverType.autoThemeMediaQuery.removeListener) {
+        _OverType.autoThemeMediaQuery.removeListener(_OverType.autoThemeListener);
+      }
+      _OverType.autoThemeMediaQuery = null;
+      _OverType.autoThemeListener = null;
+    }
   }
   /**
    * Set global code highlighter for all OverType instances
@@ -4458,6 +4611,9 @@ __publicField(_OverType, "instances", /* @__PURE__ */ new WeakMap());
 __publicField(_OverType, "stylesInjected", false);
 __publicField(_OverType, "globalListenersInitialized", false);
 __publicField(_OverType, "instanceCount", 0);
+__publicField(_OverType, "autoThemeMediaQuery", null);
+// Media query for auto theme switching
+__publicField(_OverType, "autoThemeListener", null);
 var OverType = _OverType;
 OverType.MarkdownParser = MarkdownParser;
 OverType.ShortcutsManager = ShortcutsManager;

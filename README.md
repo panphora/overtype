@@ -1,6 +1,6 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~95KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~98KB minified with all features.
 
 ## Live Examples
 
@@ -15,11 +15,12 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 ## Features
 
 - 👻 **Invisible textarea overlay** - Transparent input layer overlaid on styled preview for seamless editing
-- 🎨 **Global theming** - Solar (light) and Cave (dark) themes that apply to all instances
+- 🎨 **Global theming** - Solar (light), Cave (dark), and Auto themes that apply to all instances
+- 🌓 **System theme detection** - Auto theme adapts to system color scheme preference
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~95KB minified
+- 🚀 **Lightweight** - ~98KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -35,7 +36,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~95KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~98KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -264,6 +265,25 @@ const [editor] = new OverType('#editor', {
 });
 ```
 
+### Auto Theme
+
+Automatically switch between light and dark themes based on the system's color scheme preference:
+
+```javascript
+const [editor] = new OverType('#editor', {
+  theme: 'auto'  // Automatically uses 'solar' or 'cave' based on system preference
+});
+
+// Set auto theme globally
+OverType.setTheme('auto');
+```
+
+The `auto` theme:
+- Automatically switches between `solar` (light) and `cave` (dark) themes
+- Responds to system theme changes in real-time
+- Works at both instance and global levels
+- Ideal for apps that respect user system preferences
+
 ### Preview & HTML Export
 
 Generate HTML previews or export the rendered content:
@@ -418,7 +438,7 @@ new OverType(target, options)
   fontFamily: 'monospace',
   padding: '16px',
   
-  // Theme - 'solar', 'cave', or custom theme object
+  // Theme - 'solar' (light), 'cave' (dark), 'auto' (system), or custom theme object
   theme: 'solar',
   
   // Custom colors (override theme colors)

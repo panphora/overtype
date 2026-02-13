@@ -82,11 +82,22 @@ export const cave = {
 };
 
 /**
+ * Auto theme - Automatically switches between solar and cave based on system preference
+ * This is a special marker theme that triggers automatic theme switching
+ */
+export const auto = {
+  name: 'auto',
+  // The auto theme doesn't have its own colors; it uses solar or cave dynamically
+  colors: solar.colors  // Default to solar colors for initial render
+};
+
+/**
  * Default themes registry
  */
 export const themes = {
   solar,
   cave,
+  auto,
   // Aliases for backward compatibility
   light: solar,
   dark: cave
@@ -104,6 +115,30 @@ export function getTheme(theme) {
     return { ...themeObj, name: theme };
   }
   return theme;
+}
+
+/**
+ * Resolve auto theme to actual theme based on system color scheme preference
+ * @param {string} themeName - Theme name to resolve
+ * @returns {string} Resolved theme name ('solar' or 'cave' if auto, otherwise the original name)
+ */
+export function resolveAutoTheme(themeName) {
+  if (themeName !== 'auto') {
+    return themeName;
+  }
+
+  // Check for system dark mode preference
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return isDarkMode ? 'cave' : 'solar';
+}
+
+/**
+ * Get the current system color scheme preference
+ * @returns {string} 'dark' or 'light'
+ */
+export function getSystemColorScheme() {
+  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return isDarkMode ? 'dark' : 'light';
 }
 
 /**

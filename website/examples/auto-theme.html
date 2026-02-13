@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType - Auto Theme Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            color: #0d3b66;
+        }
+        
+        .description {
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        button {
+            background: #0d3b66;
+            color: white;
+            border: none;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #0a2d4d;
+        }
+        
+        .info-box {
+            padding: 15px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box strong {
+            color: #1976d2;
+        }
+        
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        #editor-container {
+            height: 500px;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a1a1a;
+                color: #e0e0e0;
+            }
+            
+            .controls {
+                background: #2a2a2a;
+            }
+            
+            label {
+                color: #e0e0e0;
+            }
+            
+            select {
+                background: #333;
+                color: #e0e0e0;
+                border-color: #444;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Auto Theme Example</h1>
+    
+    <div class="description">
+        The <code>auto</code> theme automatically switches between <code>solar</code> (light) and <code>cave</code> (dark) themes 
+        based on your system's color scheme preference. Try changing your system theme to see it update in real-time!
+    </div>
+    
+    <div class="info-box">
+        <strong>How to test:</strong> Change your system's appearance settings between light and dark mode. 
+        The editor will automatically switch themes to match your preference.
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="theme-select">Theme:</label>
+            <select id="theme-select">
+                <option value="auto" selected>Auto (System Preference)</option>
+                <option value="solar">Solar (Light)</option>
+                <option value="cave">Cave (Dark)</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button id="get-info-btn">Show System Theme Info</button>
+        </div>
+    </div>
+    
+    <div id="editor-container"></div>
+    
+    <script src="../dist/overtype.js"></script>
+    <script>
+        const OverType = window.OverType?.default || window.OverType;
+        
+        const initialContent = `# Auto Theme Example
+
+This editor is using the **auto** theme, which automatically adapts to your system's color scheme preference.
+
+## Features
+
+- Automatically switches between solar (light) and cave (dark) themes
+- Responds to system theme changes in real-time
+- No manual intervention required
+
+## Try it out
+
+1. Change your system's appearance from light to dark (or vice versa)
+2. Watch the editor theme update automatically
+3. The transition is seamless and immediate
+
+## Code Example
+
+\`\`\`javascript
+// Create an editor with auto theme
+const editor = new OverType("#editor", {
+    theme: "auto"
+});
+
+// That's it! The editor will now automatically
+// switch between solar and cave themes based on
+// your system preference.
+\`\`\`
+
+You can also set the auto theme globally:
+
+\`\`\`javascript
+// Set auto theme for all editors
+OverType.setTheme("auto");
+\`\`\`
+
+## Current Status
+
+Try clicking the **"Show System Theme Info"** button above to see your current system preference.
+`;
+        
+        // Create editor with auto theme
+        const [editor] = new OverType('#editor-container', {
+            theme: 'auto',
+            value: initialContent,
+            toolbar: true,
+            showStats: true
+        });
+        
+        // Theme selector
+        const themeSelect = document.getElementById('theme-select');
+        themeSelect.addEventListener('change', (e) => {
+            editor.setTheme(e.target.value);
+        });
+        
+        // System theme info button
+        const getInfoBtn = document.getElementById('get-info-btn');
+        getInfoBtn.addEventListener('click', () => {
+            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const systemTheme = isDark ? 'dark' : 'light';
+            const currentTheme = editor.container.getAttribute('data-theme');
+            const resolvedTheme = editor.container.getAttribute('data-resolved-theme');
+            
+            let message = `System Theme: ${systemTheme}\n`;
+            message += `Editor Theme: ${currentTheme}\n`;
+            if (resolvedTheme) {
+                message += `Resolved to: ${resolvedTheme}`;
+            }
+            
+            alert(message);
+        });
+        
+        // Listen for system theme changes and log them
+        if (window.matchMedia) {
+            const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const logThemeChange = (e) => {
+                console.log(`System theme changed to: ${e.matches ? 'dark' : 'light'}`);
+            };
+            
+            if (darkModeQuery.addEventListener) {
+                darkModeQuery.addEventListener('change', logThemeChange);
+            } else if (darkModeQuery.addListener) {
+                darkModeQuery.addListener(logThemeChange);
+            }
+        }
+    </script>
+</body>
+</html>

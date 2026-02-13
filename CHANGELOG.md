@@ -44,6 +44,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Auto theme that automatically switches between solar and cave based on system color scheme preference
+- Real-time theme updates when system color scheme changes
+- `resolveAutoTheme()` and `getSystemColorScheme()` helper functions in themes.js
+- Auto theme example page demonstrating system theme detection
+
+### Changed
+- Updated TypeScript definitions to include auto theme
+- Enhanced theme switching to support media query listeners
+- Improved theme cleanup in destroy method
+
 ## [2.0.6] - 2025-11-19
 
 ### 🐛 Bug Fixes
