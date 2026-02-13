@@ -1447,39 +1447,25 @@ class OverType {
      * @private
      */
     static _updateThemeAttrs(themeName, isAuto = false) {
-      // Single query for containers and wrappers
-      const containers = document.querySelectorAll('.overtype-container');
-      const wrappers = document.querySelectorAll('.overtype-wrapper');
-      
-      containers.forEach(el => {
+      const setTheme = (el) => {
         if (isAuto) {
           el.setAttribute('data-theme', 'auto');
           el.setAttribute('data-resolved-theme', themeName);
         } else {
           el.setAttribute('data-theme', themeName);
         }
+      };
+      
+      document.querySelectorAll('.overtype-container').forEach(setTheme);
+      
+      document.querySelectorAll('.overtype-wrapper').forEach(w => {
+        if (!w.closest('.overtype-container')) setTheme(w);
+        w._instance?.updatePreview();
       });
       
-      wrappers.forEach(wrapper => {
-        if (!wrapper.closest('.overtype-container')) {
-          if (isAuto) {
-            wrapper.setAttribute('data-theme', 'auto');
-            wrapper.setAttribute('data-resolved-theme', themeName);
-          } else {
-            wrapper.setAttribute('data-theme', themeName);
-          }
-        }
-        wrapper._instance?.updatePreview();
-      });
-      
-      // Update web components
       document.querySelectorAll('overtype-editor').forEach(wc => {
-        if (isAuto) {
-          wc.setAttribute?.('theme', 'auto');
-          wc.setAttribute?.('data-resolved-theme', themeName);
-        } else {
-          wc.setAttribute?.('theme', themeName);
-        }
+        wc.setAttribute?.(isAuto ? 'theme' : 'theme', isAuto ? 'auto' : themeName);
+        if (isAuto) wc.setAttribute?.('data-resolved-theme', themeName);
         wc.refreshTheme?.();
       });
     }

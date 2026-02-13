@@ -4428,37 +4428,27 @@ var _OverType = class _OverType {
    * @private
    */
   static _updateThemeAttrs(themeName, isAuto = false) {
-    const containers = document.querySelectorAll(".overtype-container");
-    const wrappers = document.querySelectorAll(".overtype-wrapper");
-    containers.forEach((el) => {
+    const setTheme = (el) => {
       if (isAuto) {
         el.setAttribute("data-theme", "auto");
         el.setAttribute("data-resolved-theme", themeName);
       } else {
         el.setAttribute("data-theme", themeName);
       }
-    });
-    wrappers.forEach((wrapper) => {
+    };
+    document.querySelectorAll(".overtype-container").forEach(setTheme);
+    document.querySelectorAll(".overtype-wrapper").forEach((w) => {
       var _a;
-      if (!wrapper.closest(".overtype-container")) {
-        if (isAuto) {
-          wrapper.setAttribute("data-theme", "auto");
-          wrapper.setAttribute("data-resolved-theme", themeName);
-        } else {
-          wrapper.setAttribute("data-theme", themeName);
-        }
-      }
-      (_a = wrapper._instance) == null ? void 0 : _a.updatePreview();
+      if (!w.closest(".overtype-container"))
+        setTheme(w);
+      (_a = w._instance) == null ? void 0 : _a.updatePreview();
     });
     document.querySelectorAll("overtype-editor").forEach((wc) => {
-      var _a, _b, _c, _d;
-      if (isAuto) {
-        (_a = wc.setAttribute) == null ? void 0 : _a.call(wc, "theme", "auto");
+      var _a, _b, _c;
+      (_a = wc.setAttribute) == null ? void 0 : _a.call(wc, isAuto ? "theme" : "theme", isAuto ? "auto" : themeName);
+      if (isAuto)
         (_b = wc.setAttribute) == null ? void 0 : _b.call(wc, "data-resolved-theme", themeName);
-      } else {
-        (_c = wc.setAttribute) == null ? void 0 : _c.call(wc, "theme", themeName);
-      }
-      (_d = wc.refreshTheme) == null ? void 0 : _d.call(wc);
+      (_c = wc.refreshTheme) == null ? void 0 : _c.call(wc);
     });
   }
   /**
