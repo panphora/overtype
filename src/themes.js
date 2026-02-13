@@ -117,19 +117,23 @@ export function getTheme(theme) {
   return theme;
 }
 
+// Cache media query for auto theme resolution
+let _mq = null;
+
 /**
  * Resolve auto theme to actual theme based on system color scheme preference
  * @param {string} themeName - Theme name to resolve
  * @returns {string} Resolved theme name ('solar' or 'cave' if auto, otherwise the original name)
  */
 export function resolveAutoTheme(themeName) {
-  if (themeName !== 'auto') {
-    return themeName;
+  if (themeName !== 'auto') return themeName;
+  
+  // Cache media query object
+  if (!_mq && window.matchMedia) {
+    _mq = window.matchMedia('(prefers-color-scheme: dark)');
   }
-
-  // Check for system dark mode preference
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return isDarkMode ? 'cave' : 'solar';
+  
+  return _mq?.matches ? 'cave' : 'solar';
 }
 
 /**
@@ -137,8 +141,11 @@ export function resolveAutoTheme(themeName) {
  * @returns {string} 'dark' or 'light'
  */
 export function getSystemColorScheme() {
-  const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return isDarkMode ? 'dark' : 'light';
+  // Reuse cached media query if available
+  if (!_mq && window.matchMedia) {
+    _mq = window.matchMedia('(prefers-color-scheme: dark)');
+  }
+  return _mq?.matches ? 'dark' : 'light';
 }
 
 /**

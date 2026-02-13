@@ -80,8 +80,13 @@ class OverType {
     static stylesInjected = false;
     static globalListenersInitialized = false;
     static instanceCount = 0;
-    static autoThemeMediaQuery = null;  // Media query for auto theme switching
-    static autoThemeListener = null;     // Listener function for auto theme changes
+    // Instance-level auto theme tracking (when individual instances use auto theme)
+    static _mq = null;  // Shared media query for instance auto themes
+    static _mqListener = null;  // Shared listener for instance auto themes
+    static _autoInstances = new Set();  // Track instances using auto theme
+    // Global-level auto theme tracking (when OverType.setTheme('auto') is called)
+    static _globalAutoMq = null;  // Media query for global auto theme
+    static _globalAutoListener = null;  // Listener for global auto theme
 
     /**
      * Constructor - Always returns an array of instances
@@ -1033,35 +1038,24 @@ class OverType {
      * @returns {this} Returns this for chaining
      */
     setTheme(theme) {
-      // Clean up existing auto theme listener if any
-      this._cleanupAutoThemeListener();
-
-      // Update instance theme
+      this._cleanupAuto();
       this.instanceTheme = theme;
 
-      // Handle auto theme
       if (theme === 'auto') {
-        this._setupAutoThemeListener();
-        // Apply the initial resolved theme
-        const resolvedTheme = resolveAutoTheme('auto');
-        this._applyResolvedTheme(resolvedTheme);
+        this._setupAuto();
+        this._applyTheme(resolveAutoTheme('auto'));
       } else {
-        // Get theme object for non-auto themes
         const themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
-        const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
+        const themeName = themeObj.name || theme;
 
-        // Update container theme attribute
         if (themeName) {
           this.container.setAttribute('data-theme', themeName);
         }
 
-        // Apply CSS variables to container for instance override
-        if (themeObj && themeObj.colors) {
-          const cssVars = themeToCSSVars(themeObj.colors);
-          this.container.style.cssText += cssVars;
+        if (themeObj?.colors) {
+          this.container.style.cssText += themeToCSSVars(themeObj.colors);
         }
 
-        // Update preview to reflect new theme
         this.updatePreview();
       }
 
@@ -1071,22 +1065,16 @@ class OverType {
     /**
      * Apply a resolved theme name (used by auto theme)
      * @private
-     * @param {string} themeName - Resolved theme name
      */
-    _applyResolvedTheme(themeName) {
+    _applyTheme(themeName) {
       const themeObj = getTheme(themeName);
-      
-      // Update container with resolved theme, but keep auto in data-theme for tracking
       this.container.setAttribute('data-theme', 'auto');
       this.container.setAttribute('data-resolved-theme', themeName);
 
-      // Apply CSS variables
-      if (themeObj && themeObj.colors) {
-        const cssVars = themeToCSSVars(themeObj.colors);
-        this.container.style.cssText += cssVars;
+      if (themeObj?.colors) {
+        this.container.style.cssText += themeToCSSVars(themeObj.colors);
       }
 
-      // Update preview to reflect new theme
       this.updatePreview();
     }
 
@@ -1094,21 +1082,22 @@ class OverType {
      * Setup auto theme listener for instance
      * @private
      */
-    _setupAutoThemeListener() {
+    _setupAuto() {
       if (!window.matchMedia) return;
 
-      this.autoThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      this.autoThemeListener = (event) => {
-        const resolvedTheme = event.matches ? 'cave' : 'solar';
-        this._applyResolvedTheme(resolvedTheme);
-      };
+      OverType._autoInstances.add(this);
 
-      // Use addEventListener if available (modern browsers)
-      if (this.autoThemeMediaQuery.addEventListener) {
-        this.autoThemeMediaQuery.addEventListener('change', this.autoThemeListener);
-      } else if (this.autoThemeMediaQuery.addListener) {
-        // Fallback for older browsers
-        this.autoThemeMediaQuery.addListener(this.autoThemeListener);
+      if (!OverType._mq) {
+        OverType._mq = window.matchMedia('(prefers-color-scheme: dark)');
+        OverType._mqListener = (e) => {
+          const theme = e.matches ? 'cave' : 'solar';
+          OverType._autoInstances.forEach(inst => inst._applyTheme(theme));
+        };
+        
+        // Use modern addEventListener or fallback to legacy addListener
+        (OverType._mq.addEventListener || OverType._mq.addListener)?.call(
+          OverType._mq, 'change', OverType._mqListener
+        );
       }
     }
 
@@ -1116,16 +1105,16 @@ class OverType {
      * Clean up auto theme listener for instance
      * @private
      */
-    _cleanupAutoThemeListener() {
-      if (this.autoThemeMediaQuery && this.autoThemeListener) {
-        if (this.autoThemeMediaQuery.removeEventListener) {
-          this.autoThemeMediaQuery.removeEventListener('change', this.autoThemeListener);
-        } else if (this.autoThemeMediaQuery.removeListener) {
-          // Fallback for older browsers
-          this.autoThemeMediaQuery.removeListener(this.autoThemeListener);
-        }
-        this.autoThemeMediaQuery = null;
-        this.autoThemeListener = null;
+    _cleanupAuto() {
+      OverType._autoInstances.delete(this);
+
+      if (OverType._autoInstances.size === 0 && OverType._mq) {
+        // Use modern removeEventListener or fallback to legacy removeListener
+        (OverType._mq.removeEventListener || OverType._mq.removeListener)?.call(
+          OverType._mq, 'change', OverType._mqListener
+        );
+        OverType._mq = null;
+        OverType._mqListener = null;
       }
     }
 
@@ -1335,7 +1324,7 @@ class OverType {
      */
     destroy() {
       // Clean up auto theme listener
-      this._cleanupAutoThemeListener();
+      this._cleanupAuto();
 
       // Remove instance reference
       this.element.overTypeInstance = null;
@@ -1456,20 +1445,46 @@ class OverType {
     }
     
     /**
+     * Helper to update DOM elements with theme attributes
+     * @private
+     */
+    static _updateThemeAttrs(themeName, isAuto = false) {
+      const setTheme = (el) => {
+        if (isAuto) {
+          el.setAttribute('data-theme', 'auto');
+          el.setAttribute('data-resolved-theme', themeName);
+        } else {
+          el.setAttribute('data-theme', themeName);
+        }
+      };
+      
+      document.querySelectorAll('.overtype-container').forEach(setTheme);
+      
+      document.querySelectorAll('.overtype-wrapper').forEach(w => {
+        if (!w.closest('.overtype-container')) setTheme(w);
+        w._instance?.updatePreview();
+      });
+      
+      document.querySelectorAll('overtype-editor').forEach(wc => {
+        wc.setAttribute?.('theme', isAuto ? 'auto' : themeName);
+        if (isAuto) wc.setAttribute?.('data-resolved-theme', themeName);
+        wc.refreshTheme?.();
+      });
+    }
+    
+    /**
      * Set global theme for all OverType instances
      * @param {string|Object} theme - Theme name or custom theme object
      * @param {Object} customColors - Optional color overrides
      */
     static setTheme(theme, customColors = null) {
       // Clean up existing auto theme listener
-      OverType._cleanupGlobalAutoThemeListener();
+      OverType._cleanupGlobalAuto();
 
       // Handle auto theme at global level
       if (theme === 'auto') {
-        OverType._setupGlobalAutoThemeListener();
-        // Apply the initial resolved theme
-        const resolvedTheme = resolveAutoTheme('auto');
-        OverType._applyGlobalResolvedTheme(resolvedTheme, customColors);
+        OverType._setupGlobalAuto();
+        OverType._applyGlobalTheme(resolveAutoTheme('auto'), customColors, true);
       } else {
         // Process theme
         let themeObj = typeof theme === 'string' ? getTheme(theme) : theme;
@@ -1485,43 +1500,11 @@ class OverType {
         // Re-inject styles with new theme
         OverType.injectStyles(true);
 
-        // Update all existing instances - update container theme attribute
-        document.querySelectorAll('.overtype-container').forEach(container => {
-          const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
-          if (themeName) {
-            container.setAttribute('data-theme', themeName);
-          }
-        });
-
-        // Also handle any old-style wrappers without containers
-        document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
-          if (!wrapper.closest('.overtype-container')) {
-            const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
-            if (themeName) {
-              wrapper.setAttribute('data-theme', themeName);
-            }
-          }
-
-          // Trigger preview update for the instance
-          const instance = wrapper._instance;
-          if (instance) {
-            instance.updatePreview();
-          }
-        });
-
-        // Update web components (shadow DOM instances)
-        const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
-        document.querySelectorAll('overtype-editor').forEach(webComponent => {
-          // Set the theme attribute to update the theme name
-          if (themeName && typeof webComponent.setAttribute === 'function') {
-            webComponent.setAttribute('theme', themeName);
-          }
-          // Also call refreshTheme() to handle cases where the theme name stays the same
-          // but the theme object's properties have changed
-          if (typeof webComponent.refreshTheme === 'function') {
-            webComponent.refreshTheme();
-          }
-        });
+        // Update all existing instances
+        const themeName = themeObj.name || theme;
+        if (themeName) {
+          OverType._updateThemeAttrs(themeName);
+        }
       }
     }
 
@@ -1530,8 +1513,9 @@ class OverType {
      * @private
      * @param {string} themeName - Resolved theme name
      * @param {Object} customColors - Optional color overrides
+     * @param {boolean} isAuto - Whether this is an auto theme
      */
-    static _applyGlobalResolvedTheme(themeName, customColors = null) {
+    static _applyGlobalTheme(themeName, customColors = null, isAuto = false) {
       let themeObj = getTheme(themeName);
 
       // Apply custom colors if provided
@@ -1545,74 +1529,40 @@ class OverType {
       // Re-inject styles with new theme
       OverType.injectStyles(true);
 
-      // Update all containers with resolved theme, but keep 'auto' for tracking
-      document.querySelectorAll('.overtype-container').forEach(container => {
-        container.setAttribute('data-theme', 'auto');
-        container.setAttribute('data-resolved-theme', themeName);
-      });
-
-      // Also handle any old-style wrappers without containers
-      document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
-        if (!wrapper.closest('.overtype-container')) {
-          wrapper.setAttribute('data-theme', 'auto');
-          wrapper.setAttribute('data-resolved-theme', themeName);
-        }
-
-        // Trigger preview update for the instance
-        const instance = wrapper._instance;
-        if (instance) {
-          instance.updatePreview();
-        }
-      });
-
-      // Update web components
-      document.querySelectorAll('overtype-editor').forEach(webComponent => {
-        if (typeof webComponent.setAttribute === 'function') {
-          webComponent.setAttribute('theme', 'auto');
-          webComponent.setAttribute('data-resolved-theme', themeName);
-        }
-        if (typeof webComponent.refreshTheme === 'function') {
-          webComponent.refreshTheme();
-        }
-      });
+      // Update all elements
+      OverType._updateThemeAttrs(themeName, isAuto);
     }
 
     /**
      * Setup global auto theme listener
      * @private
      */
-    static _setupGlobalAutoThemeListener() {
-      if (!window.matchMedia) return;
+    static _setupGlobalAuto() {
+      if (!window.matchMedia || OverType._globalAutoMq) return;
 
-      OverType.autoThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      OverType.autoThemeListener = (event) => {
-        const resolvedTheme = event.matches ? 'cave' : 'solar';
-        OverType._applyGlobalResolvedTheme(resolvedTheme);
+      OverType._globalAutoMq = window.matchMedia('(prefers-color-scheme: dark)');
+      OverType._globalAutoListener = (e) => {
+        OverType._applyGlobalTheme(e.matches ? 'cave' : 'solar', null, true);
       };
 
-      // Use addEventListener if available (modern browsers)
-      if (OverType.autoThemeMediaQuery.addEventListener) {
-        OverType.autoThemeMediaQuery.addEventListener('change', OverType.autoThemeListener);
-      } else if (OverType.autoThemeMediaQuery.addListener) {
-        // Fallback for older browsers
-        OverType.autoThemeMediaQuery.addListener(OverType.autoThemeListener);
-      }
+      // Use modern addEventListener or fallback to legacy addListener
+      (OverType._globalAutoMq.addEventListener || OverType._globalAutoMq.addListener)?.call(
+        OverType._globalAutoMq, 'change', OverType._globalAutoListener
+      );
     }
 
     /**
      * Clean up global auto theme listener
      * @private
      */
-    static _cleanupGlobalAutoThemeListener() {
-      if (OverType.autoThemeMediaQuery && OverType.autoThemeListener) {
-        if (OverType.autoThemeMediaQuery.removeEventListener) {
-          OverType.autoThemeMediaQuery.removeEventListener('change', OverType.autoThemeListener);
-        } else if (OverType.autoThemeMediaQuery.removeListener) {
-          // Fallback for older browsers
-          OverType.autoThemeMediaQuery.removeListener(OverType.autoThemeListener);
-        }
-        OverType.autoThemeMediaQuery = null;
-        OverType.autoThemeListener = null;
+    static _cleanupGlobalAuto() {
+      if (OverType._globalAutoMq && OverType._globalAutoListener) {
+        // Use modern removeEventListener or fallback to legacy removeListener
+        (OverType._globalAutoMq.removeEventListener || OverType._globalAutoMq.removeListener)?.call(
+          OverType._globalAutoMq, 'change', OverType._globalAutoListener
+        );
+        OverType._globalAutoMq = null;
+        OverType._globalAutoListener = null;
       }
     }
 
