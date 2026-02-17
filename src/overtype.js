@@ -536,6 +536,8 @@ class OverType {
       if (this.options.autoResize) {
         if (!this.container.classList.contains('overtype-auto-resize')) {
           this._setupAutoResize();
+        } else {
+          this._updateAutoHeight();
         }
       } else {
         // Ensure auto-resize class is removed

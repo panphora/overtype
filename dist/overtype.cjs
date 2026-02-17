@@ -3749,6 +3749,8 @@ var _OverType = class _OverType {
     if (this.options.autoResize) {
       if (!this.container.classList.contains("overtype-auto-resize")) {
         this._setupAutoResize();
+      } else {
+        this._updateAutoHeight();
       }
     } else {
       this.container.classList.remove("overtype-auto-resize");
