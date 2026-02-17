@@ -226,7 +226,8 @@ class OverType {
         toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
-        codeHighlighter: null  // Per-instance code highlighter
+        codeHighlighter: null,  // Per-instance code highlighter
+        spellcheck: false  // Browser spellcheck (disabled by default)
       };
       
       // Remove theme and colors from options - these are now global
@@ -458,7 +459,7 @@ class OverType {
       this.textarea.setAttribute('autocomplete', 'off');
       this.textarea.setAttribute('autocorrect', 'off');
       this.textarea.setAttribute('autocapitalize', 'off');
-      this.textarea.setAttribute('spellcheck', 'false');
+      this.textarea.setAttribute('spellcheck', String(this.options.spellcheck));
       this.textarea.setAttribute('data-gramm', 'false');
       this.textarea.setAttribute('data-gramm_editor', 'false');
       this.textarea.setAttribute('data-enable-grammarly', 'false');

@@ -1177,11 +1177,10 @@ var OverType = (() => {
       /* Prevent mobile zoom on focus */
       touch-action: manipulation !important;
       
-      /* Disable autofill and spellcheck */
+      /* Disable autofill */
       autocomplete: off !important;
       autocorrect: off !important;
       autocapitalize: off !important;
-      spellcheck: false !important;
     }
 
     .overtype-wrapper .overtype-input::selection {
@@ -3522,8 +3521,10 @@ ${blockSuffix}` : suffix;
         statsFormatter: null,
         smartLists: true,
         // Enable smart list continuation
-        codeHighlighter: null
+        codeHighlighter: null,
         // Per-instance code highlighter
+        spellcheck: false
+        // Browser spellcheck (disabled by default)
       };
       const { theme, colors, ...cleanOptions } = options;
       return {
@@ -3687,7 +3688,7 @@ ${blockSuffix}` : suffix;
       this.textarea.setAttribute("autocomplete", "off");
       this.textarea.setAttribute("autocorrect", "off");
       this.textarea.setAttribute("autocapitalize", "off");
-      this.textarea.setAttribute("spellcheck", "false");
+      this.textarea.setAttribute("spellcheck", String(this.options.spellcheck));
       this.textarea.setAttribute("data-gramm", "false");
       this.textarea.setAttribute("data-gramm_editor", "false");
       this.textarea.setAttribute("data-enable-grammarly", "false");

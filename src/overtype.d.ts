@@ -103,6 +103,7 @@ export interface Options {
   toolbar?: boolean;
   toolbarButtons?: ToolbarButton[];  // Custom toolbar button configuration
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
+  spellcheck?: boolean;       // Browser spellcheck (default: false)
   statsFormatter?: (stats: Stats) => string;
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
 

@@ -1174,11 +1174,10 @@ var OverTypeEditor = (() => {
       /* Prevent mobile zoom on focus */
       touch-action: manipulation !important;
       
-      /* Disable autofill and spellcheck */
+      /* Disable autofill */
       autocomplete: off !important;
       autocorrect: off !important;
       autocapitalize: off !important;
-      spellcheck: false !important;
     }
 
     .overtype-wrapper .overtype-input::selection {
@@ -3519,8 +3518,10 @@ ${blockSuffix}` : suffix;
         statsFormatter: null,
         smartLists: true,
         // Enable smart list continuation
-        codeHighlighter: null
+        codeHighlighter: null,
         // Per-instance code highlighter
+        spellcheck: false
+        // Browser spellcheck (disabled by default)
       };
       const { theme, colors, ...cleanOptions } = options;
       return {
@@ -3684,7 +3685,7 @@ ${blockSuffix}` : suffix;
       this.textarea.setAttribute("autocomplete", "off");
       this.textarea.setAttribute("autocorrect", "off");
       this.textarea.setAttribute("autocapitalize", "off");
-      this.textarea.setAttribute("spellcheck", "false");
+      this.textarea.setAttribute("spellcheck", String(this.options.spellcheck));
       this.textarea.setAttribute("data-gramm", "false");
       this.textarea.setAttribute("data-gramm_editor", "false");
       this.textarea.setAttribute("data-enable-grammarly", "false");
@@ -4545,7 +4546,8 @@ ${blockSuffix}` : suffix;
     "autofocus",
     "show-stats",
     "smart-lists",
-    "readonly"
+    "readonly",
+    "spellcheck"
   ];
   var OverTypeEditor = class extends HTMLElement {
     constructor() {
@@ -4728,6 +4730,7 @@ ${blockSuffix}` : suffix;
         autoResize: this.hasAttribute("auto-resize"),
         showStats: this.hasAttribute("show-stats"),
         smartLists: !this.hasAttribute("smart-lists") || this.getAttribute("smart-lists") !== "false",
+        spellcheck: this.hasAttribute("spellcheck") && this.getAttribute("spellcheck") !== "false",
         onChange: this._handleChange,
         onKeydown: this._handleKeydown
       };
@@ -4840,6 +4843,15 @@ ${blockSuffix}` : suffix;
           this._reinitializeEditor();
           break;
         }
+        case "spellcheck":
+          if (this._editor) {
+            const enabled = this.hasAttribute("spellcheck") && this.getAttribute("spellcheck") !== "false";
+            this._editor.options.spellcheck = enabled;
+            if (this._editor.textarea) {
+              this._editor.textarea.setAttribute("spellcheck", String(enabled));
+            }
+          }
+          break;
       }
     }
     /**

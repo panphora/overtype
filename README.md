@@ -47,7 +47,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 **Choose OverType when you need:**
 - Tiny bundle size (10x smaller than alternatives)
 - Zero dependencies - single file that works immediately
-- Perfect native browser features (undo/redo, mobile keyboards, spellcheck)
+- Perfect native browser features (undo/redo, mobile keyboards, optional spellcheck)
 - Dead-simple integration without build tools
 - Easy to understand, modify, and extend
 - Excellent mobile support with visible markdown syntax
@@ -464,7 +464,10 @@ new OverType(target, options)
 
   // Smart lists
   smartLists: true,       // Enable GitHub-style list continuation on Enter
-  
+
+  // Spellcheck
+  spellcheck: false,      // Enable browser spellcheck (disabled by default)
+
   // Stats bar
   showStats: false,       // Enable/disable stats bar
   statsFormatter: (stats) => {  // Custom stats format

@@ -211,11 +211,10 @@ export function generateStyles(options = {}) {
       /* Prevent mobile zoom on focus */
       touch-action: manipulation !important;
       
-      /* Disable autofill and spellcheck */
+      /* Disable autofill */
       autocomplete: off !important;
       autocorrect: off !important;
       autocapitalize: off !important;
-      spellcheck: false !important;
     }
 
     .overtype-wrapper .overtype-input::selection {

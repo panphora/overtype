@@ -15,7 +15,7 @@ const DEFAULT_PLACEHOLDER = 'Start typing...';
 const OBSERVED_ATTRIBUTES = [
   'value', 'theme', 'toolbar', 'height', 'min-height', 'max-height', 
   'placeholder', 'font-size', 'line-height', 'padding', 'auto-resize', 
-  'autofocus', 'show-stats', 'smart-lists', 'readonly'
+  'autofocus', 'show-stats', 'smart-lists', 'readonly', 'spellcheck'
 ];
 
 /**
@@ -261,6 +261,7 @@ class OverTypeEditor extends HTMLElement {
       autoResize: this.hasAttribute('auto-resize'),
       showStats: this.hasAttribute('show-stats'),
       smartLists: !this.hasAttribute('smart-lists') || this.getAttribute('smart-lists') !== 'false',
+      spellcheck: this.hasAttribute('spellcheck') && this.getAttribute('spellcheck') !== 'false',
       onChange: this._handleChange,
       onKeydown: this._handleKeydown
     };
@@ -388,6 +389,16 @@ class OverTypeEditor extends HTMLElement {
         this._reinitializeEditor();
         break;
       }
+
+      case 'spellcheck':
+        if (this._editor) {
+          const enabled = this.hasAttribute('spellcheck') && this.getAttribute('spellcheck') !== 'false';
+          this._editor.options.spellcheck = enabled;
+          if (this._editor.textarea) {
+            this._editor.textarea.setAttribute('spellcheck', String(enabled));
+          }
+        }
+        break;
     }
   }
 
