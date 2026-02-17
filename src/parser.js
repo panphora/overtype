@@ -87,6 +87,7 @@ export class MarkdownParser {
   static parseHeader(html) {
     return html.replace(/^(#{1,3})\s(.+)$/, (match, hashes, content) => {
       const level = hashes.length;
+      content = this.parseInlineElements(content);
       return `<h${level}><span class="syntax-marker">${hashes} </span>${content}</h${level}>`;
     });
   }
@@ -121,6 +122,7 @@ export class MarkdownParser {
    */
   static parseBulletList(html) {
     return html.replace(/^((?:&nbsp;)*)([-*+])\s(.+)$/, (match, indent, marker, content) => {
+      content = this.parseInlineElements(content);
       return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
     });
   }
@@ -133,6 +135,7 @@ export class MarkdownParser {
    */
   static parseTaskList(html, isPreviewMode = false) {
     return html.replace(/^((?:&nbsp;)*)-\s+\[([ xX])\]\s+(.+)$/, (match, indent, checked, content) => {
+      content = this.parseInlineElements(content);
       if (isPreviewMode) {
         // Preview mode: render actual checkbox
         const isChecked = checked.toLowerCase() === 'x';
@@ -151,6 +154,7 @@ export class MarkdownParser {
    */
   static parseNumberedList(html) {
     return html.replace(/^((?:&nbsp;)*)(\d+\.)\s(.+)$/, (match, indent, marker, content) => {
+      content = this.parseInlineElements(content);
       return `${indent}<li class="ordered-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
     });
   }
@@ -188,7 +192,7 @@ export class MarkdownParser {
    */
   static parseItalic(html) {
     // Single asterisk - must not be adjacent to other asterisks
-    // Also must not be inside a syntax-marker span (to avoid matching bullet list markers)
+    // Must not be inside a syntax-marker span (avoid matching bullet list markers like ">* ")
     html = html.replace(/(?<![\*>])\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
 
     // Single underscore - must be at word boundaries to avoid matching inside words
@@ -464,8 +468,10 @@ export class MarkdownParser {
     html = this.parseBulletList(html);
     html = this.parseNumberedList(html);
 
-    // Parse inline elements
-    html = this.parseInlineElements(html);
+    // Parse inline elements (skip for headers and list items — already parsed inside those functions)
+    if (!html.includes('<li') && !html.includes('<h')) {
+      html = this.parseInlineElements(html);
+    }
 
     // Wrap in div to maintain line structure
     if (html.trim() === '') {

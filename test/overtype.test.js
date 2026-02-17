@@ -155,6 +155,79 @@ console.log('\n📝 Parser Tests\n');
   });
 })();
 
+// Test: Inline formatting at the START of list items (Issue #81)
+(() => {
+  const tests = [
+    {
+      input: '- *italic*',
+      shouldContain: ['<li class="bullet-list">', '<em>', '</em>'],
+      description: 'Asterisk italic at start of bullet list'
+    },
+    {
+      input: '- _italic_',
+      shouldContain: ['<li class="bullet-list">', '<em>', '</em>'],
+      description: 'Underscore italic at start of bullet list'
+    },
+    {
+      input: '- **bold**',
+      shouldContain: ['<li class="bullet-list">', '<strong>', '</strong>'],
+      description: 'Bold at start of bullet list'
+    },
+    {
+      input: '- *italic* and more text',
+      shouldContain: ['<li class="bullet-list">', '<em>', '</em>'],
+      description: 'Asterisk italic at start of bullet list with trailing text'
+    },
+    {
+      input: '- _italic_ and more text',
+      shouldContain: ['<li class="bullet-list">', '<em>', '</em>'],
+      description: 'Underscore italic at start of bullet list with trailing text'
+    },
+    {
+      input: '* *italic*',
+      shouldContain: ['<li class="bullet-list">', '<em>', '</em>'],
+      description: 'Asterisk italic at start of * bullet list'
+    },
+    {
+      input: '1. *italic*',
+      shouldContain: ['<li class="ordered-list">', '<em>', '</em>'],
+      description: 'Asterisk italic at start of numbered list'
+    },
+    {
+      input: '1. _italic_',
+      shouldContain: ['<li class="ordered-list">', '<em>', '</em>'],
+      description: 'Underscore italic at start of numbered list'
+    },
+    {
+      input: '# *italic in header*',
+      shouldContain: ['<h1>', '<em>', '</em>'],
+      description: 'Asterisk italic at start of header'
+    },
+    {
+      input: '## _italic in header_',
+      shouldContain: ['<h2>', '<em>', '</em>'],
+      description: 'Underscore italic at start of header'
+    },
+    {
+      input: '- ~~strikethrough~~',
+      shouldContain: ['<li class="bullet-list">', '<del>', '</del>'],
+      description: 'Strikethrough at start of bullet list'
+    },
+    {
+      input: '- `code`',
+      shouldContain: ['<li class="bullet-list">', '<code>', '</code>'],
+      description: 'Inline code at start of bullet list'
+    }
+  ];
+
+  tests.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    test.shouldContain.forEach(fragment => {
+      assert(actual.includes(fragment), `Start-of-block formatting: ${test.input}`, `${test.description}. Missing "${fragment}" in: ${actual}`);
+    });
+  });
+})();
+
 // Test: Blockquotes
 (() => {
   const input = '> Quote';
