@@ -22,6 +22,7 @@ export interface Theme {
     hr?: string;
     link?: string;
     listMarker?: string;
+    placeholder?: string;
     primary?: string;
     rawLine?: string;
     selection?: string;

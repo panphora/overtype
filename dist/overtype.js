@@ -105,6 +105,7 @@ var OverType = (() => {
     static parseHeader(html) {
       return html.replace(/^(#{1,3})\s(.+)$/, (match, hashes, content) => {
         const level = hashes.length;
+        content = this.parseInlineElements(content);
         return `<h${level}><span class="syntax-marker">${hashes} </span>${content}</h${level}>`;
       });
     }
@@ -136,6 +137,7 @@ var OverType = (() => {
      */
     static parseBulletList(html) {
       return html.replace(/^((?:&nbsp;)*)([-*+])\s(.+)$/, (match, indent, marker, content) => {
+        content = this.parseInlineElements(content);
         return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
       });
     }
@@ -147,6 +149,7 @@ var OverType = (() => {
      */
     static parseTaskList(html, isPreviewMode = false) {
       return html.replace(/^((?:&nbsp;)*)-\s+\[([ xX])\]\s+(.+)$/, (match, indent, checked, content) => {
+        content = this.parseInlineElements(content);
         if (isPreviewMode) {
           const isChecked = checked.toLowerCase() === "x";
           return `${indent}<li class="task-list"><input type="checkbox" ${isChecked ? "checked" : ""}> ${content}</li>`;
@@ -162,6 +165,7 @@ var OverType = (() => {
      */
     static parseNumberedList(html) {
       return html.replace(/^((?:&nbsp;)*)(\d+\.)\s(.+)$/, (match, indent, marker, content) => {
+        content = this.parseInlineElements(content);
         return `${indent}<li class="ordered-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
       });
     }
@@ -383,7 +387,9 @@ var OverType = (() => {
       html = this.parseTaskList(html, isPreviewMode);
       html = this.parseBulletList(html);
       html = this.parseNumberedList(html);
-      html = this.parseInlineElements(html);
+      if (!html.includes("<li") && !html.includes("<h")) {
+        html = this.parseInlineElements(html);
+      }
       if (html.trim() === "") {
         return "<div>&nbsp;</div>";
       }
@@ -872,8 +878,10 @@ var OverType = (() => {
       // Yale Blue - icon color
       toolbarHover: "#f5f5f5",
       // Light gray - hover background
-      toolbarActive: "#faf0ca"
+      toolbarActive: "#faf0ca",
       // Lemon Chiffon - active button background
+      placeholder: "#999999"
+      // Gray - placeholder text
     }
   };
   var cave = {
@@ -936,8 +944,10 @@ var OverType = (() => {
       // Light blue-gray - icon color
       toolbarHover: "#243546",
       // Slightly lighter charcoal - hover background
-      toolbarActive: "#2a3f52"
+      toolbarActive: "#2a3f52",
       // Even lighter - active button background
+      placeholder: "#6a7a88"
+      // Muted blue-gray - placeholder text
     }
   };
   var themes = {
@@ -1176,6 +1186,26 @@ var OverType = (() => {
 
     .overtype-wrapper .overtype-input::selection {
       background-color: var(--selection, rgba(244, 211, 94, 0.4));
+    }
+
+    /* Placeholder shim - visible when textarea is empty */
+    .overtype-wrapper .overtype-placeholder {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+      user-select: none !important;
+      font-family: ${fontFamily} !important;
+      font-size: var(--instance-font-size, ${fontSize}) !important;
+      line-height: var(--instance-line-height, ${lineHeight}) !important;
+      padding: var(--instance-padding, ${padding}) !important;
+      box-sizing: border-box !important;
+      color: var(--placeholder, #999) !important;
+      overflow: hidden !important;
+      white-space: nowrap !important;
+      text-overflow: ellipsis !important;
     }
 
     /* Preview layer styles */
@@ -3633,8 +3663,13 @@ ${blockSuffix}` : suffix;
       this.preview = document.createElement("div");
       this.preview.className = "overtype-preview";
       this.preview.setAttribute("aria-hidden", "true");
+      this.placeholderEl = document.createElement("div");
+      this.placeholderEl.className = "overtype-placeholder";
+      this.placeholderEl.setAttribute("aria-hidden", "true");
+      this.placeholderEl.textContent = this.options.placeholder;
       this.wrapper.appendChild(this.textarea);
       this.wrapper.appendChild(this.preview);
+      this.wrapper.appendChild(this.placeholderEl);
       this.container.appendChild(this.wrapper);
       if (this.options.showStats) {
         this.statsBar = document.createElement("div");
@@ -3730,6 +3765,9 @@ ${blockSuffix}` : suffix;
         this.toolbar.destroy();
         this.toolbar = null;
       }
+      if (this.placeholderEl) {
+        this.placeholderEl.textContent = this.options.placeholder;
+      }
       this.updatePreview();
     }
     /**
@@ -3741,7 +3779,10 @@ ${blockSuffix}` : suffix;
       const activeLine = this._getCurrentLine(text, cursorPos);
       const isPreviewMode = this.container.dataset.mode === "preview";
       const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
-      this.preview.innerHTML = html || '<span style="color: #808080;">Start typing...</span>';
+      this.preview.innerHTML = html;
+      if (this.placeholderEl) {
+        this.placeholderEl.style.display = text ? "none" : "";
+      }
       this._applyCodeBlockBackgrounds();
       if (this.options.showStats && this.statsBar) {
         this._updateStats();
