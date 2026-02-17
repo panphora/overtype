@@ -1723,18 +1723,13 @@ function generateStyles(options = {}) {
 
     /* Code blocks - proper pre/code styling in preview mode */
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview pre.code-block {
-      background: #2d2d2d !important;
-      color: #f8f8f2 !important;
+      background: var(--code-bg, rgba(244, 211, 94, 0.4)) !important;
+      color: var(--code, #0d3b66) !important;
       padding: 1.2em !important;
       border-radius: 3px !important;
       overflow-x: auto !important;
       margin: 0 !important;
       display: block !important;
-    }
-    
-    /* Cave theme code block background in preview mode */
-    .overtype-container[data-theme="cave"][data-mode="preview"] .overtype-wrapper .overtype-preview pre.code-block {
-      background: #11171F !important;
     }
 
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview pre.code-block code {
