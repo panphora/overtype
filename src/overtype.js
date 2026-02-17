@@ -414,9 +414,16 @@ class OverType {
       this.preview.className = 'overtype-preview';
       this.preview.setAttribute('aria-hidden', 'true');
 
+      // Create placeholder shim
+      this.placeholderEl = document.createElement('div');
+      this.placeholderEl.className = 'overtype-placeholder';
+      this.placeholderEl.setAttribute('aria-hidden', 'true');
+      this.placeholderEl.textContent = this.options.placeholder;
+
       // Assemble DOM
       this.wrapper.appendChild(this.textarea);
       this.wrapper.appendChild(this.preview);
+      this.wrapper.appendChild(this.placeholderEl);
       
       // No need to prevent link clicks - pointer-events handles this
       
@@ -546,6 +553,11 @@ class OverType {
         this.toolbar = null;
       }
 
+      // Update placeholder text
+      if (this.placeholderEl) {
+        this.placeholderEl.textContent = this.options.placeholder;
+      }
+
       // Update preview with initial content
       this.updatePreview();
     }
@@ -563,7 +575,12 @@ class OverType {
 
       // Parse markdown
       const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
-      this.preview.innerHTML = html || '<span style="color: #808080;">Start typing...</span>';
+      this.preview.innerHTML = html;
+
+      // Show/hide placeholder shim
+      if (this.placeholderEl) {
+        this.placeholderEl.style.display = text ? 'none' : '';
+      }
       
       // Apply code block backgrounds
       this._applyCodeBlockBackgrounds();

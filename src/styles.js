@@ -222,6 +222,26 @@ export function generateStyles(options = {}) {
       background-color: var(--selection, rgba(244, 211, 94, 0.4));
     }
 
+    /* Placeholder shim - visible when textarea is empty */
+    .overtype-wrapper .overtype-placeholder {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+      user-select: none !important;
+      font-family: ${fontFamily} !important;
+      font-size: var(--instance-font-size, ${fontSize}) !important;
+      line-height: var(--instance-line-height, ${lineHeight}) !important;
+      padding: var(--instance-padding, ${padding}) !important;
+      box-sizing: border-box !important;
+      color: var(--placeholder, #999) !important;
+      overflow: hidden !important;
+      white-space: nowrap !important;
+      text-overflow: ellipsis !important;
+    }
+
     /* Preview layer styles */
     .overtype-wrapper .overtype-preview {
       /* Layer positioning */

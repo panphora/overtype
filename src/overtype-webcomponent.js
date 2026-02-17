@@ -324,8 +324,14 @@ class OverTypeEditor extends HTMLElement {
         break;
 
       case 'placeholder':
-        if (this._editor.textarea) {
-          this._editor.textarea.placeholder = value || '';
+        if (this._editor) {
+          this._editor.options.placeholder = value || '';
+          if (this._editor.textarea) {
+            this._editor.textarea.placeholder = value || '';
+          }
+          if (this._editor.placeholderEl) {
+            this._editor.placeholderEl.textContent = value || '';
+          }
         }
         break;
 
