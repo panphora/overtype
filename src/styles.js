@@ -854,9 +854,8 @@ export function generateStyles(options = {}) {
       height: 2px !important;
     }
 
-    /* Link Tooltip - Base styles (all browsers) */
+    /* Link Tooltip */
     .overtype-link-tooltip {
-      /* Visual styles that work for both positioning methods */
       background: #333 !important;
       color: white !important;
       padding: 6px 10px !important;
@@ -871,25 +870,11 @@ export function generateStyles(options = {}) {
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
-
-      /* Base positioning for Floating UI fallback */
       position: absolute;
     }
 
     .overtype-link-tooltip.visible {
       display: flex !important;
-    }
-
-    /* CSS Anchor Positioning (modern browsers only) */
-    @supports (position-anchor: --x) and (position-area: center) {
-      .overtype-link-tooltip {
-        /* Only anchor positioning specific properties */
-        position-anchor: var(--target-anchor, --link-0);
-        position-area: block-end center;
-        margin-top: 8px !important;
-        position-try: most-width block-end inline-end, flip-inline, block-start center;
-        position-visibility: anchors-visible;
-      }
     }
 
     ${mobileStyles}
