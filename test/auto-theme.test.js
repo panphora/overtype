@@ -271,6 +271,29 @@ resetOverType(OverType);
   editor.destroy();
 })();
 
+// --- Global auto theme with customColors ---
+
+console.log('\n📋 Global auto theme with customColors');
+
+mockMatchMedia(false);
+resetOverType(OverType);
+
+(() => {
+  document.getElementById('editor').innerHTML = '';
+  const editor = new OverType('#editor')[0];
+
+  OverType.setTheme('auto', { h1: '#ff0000' });
+  assert(OverType._globalAutoCustomColors !== null, 'customColors stored', '');
+
+  triggerSchemeChange(true);
+  assert(OverType._globalAutoCustomColors?.h1 === '#ff0000', 'customColors preserved after OS change', `got ${JSON.stringify(OverType._globalAutoCustomColors)}`);
+
+  OverType.setTheme('solar');
+  assert(OverType._globalAutoCustomColors === null, 'customColors cleared after fixed theme', `got ${JSON.stringify(OverType._globalAutoCustomColors)}`);
+
+  editor.destroy();
+})();
+
 // --- Static setTheme('auto') listener cleanup ---
 
 console.log('\n📋 Static auto theme listener cleanup');

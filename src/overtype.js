@@ -84,6 +84,7 @@ class OverType {
     static _autoMediaListener = null;
     static _autoInstances = new Set();
     static _globalAutoTheme = false;
+    static _globalAutoCustomColors = null;
 
     /**
      * Constructor - Always returns an array of instances
@@ -1569,9 +1570,11 @@ class OverType {
      */
     static setTheme(theme, customColors = null) {
       OverType._globalAutoTheme = false;
+      OverType._globalAutoCustomColors = null;
 
       if (theme === 'auto') {
         OverType._globalAutoTheme = true;
+        OverType._globalAutoCustomColors = customColors;
         OverType._startAutoListener();
         OverType._applyGlobalTheme(resolveAutoTheme('auto'), customColors);
         return;
@@ -1631,7 +1634,7 @@ class OverType {
         const resolved = e.matches ? 'cave' : 'solar';
 
         if (OverType._globalAutoTheme) {
-          OverType._applyGlobalTheme(resolved);
+          OverType._applyGlobalTheme(resolved, OverType._globalAutoCustomColors);
         }
 
         OverType._autoInstances.forEach(inst => inst._applyResolvedTheme(resolved));
