@@ -4670,6 +4670,9 @@ ${blockSuffix}` : suffix;
       } else {
         this._buildFromScratch();
       }
+      if (this.instanceTheme === "auto") {
+        this.setTheme("auto");
+      }
       this.shortcuts = new ShortcutsManager(this);
       this._rebuildActionsMap();
       this.linkTooltip = new LinkTooltip(this);
@@ -5049,7 +5052,8 @@ ${blockSuffix}` : suffix;
         });
       }
       if (this.options.fileUpload.batch && files.length > 0) {
-        this.options.fileUpload.onInsertFile(files.map((f) => f.file)).then((texts) => {
+        this.options.fileUpload.onInsertFile(files.map((f) => f.file)).then((result) => {
+          const texts = Array.isArray(result) ? result : [result];
           texts.forEach((text, index) => {
             this.textarea.value = this.textarea.value.replace(files[index].placeholder, text);
           });
@@ -5078,7 +5082,12 @@ ${blockSuffix}` : suffix;
     insertAtCursor(text) {
       const start = this.textarea.selectionStart;
       const end = this.textarea.selectionEnd;
-      if (!document.execCommand("insertText", false, text)) {
+      let inserted = false;
+      try {
+        inserted = document.execCommand("insertText", false, text);
+      } catch (_) {
+      }
+      if (!inserted) {
         const before = this.textarea.value.slice(0, start);
         const after = this.textarea.value.slice(end);
         this.textarea.value = before + text + after;
@@ -5746,8 +5755,10 @@ ${blockSuffix}` : suffix;
      */
     static setTheme(theme, customColors = null) {
       _OverType._globalAutoTheme = false;
+      _OverType._globalAutoCustomColors = null;
       if (theme === "auto") {
         _OverType._globalAutoTheme = true;
+        _OverType._globalAutoCustomColors = customColors;
         _OverType._startAutoListener();
         _OverType._applyGlobalTheme(resolveAutoTheme("auto"), customColors);
         return;
@@ -5797,7 +5808,7 @@ ${blockSuffix}` : suffix;
       _OverType._autoMediaListener = (e) => {
         const resolved = e.matches ? "cave" : "solar";
         if (_OverType._globalAutoTheme) {
-          _OverType._applyGlobalTheme(resolved);
+          _OverType._applyGlobalTheme(resolved, _OverType._globalAutoCustomColors);
         }
         _OverType._autoInstances.forEach((inst) => inst._applyResolvedTheme(resolved));
       };
@@ -5917,6 +5928,7 @@ ${blockSuffix}` : suffix;
   __publicField(_OverType, "_autoMediaListener", null);
   __publicField(_OverType, "_autoInstances", /* @__PURE__ */ new Set());
   __publicField(_OverType, "_globalAutoTheme", false);
+  __publicField(_OverType, "_globalAutoCustomColors", null);
   var OverType = _OverType;
   OverType.MarkdownParser = MarkdownParser;
   OverType.ShortcutsManager = ShortcutsManager;
