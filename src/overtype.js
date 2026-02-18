@@ -654,7 +654,8 @@ class OverType {
       }
 
       if (this.options.fileUpload.batch && files.length > 0) {
-        this.options.fileUpload.onInsertFile(files.map(f => f.file)).then((texts) => {
+        this.options.fileUpload.onInsertFile(files.map(f => f.file)).then((result) => {
+          const texts = Array.isArray(result) ? result : [result];
           texts.forEach((text, index) => {
             this.textarea.value = this.textarea.value.replace(files[index].placeholder, text);
           });
