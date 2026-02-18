@@ -494,6 +494,7 @@ class OverType {
       this.toolbar = new Toolbar(this, { toolbarButtons });
       this.toolbar.create();
 
+
       // Store listener references for cleanup
       this._toolbarSelectionListener = () => {
         if (this.toolbar) {
@@ -538,6 +539,11 @@ class OverType {
       // Overlay custom toolbar actions (can add/override, but never remove core actions)
       if (this.options.toolbarButtons) {
         Object.assign(this.actionsById, buildActionsMap(this.options.toolbarButtons));
+      }
+
+      // Register upload action when file upload is enabled
+      if (this.options.fileUpload?.enabled) {
+        Object.assign(this.actionsById, buildActionsMap([builtinToolbarButtons.upload]));
       }
     }
 

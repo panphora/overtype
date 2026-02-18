@@ -1839,7 +1839,9 @@ var OverType = (() => {
       border-radius: 16px !important;
       font-size: 12px !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-      display: none !important;
+      display: flex !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
       z-index: 10000 !important;
       cursor: pointer !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
@@ -1847,11 +1849,14 @@ var OverType = (() => {
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
-      position: absolute;
+      position: fixed;
+      top: 0;
+      left: 0;
     }
 
     .overtype-link-tooltip.visible {
-      display: flex !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
     }
 
     ${mobileStyles}
@@ -4260,13 +4265,15 @@ ${blockSuffix}` : suffix;
       }
       return null;
     }
-    show(linkInfo) {
+    async show(linkInfo) {
       this.currentLink = linkInfo;
       this.cancelHide();
       const urlSpan = this.tooltip.querySelector(".overtype-link-tooltip-url");
       urlSpan.textContent = linkInfo.url;
-      this.positionTooltip(linkInfo);
-      this.tooltip.classList.add("visible");
+      await this.positionTooltip(linkInfo);
+      if (this.currentLink === linkInfo) {
+        this.tooltip.classList.add("visible");
+      }
     }
     async positionTooltip(linkInfo) {
       const anchorElement = this.findAnchorElement(linkInfo.index);
@@ -4282,6 +4289,7 @@ ${blockSuffix}` : suffix;
           anchorElement,
           this.tooltip,
           {
+            strategy: "fixed",
             placement: "bottom",
             middleware: [
               offset2(8),
@@ -4293,7 +4301,7 @@ ${blockSuffix}` : suffix;
         Object.assign(this.tooltip.style, {
           left: `${x}px`,
           top: `${y}px`,
-          position: "absolute"
+          position: "fixed"
         });
       } catch (error) {
         console.warn("Floating UI positioning failed:", error);
@@ -4391,10 +4399,10 @@ ${blockSuffix}` : suffix;
   <rect stroke="currentColor" fill="none" stroke-width="1.5" x="2" y="13" width="3" height="3" rx="0.5"></rect>
   <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" points="2.65 9.5 3.5 10.5 5 8.5"></polyline>
 </svg>`;
-  var uploadIcon = `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M2.25 12.375v1.688A1.688 1.688 0 0 0 3.938 15.75h10.124a1.688 1.688 0 0 0 1.688-1.688V12.375"></path>
-  <path d="M5.063 6.188L9 2.25l3.938 3.938"></path>
-  <path d="M9 2.25v10.125"></path>
+  var uploadIcon = `<svg viewBox="0 0 18 18">
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 12.375v1.688A1.688 1.688 0 0 0 3.938 15.75h10.124a1.688 1.688 0 0 0 1.688-1.688V12.375"></path>
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.063 6.188L9 2.25l3.938 3.938"></path>
+  <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 2.25v10.125"></path>
 </svg>`;
   var eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none"></path>
@@ -4953,9 +4961,13 @@ ${blockSuffix}` : suffix;
      * @private
      */
     _rebuildActionsMap() {
+      var _a;
       this.actionsById = buildActionsMap(defaultToolbarButtons);
       if (this.options.toolbarButtons) {
         Object.assign(this.actionsById, buildActionsMap(this.options.toolbarButtons));
+      }
+      if ((_a = this.options.fileUpload) == null ? void 0 : _a.enabled) {
+        Object.assign(this.actionsById, buildActionsMap([toolbarButtons.upload]));
       }
     }
     /**

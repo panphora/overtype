@@ -866,7 +866,9 @@ export function generateStyles(options = {}) {
       border-radius: 16px !important;
       font-size: 12px !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-      display: none !important;
+      display: flex !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
       z-index: 10000 !important;
       cursor: pointer !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
@@ -874,11 +876,14 @@ export function generateStyles(options = {}) {
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
-      position: absolute;
+      position: fixed;
+      top: 0;
+      left: 0;
     }
 
     .overtype-link-tooltip.visible {
-      display: flex !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
     }
 
     ${mobileStyles}

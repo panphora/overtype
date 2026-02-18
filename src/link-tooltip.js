@@ -135,7 +135,7 @@ export class LinkTooltip {
     return null;
   }
 
-  show(linkInfo) {
+  async show(linkInfo) {
     this.currentLink = linkInfo;
     this.cancelHide();
 
@@ -143,8 +143,13 @@ export class LinkTooltip {
     const urlSpan = this.tooltip.querySelector('.overtype-link-tooltip-url');
     urlSpan.textContent = linkInfo.url;
 
-    this.positionTooltip(linkInfo);
-    this.tooltip.classList.add('visible');
+    // Position first (tooltip is always rendered but invisible, so Floating UI can measure it)
+    await this.positionTooltip(linkInfo);
+
+    // Only reveal if we're still showing this link
+    if (this.currentLink === linkInfo) {
+      this.tooltip.classList.add('visible');
+    }
   }
 
   async positionTooltip(linkInfo) {
@@ -164,6 +169,7 @@ export class LinkTooltip {
         anchorElement,
         this.tooltip,
         {
+          strategy: 'fixed',
           placement: 'bottom',
           middleware: [
             offset(8),
@@ -176,7 +182,7 @@ export class LinkTooltip {
       Object.assign(this.tooltip.style, {
         left: `${x}px`,
         top: `${y}px`,
-        position: 'absolute'
+        position: 'fixed'
       });
     } catch (error) {
       console.warn('Floating UI positioning failed:', error);
