@@ -88,6 +88,39 @@ assert(resolveAutoTheme('auto') === 'solar', 'Auto resolves to solar in light mo
 mockMatchMedia(true);
 assert(resolveAutoTheme('auto') === 'cave', 'Auto resolves to cave in dark mode', `got ${resolveAutoTheme('auto')}`);
 
+// --- Constructor theme: 'auto' ---
+
+console.log('\n📋 Constructor theme: "auto"');
+
+mockMatchMedia(false);
+resetOverType(OverType);
+
+(() => {
+  document.getElementById('editor').innerHTML = '';
+  const editor = new OverType('#editor', { theme: 'auto' })[0];
+
+  assert(editor.instanceTheme === 'auto', 'instanceTheme is "auto" from constructor', `got ${editor.instanceTheme}`);
+  assert(OverType._autoInstances.has(editor), 'Instance is tracked in _autoInstances from constructor', '');
+  assert(editor.container.getAttribute('data-theme') === 'solar', 'Constructor auto → solar in light mode', `got ${editor.container.getAttribute('data-theme')}`);
+
+  triggerSchemeChange(true);
+  assert(editor.container.getAttribute('data-theme') === 'cave', 'Constructor auto responds to OS change', `got ${editor.container.getAttribute('data-theme')}`);
+
+  editor.destroy();
+})();
+
+mockMatchMedia(true);
+resetOverType(OverType);
+
+(() => {
+  document.getElementById('editor').innerHTML = '';
+  const editor = new OverType('#editor', { theme: 'auto' })[0];
+
+  assert(editor.container.getAttribute('data-theme') === 'cave', 'Constructor auto → cave in dark mode', `got ${editor.container.getAttribute('data-theme')}`);
+
+  editor.destroy();
+})();
+
 // --- Instance setTheme('auto') ---
 
 console.log('\n📋 Instance setTheme("auto")');
@@ -96,6 +129,7 @@ mockMatchMedia(false);
 resetOverType(OverType);
 
 (() => {
+  document.getElementById('editor').innerHTML = '';
   const editor = new OverType('#editor')[0];
 
   editor.setTheme('auto');

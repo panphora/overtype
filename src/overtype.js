@@ -160,6 +160,10 @@ class OverType {
         this._buildFromScratch();
       }
 
+      if (this.instanceTheme === 'auto') {
+        this.setTheme('auto');
+      }
+
       // Setup shortcuts manager
       this.shortcuts = new ShortcutsManager(this);
 
