@@ -45,8 +45,7 @@
     "preversion": "npm test",
     "size": "gzip-size dist/overtype.min.js",
     "serve": "http-server -p 8080 -c-1",
-    "deploy:website": "npm run build",
-    "release": "./release.sh"
+    "deploy:website": "npm run build"
   },
   "keywords": [
     "markdown",
