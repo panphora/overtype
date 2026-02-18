@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType - File Upload Example</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .editor-container {
+            height: 400px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .info strong {
+            color: #333;
+        }
+
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #a0e0a0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .log:empty::before {
+            content: 'Upload log will appear here...';
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>OverType File Upload</h1>
+    <p class="subtitle">Paste or drag-and-drop files into the editor. Click the upload button in the toolbar.</p>
+
+    <div id="editor" class="editor-container"></div>
+
+    <div class="info">
+        <strong>Try it:</strong> Drag an image into the editor, paste from clipboard, or click the upload icon in the toolbar.
+        Uploads are simulated with a 1.5s delay. In production, replace the <code>onInsertFile</code> callback with a real upload to your server.
+    </div>
+
+    <div id="log" class="log"></div>
+
+    <script src="../dist/overtype.js"></script>
+    <script>
+        const logEl = document.getElementById('log');
+
+        function log(msg) {
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        const OT = window.OverType?.default || window.OverType;
+        const [editor] = new OT('#editor', {
+            toolbar: true,
+            placeholder: 'Drop a file here, paste an image, or click the upload button...',
+            value: `# File Upload Demo
+
+Try uploading files to see them inserted as markdown links.
+
+**Images** get inserted as \`![name](url)\` so they render inline.
+**Other files** get inserted as \`[name](url)\` as regular links.
+`,
+            fileUpload: {
+                enabled: true,
+                maxSize: 10 * 1024 * 1024,
+                onInsertFile: async (file) => {
+                    log(`Uploading: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+
+                    // Simulate upload delay
+                    await new Promise(r => setTimeout(r, 1500));
+
+                    const fakeUrl = `/uploads/${encodeURIComponent(file.name)}`;
+                    const isImage = file.type.startsWith('image/');
+
+                    log(`Done: ${file.name} → ${fakeUrl}`);
+
+                    return isImage
+                        ? `![${file.name}](${fakeUrl})`
+                        : `[${file.name}](${fakeUrl})`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

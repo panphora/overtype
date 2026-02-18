@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType - Auto Theme Example</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a1a1a;
+                color: #e0e0e0;
+            }
+            h1 { color: #e0e0e0; }
+            .subtitle { color: #999; }
+            .info { background: #2a2a2a; border-color: #444; color: #bbb; }
+            .info strong { color: #e0e0e0; }
+            .controls button { background: #4a90e2; }
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .editor-container {
+            height: 400px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            background: #4a90e2;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #357abd;
+        }
+
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>OverType Auto Theme</h1>
+    <p class="subtitle">The editor automatically matches your system's light/dark mode preference</p>
+
+    <div id="editor" class="editor-container"></div>
+
+    <div class="controls">
+        <button onclick="setTheme('auto')">Auto (System)</button>
+        <button onclick="setTheme('solar')">Solar (Light)</button>
+        <button onclick="setTheme('cave')">Cave (Dark)</button>
+    </div>
+
+    <div class="info">
+        <strong>How it works:</strong> Pass <code>theme: 'auto'</code> to follow the OS color scheme.
+        The editor listens for <code>prefers-color-scheme</code> changes and swaps between solar and cave in real-time.
+        Toggle your system dark mode to see it update live.
+    </div>
+
+    <script src="../dist/overtype.js"></script>
+    <script>
+        const OT = window.OverType?.default || window.OverType;
+        const [editor] = new OT('#editor', {
+            theme: 'auto',
+            toolbar: true,
+            placeholder: 'Toggle your system dark mode to see the theme change...',
+            value: `# Auto Theme
+
+This editor follows your **system color scheme** automatically.
+
+## How to test
+
+- On macOS: System Settings → Appearance → Light / Dark
+- On Windows: Settings → Personalization → Colors → Dark / Light
+- On Linux: varies by desktop environment
+
+The editor switches between the *solar* (light) and *cave* (dark) themes in real-time.
+
+> No page reload needed — the theme updates instantly.
+`
+        });
+
+        function setTheme(theme) {
+            OT.setTheme(theme);
+        }
+    </script>
+</body>
+</html>
