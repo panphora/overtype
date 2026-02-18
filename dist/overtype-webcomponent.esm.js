@@ -4365,6 +4365,11 @@ var taskListIcon = `<svg viewBox="0 0 18 18">
   <rect stroke="currentColor" fill="none" stroke-width="1.5" x="2" y="13" width="3" height="3" rx="0.5"></rect>
   <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" points="2.65 9.5 3.5 10.5 5 8.5"></polyline>
 </svg>`;
+var uploadIcon = `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2.25 12.375v1.688A1.688 1.688 0 0 0 3.938 15.75h10.124a1.688 1.688 0 0 0 1.688-1.688V12.375"></path>
+  <path d="M5.063 6.188L9 2.25l3.938 3.938"></path>
+  <path d="M9 2.25v10.125"></path>
+</svg>`;
 var eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none"></path>
   <circle cx="12" cy="12" r="3" fill="none"></circle>
@@ -4486,6 +4491,33 @@ var toolbarButtons = {
     action: ({ editor }) => {
       toggleQuote(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  },
+  upload: {
+    name: "upload",
+    actionId: "uploadFile",
+    icon: uploadIcon,
+    title: "Upload File",
+    action: ({ editor }) => {
+      var _a, _b;
+      if (!((_a = editor.options.fileUpload) == null ? void 0 : _a.enabled))
+        return;
+      const input = document.createElement("input");
+      input.type = "file";
+      input.multiple = true;
+      if (((_b = editor.options.fileUpload.mimeTypes) == null ? void 0 : _b.length) > 0) {
+        input.accept = editor.options.fileUpload.mimeTypes.join(",");
+      }
+      input.onchange = () => {
+        var _a2;
+        if (!((_a2 = input.files) == null ? void 0 : _a2.length))
+          return;
+        const dt = new DataTransfer();
+        for (const f of input.files)
+          dt.items.add(f);
+        editor._handleDataTransfer(dt);
+      };
+      input.click();
     }
   },
   viewMode: {
@@ -4846,7 +4878,17 @@ var _OverType = class _OverType {
    * @private
    */
   _createToolbar() {
-    const toolbarButtons2 = this.options.toolbarButtons || defaultToolbarButtons;
+    var _a;
+    let toolbarButtons2 = this.options.toolbarButtons || defaultToolbarButtons;
+    if (((_a = this.options.fileUpload) == null ? void 0 : _a.enabled) && !toolbarButtons2.some((b) => (b == null ? void 0 : b.name) === "upload")) {
+      const viewModeIdx = toolbarButtons2.findIndex((b) => (b == null ? void 0 : b.name) === "viewMode");
+      if (viewModeIdx !== -1) {
+        toolbarButtons2 = [...toolbarButtons2];
+        toolbarButtons2.splice(viewModeIdx, 0, toolbarButtons.separator, toolbarButtons.upload);
+      } else {
+        toolbarButtons2 = [...toolbarButtons2, toolbarButtons.separator, toolbarButtons.upload];
+      }
+    }
     this.toolbar = new Toolbar(this, { toolbarButtons: toolbarButtons2 });
     this.toolbar.create();
     this._toolbarSelectionListener = () => {

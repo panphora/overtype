@@ -72,6 +72,12 @@ export const taskListIcon = `<svg viewBox="0 0 18 18">
   <polyline stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" points="2.65 9.5 3.5 10.5 5 8.5"></polyline>
 </svg>`;
 
+export const uploadIcon = `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2.25 12.375v1.688A1.688 1.688 0 0 0 3.938 15.75h10.124a1.688 1.688 0 0 0 1.688-1.688V12.375"></path>
+  <path d="M5.063 6.188L9 2.25l3.938 3.938"></path>
+  <path d="M9 2.25v10.125"></path>
+</svg>`;
+
 export const eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="none"></path>
   <circle cx="12" cy="12" r="3" fill="none"></circle>

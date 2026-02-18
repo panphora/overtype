@@ -10,7 +10,7 @@ import { generateStyles } from './styles.js';
 import { getTheme, mergeTheme, solar, themeToCSSVars, resolveAutoTheme } from './themes.js';
 import { Toolbar } from './toolbar.js';
 import { LinkTooltip } from './link-tooltip.js';
-import { defaultToolbarButtons } from './toolbar-buttons.js';
+import { defaultToolbarButtons, toolbarButtons as builtinToolbarButtons } from './toolbar-buttons.js';
 
 /**
  * Build action map from toolbar button configurations
@@ -474,8 +474,17 @@ class OverType {
      * @private
      */
     _createToolbar() {
-      // Use provided toolbarButtons or default to defaultToolbarButtons
-      const toolbarButtons = this.options.toolbarButtons || defaultToolbarButtons;
+      let toolbarButtons = this.options.toolbarButtons || defaultToolbarButtons;
+
+      if (this.options.fileUpload?.enabled && !toolbarButtons.some(b => b?.name === 'upload')) {
+        const viewModeIdx = toolbarButtons.findIndex(b => b?.name === 'viewMode');
+        if (viewModeIdx !== -1) {
+          toolbarButtons = [...toolbarButtons];
+          toolbarButtons.splice(viewModeIdx, 0, builtinToolbarButtons.separator, builtinToolbarButtons.upload);
+        } else {
+          toolbarButtons = [...toolbarButtons, builtinToolbarButtons.separator, builtinToolbarButtons.upload];
+        }
+      }
 
       this.toolbar = new Toolbar(this, { toolbarButtons });
       this.toolbar.create();

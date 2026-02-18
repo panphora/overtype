@@ -142,6 +142,29 @@ export const toolbarButtons = {
     }
   },
 
+  upload: {
+    name: 'upload',
+    actionId: 'uploadFile',
+    icon: icons.uploadIcon,
+    title: 'Upload File',
+    action: ({ editor }) => {
+      if (!editor.options.fileUpload?.enabled) return;
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.multiple = true;
+      if (editor.options.fileUpload.mimeTypes?.length > 0) {
+        input.accept = editor.options.fileUpload.mimeTypes.join(',');
+      }
+      input.onchange = () => {
+        if (!input.files?.length) return;
+        const dt = new DataTransfer();
+        for (const f of input.files) dt.items.add(f);
+        editor._handleDataTransfer(dt);
+      };
+      input.click();
+    }
+  },
+
   viewMode: {
     name: 'viewMode',
     icon: icons.eyeIcon,

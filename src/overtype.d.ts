@@ -224,6 +224,7 @@ export const toolbarButtons: {
   orderedList: ToolbarButton;
   taskList: ToolbarButton;
   quote: ToolbarButton;
+  upload: ToolbarButton;
   viewMode: ToolbarButton;
 };
 
