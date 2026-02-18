@@ -89,6 +89,7 @@ export const cave = {
 export const themes = {
   solar,
   cave,
+  auto: solar,
   // Aliases for backward compatibility
   light: solar,
   dark: cave
@@ -106,6 +107,17 @@ export function getTheme(theme) {
     return { ...themeObj, name: theme };
   }
   return theme;
+}
+
+/**
+ * Resolve auto theme to actual theme based on system color scheme
+ * @param {string} themeName - Theme name to resolve
+ * @returns {string} Resolved theme name ('solar' or 'cave' if auto, otherwise unchanged)
+ */
+export function resolveAutoTheme(themeName) {
+  if (themeName !== 'auto') return themeName;
+  const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  return mq?.matches ? 'cave' : 'solar';
 }
 
 /**
