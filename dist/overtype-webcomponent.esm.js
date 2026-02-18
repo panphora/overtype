@@ -1455,6 +1455,10 @@ function generateStyles(options = {}) {
     
 
     /* Toolbar Styles */
+    .overtype-toolbar.overtype-toolbar-hidden {
+      display: none !important;
+    }
+
     .overtype-toolbar {
       display: flex !important;
       align-items: center !important;
@@ -2901,6 +2905,16 @@ var Toolbar = class {
         button.setAttribute("aria-pressed", isActive.toString());
       });
     } catch (error) {
+    }
+  }
+  show() {
+    if (this.container) {
+      this.container.classList.remove("overtype-toolbar-hidden");
+    }
+  }
+  hide() {
+    if (this.container) {
+      this.container.classList.add("overtype-toolbar-hidden");
     }
   }
   /**
@@ -5246,6 +5260,18 @@ var _OverType = class _OverType {
     this._applyOptions();
     this.updatePreview();
   }
+  showToolbar() {
+    if (this.toolbar) {
+      this.toolbar.show();
+    } else {
+      this._createToolbar();
+    }
+  }
+  hideToolbar() {
+    if (this.toolbar) {
+      this.toolbar.hide();
+    }
+  }
   /**
    * Set theme for this instance
    * @param {string|Object} theme - Theme name or custom theme object
@@ -6286,6 +6312,16 @@ var OverTypeEditor = class extends HTMLElement {
    */
   getEditor() {
     return this._editor;
+  }
+  showToolbar() {
+    if (this._editor) {
+      this._editor.showToolbar();
+    }
+  }
+  hideToolbar() {
+    if (this._editor) {
+      this._editor.hideToolbar();
+    }
   }
 };
 if (!customElements.get("overtype-editor")) {

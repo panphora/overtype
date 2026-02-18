@@ -249,6 +249,8 @@ export interface OverTypeInstance {
   setCodeHighlighter(highlighter: ((code: string, language: string) => string) | null): void;
   updatePreview(): void;
   performAction(actionId: string, event?: Event | null): Promise<boolean>;
+  showToolbar(): void;
+  hideToolbar(): void;
 
   // HTML output methods
   getRenderedHTML(options?: RenderOptions): string;

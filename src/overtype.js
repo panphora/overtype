@@ -1040,6 +1040,20 @@ class OverType {
       this.updatePreview();
     }
 
+    showToolbar() {
+      if (this.toolbar) {
+        this.toolbar.show();
+      } else {
+        this._createToolbar();
+      }
+    }
+
+    hideToolbar() {
+      if (this.toolbar) {
+        this.toolbar.hide();
+      }
+    }
+
     /**
      * Set theme for this instance
      * @param {string|Object} theme - Theme name or custom theme object

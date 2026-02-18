@@ -508,6 +508,10 @@ export function generateStyles(options = {}) {
     
 
     /* Toolbar Styles */
+    .overtype-toolbar.overtype-toolbar-hidden {
+      display: none !important;
+    }
+
     .overtype-toolbar {
       display: flex !important;
       align-items: center !important;

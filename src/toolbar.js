@@ -287,6 +287,18 @@ export class Toolbar {
     }
   }
 
+  show() {
+    if (this.container) {
+      this.container.classList.remove('overtype-toolbar-hidden');
+    }
+  }
+
+  hide() {
+    if (this.container) {
+      this.container.classList.add('overtype-toolbar-hidden');
+    }
+  }
+
   /**
    * Destroy toolbar and cleanup
    */
