@@ -4937,7 +4937,109 @@ ${blockSuffix}` : suffix;
       if (this.placeholderEl) {
         this.placeholderEl.textContent = this.options.placeholder;
       }
+      if (this.options.fileUpload && !this.fileUploadInitialized) {
+        this._initFileUpload();
+      } else if (!this.options.fileUpload && this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
       this.updatePreview();
+    }
+    _initFileUpload() {
+      const options = this.options.fileUpload;
+      if (!options || !options.enabled)
+        return;
+      options.maxSize = options.maxSize || 10 * 1024 * 1024;
+      options.mimeTypes = options.mimeTypes || [];
+      options.batch = options.batch || false;
+      if (!options.onInsertFile || typeof options.onInsertFile !== "function") {
+        console.warn("OverType: fileUpload.onInsertFile callback is required for file uploads.");
+        return;
+      }
+      this._fileUploadCounter = 0;
+      this._boundHandleFilePaste = this._handleFilePaste.bind(this);
+      this._boundHandleFileDrop = this._handleFileDrop.bind(this);
+      this._boundHandleDragOver = this._handleDragOver.bind(this);
+      this.textarea.addEventListener("paste", this._boundHandleFilePaste);
+      this.textarea.addEventListener("drop", this._boundHandleFileDrop);
+      this.textarea.addEventListener("dragover", this._boundHandleDragOver);
+      this.fileUploadInitialized = true;
+    }
+    _handleFilePaste(e) {
+      var _a, _b;
+      if (!((_b = (_a = e == null ? void 0 : e.clipboardData) == null ? void 0 : _a.files) == null ? void 0 : _b.length))
+        return;
+      e.preventDefault();
+      this._handleDataTransfer(e.clipboardData);
+    }
+    _handleFileDrop(e) {
+      var _a, _b;
+      if (!((_b = (_a = e == null ? void 0 : e.dataTransfer) == null ? void 0 : _a.files) == null ? void 0 : _b.length))
+        return;
+      e.preventDefault();
+      this._handleDataTransfer(e.dataTransfer);
+    }
+    _handleDataTransfer(dataTransfer) {
+      const files = [];
+      for (const file of dataTransfer.files) {
+        if (file.size > this.options.fileUpload.maxSize)
+          continue;
+        if (this.options.fileUpload.mimeTypes.length > 0 && !this.options.fileUpload.mimeTypes.includes(file.type))
+          continue;
+        const id = ++this._fileUploadCounter;
+        const prefix = file.type.startsWith("image/") ? "!" : "";
+        const placeholder = `${prefix}[Uploading ${file.name} (#${id})...]()`;
+        this.insertAtCursor(`${placeholder}
+`);
+        if (this.options.fileUpload.batch) {
+          files.push({ file, placeholder });
+          continue;
+        }
+        this.options.fileUpload.onInsertFile(file).then((text) => {
+          this.textarea.value = this.textarea.value.replace(placeholder, text);
+          this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }, (error) => {
+          console.error("OverType: File upload failed", error);
+          this.textarea.value = this.textarea.value.replace(placeholder, "[Upload failed]()");
+          this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      }
+      if (this.options.fileUpload.batch && files.length > 0) {
+        this.options.fileUpload.onInsertFile(files.map((f) => f.file)).then((texts) => {
+          texts.forEach((text, index) => {
+            this.textarea.value = this.textarea.value.replace(files[index].placeholder, text);
+          });
+          this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        }, (error) => {
+          console.error("OverType: File upload failed", error);
+          files.forEach(({ placeholder }) => {
+            this.textarea.value = this.textarea.value.replace(placeholder, "[Upload failed]()");
+          });
+          this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      }
+    }
+    _handleDragOver(e) {
+      e.preventDefault();
+    }
+    _destroyFileUpload() {
+      this.textarea.removeEventListener("paste", this._boundHandleFilePaste);
+      this.textarea.removeEventListener("drop", this._boundHandleFileDrop);
+      this.textarea.removeEventListener("dragover", this._boundHandleDragOver);
+      this._boundHandleFilePaste = null;
+      this._boundHandleFileDrop = null;
+      this._boundHandleDragOver = null;
+      this.fileUploadInitialized = false;
+    }
+    insertAtCursor(text) {
+      const start = this.textarea.selectionStart;
+      const end = this.textarea.selectionEnd;
+      if (!document.execCommand("insertText", false, text)) {
+        const before = this.textarea.value.slice(0, start);
+        const after = this.textarea.value.slice(end);
+        this.textarea.value = before + text + after;
+        this.textarea.setSelectionRange(start + text.length, start + text.length);
+      }
+      this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
     /**
      * Update preview with parsed markdown
@@ -5280,6 +5382,12 @@ ${blockSuffix}` : suffix;
         this.toolbar = null;
         this._createToolbar();
       }
+      if (this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
+      if (this.options.fileUpload) {
+        this._initFileUpload();
+      }
       this._applyOptions();
       this.updatePreview();
     }
@@ -5484,6 +5592,9 @@ ${blockSuffix}` : suffix;
     destroy() {
       _OverType._autoInstances.delete(this);
       _OverType._stopAutoListener();
+      if (this.fileUploadInitialized) {
+        this._destroyFileUpload();
+      }
       this.element.overTypeInstance = null;
       _OverType.instances.delete(this.element);
       if (this.shortcuts) {

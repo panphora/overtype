@@ -111,6 +111,15 @@ export interface Options {
   theme?: string | Theme;
   colors?: Partial<Theme['colors']>;
 
+  // File upload
+  fileUpload?: {
+    enabled: boolean;
+    maxSize?: number;
+    mimeTypes?: string[];
+    batch?: boolean;
+    onInsertFile: (file: File | File[]) => Promise<string | string[]>;
+  };
+
   // Callbacks
   onChange?: (value: string, instance: OverTypeInstance) => void;
   onKeydown?: (event: KeyboardEvent, instance: OverTypeInstance) => void;
@@ -177,6 +186,7 @@ export interface OverTypeInstance {
   performAction(actionId: string, event?: Event | null): Promise<boolean>;
   showToolbar(): void;
   hideToolbar(): void;
+  insertAtCursor(text: string): void;
 
   // HTML output methods
   getRenderedHTML(options?: RenderOptions): string;
