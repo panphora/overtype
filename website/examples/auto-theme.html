@@ -14,18 +14,6 @@
             transition: background 0.3s, color 0.3s;
         }
 
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: #1a1a1a;
-                color: #e0e0e0;
-            }
-            h1 { color: #e0e0e0; }
-            .subtitle { color: #999; }
-            .info { background: #2a2a2a; border-color: #444; color: #bbb; }
-            .info strong { color: #e0e0e0; }
-            .controls button { background: #4a90e2; }
-        }
-
         h1 {
             color: #333;
             margin-bottom: 10px;
@@ -76,6 +64,28 @@
 
         .info strong {
             color: #333;
+        }
+
+        .info code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a1a1a;
+                color: #e0e0e0;
+            }
+            h1 { color: #f0f0f0; }
+            .subtitle { color: #b0b0b0; }
+            .info { background: #252525; border-color: #444; color: #ccc; }
+            .info strong { color: #f0f0f0; }
+            .info code { background: #383838; color: #e0e0e0; }
+            .controls button { background: #4a90e2; }
+            button:hover { background: #5a9de6; }
+            .editor-container { box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
         }
     </style>
 </head>
