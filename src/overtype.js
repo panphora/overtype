@@ -688,7 +688,12 @@ class OverType {
       const start = this.textarea.selectionStart;
       const end = this.textarea.selectionEnd;
 
-      if (!document.execCommand('insertText', false, text)) {
+      let inserted = false;
+      try {
+        inserted = document.execCommand('insertText', false, text);
+      } catch (_) {}
+
+      if (!inserted) {
         const before = this.textarea.value.slice(0, start);
         const after = this.textarea.value.slice(end);
         this.textarea.value = before + text + after;
