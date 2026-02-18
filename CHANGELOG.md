@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.2.0] - 2026-02-18
+
+### Added
+- Upload toolbar button when fileUpload is enabled
+- File upload support via paste and drag-and-drop
+- showToolbar/hideToolbar methods
+- TypeScript type for performAction method
+- Auto theme that follows system color scheme
+- File upload and auto theme example pages
+
+### Fixed
+- Auto-theme example dark mode contrast and CSS specificity
+- Upload button icon fill, action registration, and tooltip positioning
+- insertAtCursor wraps execCommand in try/catch
+- Batch file upload normalizes callback result to array
+- Global auto-theme preserves customColors across OS theme changes
+- Theme 'auto' in constructor now enables auto-theme tracking
+- Bundle floating-ui, remove runtime CDN import
+- Make spellcheck a configurable option, default off
+- reinit({maxHeight}) now updates editor height
+- Code block colors in preview mode now respect theme
+- Placeholder text visible when editor is empty
+- Italic rendering at start of list items and headers
+- initFromData returns flat array instead of nested array
+
+
+
 ## [2.1.1] - 2025-12-13
 
 ### Added
