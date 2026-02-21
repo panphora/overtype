@@ -55,9 +55,9 @@ git push origin main --tags
 npm publish
 ```
 
-### 9. Prime unpkg Cache
+### 9. Prime jsDelivr Cache
 ```bash
-curl -I https://unpkg.com/overtype/dist/overtype.min.js
+curl -I https://cdn.jsdelivr.net/npm/overtype@latest/dist/overtype.min.js
 ```
 This ensures the CDN cache is primed for the new version (uses latest version).
 

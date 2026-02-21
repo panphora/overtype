@@ -28,16 +28,16 @@ import 'overtype/webcomponent';
 // Component is automatically registered as <overtype-editor>
 ```
 
-**CDN via unpkg (no build step required):**
+**CDN via jsDelivr (no build step required):**
 ```html
 <!-- IIFE Minified (recommended for production) -->
-<script src="https://unpkg.com/overtype@latest/dist/overtype-webcomponent.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/overtype@latest/dist/overtype-webcomponent.min.js"></script>
 
 <!-- ES Module -->
-<script type="module" src="https://unpkg.com/overtype@latest/dist/overtype-webcomponent.esm.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/overtype@latest/dist/overtype-webcomponent.esm.js"></script>
 
 <!-- Development (unminified) -->
-<script src="https://unpkg.com/overtype@latest/dist/overtype-webcomponent.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/overtype@latest/dist/overtype-webcomponent.js"></script>
 ```
 
 All CDN imports automatically register the `<overtype-editor>` custom element globally.

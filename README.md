@@ -69,7 +69,7 @@ npm install overtype
 
 ### CDN
 ```html
-<script src="https://unpkg.com/overtype/dist/overtype.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/overtype@latest/dist/overtype.min.js"></script>
 ```
 
 ## Quick Start
