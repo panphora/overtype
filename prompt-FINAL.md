@@ -1,0 +1,135 @@
+# Planning Canvas — Build Prompt
+
+**System/Context:**
+You are an expert frontend engineer building a single-file web application ("Planning Canvas") — a freeform card board where users create, drag, resize, clone, delete, and search sticky-note-style cards on an infinite canvas.
+
+This document serves two purposes: it's a build spec an LLM can execute end-to-end, and a reference for humans learning how Hyperclay apps are structured — the DOM-as-database pattern, the edit/view mode model, and the design-first workflow. Everything here applies beyond this specific app.
+
+Produce ONE self-contained HTML file with inline `<style>` and `<script>` blocks. No build tools, no frameworks, no external dependencies beyond Google Fonts and the HyperclayJS CDN. Modern browser APIs only.
+
+---
+
+## How Hyperclay Apps Work
+
+A Hyperclay app is an HTML page that works in two modes: **edit mode** (the owner interacts with it) and **view mode** (visitors see a read-only snapshot). The HTML file IS the document — what you see in the DOM is what gets saved.
+
+Three principles guide the build:
+
+1. **The DOM is the database.** No shadow state — no `state.cards` array, no JS objects mirroring card data. Read card properties (position, text, status, dimensions) directly from DOM elements. Write directly to DOM elements. Every card interaction starts from `event.target.closest('.card-wrapper')`. Cards have no IDs.
+2. **Design first, behavior second.** Get the HTML and CSS looking right as a static page before adding any JavaScript. If the page looks correct with no JS loaded, the behavior layer will be thin.
+3. **Hyperclay attributes are the last step.** Once the app works in edit mode, you add a handful of attributes to hide admin controls in view mode. That's it.
+
+Execute this in three phases. Do not begin Phase 2 until Phase 1 is reviewed and approved. After that, move fluidly.
+
+---
+
+## Phase 1: Design
+
+Build the static HTML + CSS. No behavior yet — just a page that looks right.
+
+### Aesthetic
+
+Minimal, high-contrast, technical. Black background, white text, IBM Plex Mono from Google Fonts:
+```html
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+```
+Larger-than-typical base font. Hard edges everywhere — no border-radius, no rounded corners.
+
+**The Single Border Rule:** All interactive elements use a solid 2px white border. There must never be a double border (4px) where elements meet. Use negative margins or offsets so adjacent bordered elements overlap and share a single 2px line. This rule is non-negotiable — verify it across every component.
+
+### Layout
+
+- Full-viewport CSS grid (`100vh`, `overflow: hidden`): fixed header on top, scrollable canvas below (canvas scrolls, not the page)
+- Header: editable title (defaults to "Planning Canvas") on the left; "New Card" button and search input on the right
+- Canvas: relative-positioned container for absolutely-positioned cards
+- Custom-styled scrollbars on the canvas (white track, black thumb with border)
+
+### Card Anatomy
+
+Each card is a `.card-wrapper` (absolute positioned, moved via `transform: translate(x, y)`) containing a `.card` (flex row). Default size ~260×160px.
+
+```
+┌───┬────────────────────────────┐
+│   │  Card text (editable)  [⋮] │
+│   │                            │
+│   │                        	   │
+│ ⠿ │                            │
+│   │                            │
+│   │  ┌──────────────┐      	   │
+│   │  │ Status ▾     │        ⌟ │
+└───┴──┴──────────────┴──────────┘
+  ^         ^              ^   ^
+  │         │              │   └─ Resize handle (dot pattern)
+  │         │              └─ Three-dot menu button
+  │         └─ <select> pushed to bottom
+  └─ Drag handle (dot grid, cursor: move)
+```
+
+1. **Drag Handle:** Narrow vertical strip on the left (`cursor: move`). Contains a dot-grid pattern (3 rows × 2 dots).
+2. **Content Area:** Main body. Editable text at the top (`pre-wrap`, `word-break: break-word`). Status `<select>` (Critical / High / Medium / Low / None) pushed to the bottom via auto margin. Three-dot menu button in the absolute top-right. Resize handle in the bottom-right corner — dot pattern in an `⌟` shape, `cursor: nwse-resize`.
+3. **Context Menu:** Hidden by default. When active, opens adjacent to the three-dot button. Contains stacked "Clone" and "Delete" buttons.
+
+### Starter Cards
+
+Hardcode 3 cards in the HTML, spread across the canvas:
+1. "Welcome to Planning Canvas! Click to edit." — status None
+2. "Drag me by the handle on the left." — status Medium
+3. "Click the menu (three dots) to clone or delete." — status High
+
+**STOP HERE.** Present the HTML file. Wait for feedback. Iterate on layout, spacing, borders, and the Single Border Rule until the design is confirmed. Do not add any JavaScript until the static page is approved.
+
+---
+
+## Phase 2: Behavior
+
+Add interactivity. Load HyperclayJS at the top of your script section:
+
+```html
+<script type="module" src="https://cdn.jsdelivr.net/npm/hyperclayjs@latest/src/hyperclay.js?preset=everything&exclude=tailwind-inject"></script>
+```
+
+This gives you two things for free:
+- **`movable` module:** Add `movable` attribute to card wrappers and `movable-handle` to drag handles. HyperclayJS handles all drag behavior — pointer events, scroll-aware positioning, clamping to ≥0, z-index bumping. It sets `[movable-dragging]` on the wrapper while dragging. Style that state in CSS (e.g. reduced opacity). No custom drag code needed.
+- **`toast()` function:** Global `toast(message, type)` for notifications. Use it for create/clone/delete feedback.
+
+### Single-card behavior
+
+1. **Z-index:** On any card interaction (click, drag, focus), read the max `style.zIndex` from all `.card-wrapper` elements and set the active wrapper to max + 1.
+2. **Resize:** Custom pointer-event logic on the resize handle. Track delta from start, apply `width` and `min-height` as inline styles on the `.card`. Anchor the top-left corner. Enforce minimum size (~200×100). Store element references, not IDs.
+3. **Text editing:** `contenteditable`. Strip pasted content to plain text.
+4. **Status dropdown:** Changes take effect immediately. On change, sync the `selected` attribute to the DOM (`opt.setAttribute('selected', '')` / `opt.removeAttribute('selected')`) so that `cloneNode` and Hyperclay saves preserve the current value.
+5. **Menu:** Three-dot button toggles a context menu (Clone / Delete). Menu appears to the right of the button; flip left if it would overflow the viewport. One menu open at a time. Outside clicks close it.
+
+### Multi-card management
+
+1. **New Card:** Creates a card from an HTML template and appends it to the canvas. The template outputs edit-mode state (`contenteditable` on text, no `disabled` on select) since new cards are only created in edit mode. Rotating placeholder text. Positioned via the **empty-space algorithm:**
+   - Query all `.card-wrapper` elements. Read positions via transform parsing, dimensions via `offsetWidth`/`offsetHeight`.
+   - Candidate Y rows: top margin, then each card's bottom edge + gap. For each Y, candidate X columns: left margin, then each overlapping card's right edge + gap.
+   - Test each (x, y) for collision with all existing cards. Return first fit.
+   - Fallback: below the lowest card.
+2. **Clone:** `wrapper.cloneNode(true)`. Bump z-index. Close the cloned menu. Sync the `<select>` value (cloneNode doesn't reliably copy selection state). Placement tries adjacent positions in order: right → below → diagonal → left → above. Each candidate must fit within the container width. Fallback to the empty-space algorithm.
+3. **Delete:** `wrapper.remove()`.
+4. **Search:** Debounced input. Split query into words, match against card text and status (case-insensitive). Toggle a `.faded` class on non-matching wrappers (opacity ~20%, `pointer-events: none`). Empty query restores all. Do not rebuild the DOM.
+
+---
+
+## Phase 3: Hyperclay Attributes
+
+The app already works in edit mode. Now add attributes so it behaves correctly in view mode.
+
+- **Card text:** `editmode:contenteditable` — editable in edit mode, static in view mode.
+- **App title:** `editmode:contenteditable` and `prevent-enter` (no newlines in the title).
+- **Status dropdowns:** `viewmode:disabled` — visible in both modes, non-interactive in view mode.
+- **Admin controls** (drag handles, resize handles, menu buttons, "New Card" button): `option:editmode="true"` — hidden entirely in view mode.
+- **Search input:** visible in both modes, no attribute needed.
+- **`<html>` element:** set `editmode="false"` and `pageowner="false"` as defaults (HyperclayJS overrides at runtime).
+
+**Important distinction:** The source HTML's hardcoded cards should have **view-mode defaults** — `disabled` on selects, no `contenteditable` on text. HyperclayJS toggles these at runtime. The JS card template for dynamically created cards outputs edit-mode state, since creation only happens in edit mode.
+
+---
+
+## Finish
+
+- Remove all `console.log`, debug code, and commented-out experiments
+- Final browser check: page loads clean, no console errors, all interactions work
+- Clean `index.html` — no dead code, no TODO comments
