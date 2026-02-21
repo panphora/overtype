@@ -1321,26 +1321,23 @@ class OverType {
      */
     _updateAutoHeight() {
       if (!this.options.autoResize) return;
-      
+
       const textarea = this.textarea;
       const preview = this.preview;
       const wrapper = this.wrapper;
-      
-      // Get computed styles
-      const computed = window.getComputedStyle(textarea);
-      const paddingTop = parseFloat(computed.paddingTop);
-      const paddingBottom = parseFloat(computed.paddingBottom);
-      
+      const isPreviewMode = this.container.dataset.mode === 'preview';
+
       // Store scroll positions
-      const scrollTop = textarea.scrollTop;
-      
+      const scrollTop = isPreviewMode ? preview.scrollTop : textarea.scrollTop;
+
       // Reset heights to get accurate scrollHeight
       // Wrapper must also reset so the absolute-positioned textarea isn't constrained
       wrapper.style.setProperty('height', 'auto', 'important');
+      preview.style.setProperty('height', 'auto', 'important');
       textarea.style.setProperty('height', 'auto', 'important');
 
-      // Calculate new height based on scrollHeight
-      let newHeight = textarea.scrollHeight;
+      // In preview mode, textarea is display:none so measure preview instead
+      let newHeight = isPreviewMode ? preview.scrollHeight : textarea.scrollHeight;
       
       // Apply min height constraint
       if (this.options.minHeight) {
@@ -1409,6 +1406,7 @@ class OverType {
     showNormalEditMode() {
       this.container.dataset.mode = 'normal';
       this.updatePreview(); // Re-render with normal mode (e.g., show syntax markers)
+      this._updateAutoHeight();
 
       // Always sync scroll from preview to textarea
       requestAnimationFrame(() => {
@@ -1425,6 +1423,7 @@ class OverType {
      */
     showPlainTextarea() {
       this.container.dataset.mode = 'plain';
+      this._updateAutoHeight();
 
       // Update toolbar button if exists
       if (this.toolbar) {
@@ -1445,6 +1444,7 @@ class OverType {
     showPreviewMode() {
       this.container.dataset.mode = 'preview';
       this.updatePreview(); // Re-render with preview mode (e.g., checkboxes)
+      this._updateAutoHeight();
       return this;
     }
 

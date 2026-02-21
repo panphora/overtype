@@ -5607,13 +5607,12 @@ ${blockSuffix}` : suffix;
       const textarea = this.textarea;
       const preview = this.preview;
       const wrapper = this.wrapper;
-      const computed = window.getComputedStyle(textarea);
-      const paddingTop = parseFloat(computed.paddingTop);
-      const paddingBottom = parseFloat(computed.paddingBottom);
-      const scrollTop = textarea.scrollTop;
+      const isPreviewMode = this.container.dataset.mode === "preview";
+      const scrollTop = isPreviewMode ? preview.scrollTop : textarea.scrollTop;
       wrapper.style.setProperty("height", "auto", "important");
+      preview.style.setProperty("height", "auto", "important");
       textarea.style.setProperty("height", "auto", "important");
-      let newHeight = textarea.scrollHeight;
+      let newHeight = isPreviewMode ? preview.scrollHeight : textarea.scrollHeight;
       if (this.options.minHeight) {
         const minHeight = parseInt(this.options.minHeight);
         newHeight = Math.max(newHeight, minHeight);
@@ -5663,6 +5662,7 @@ ${blockSuffix}` : suffix;
     showNormalEditMode() {
       this.container.dataset.mode = "normal";
       this.updatePreview();
+      this._updateAutoHeight();
       requestAnimationFrame(() => {
         this.textarea.scrollTop = this.preview.scrollTop;
         this.textarea.scrollLeft = this.preview.scrollLeft;
@@ -5675,6 +5675,7 @@ ${blockSuffix}` : suffix;
      */
     showPlainTextarea() {
       this.container.dataset.mode = "plain";
+      this._updateAutoHeight();
       if (this.toolbar) {
         const toggleBtn = this.container.querySelector('[data-action="toggle-plain"]');
         if (toggleBtn) {
@@ -5691,6 +5692,7 @@ ${blockSuffix}` : suffix;
     showPreviewMode() {
       this.container.dataset.mode = "preview";
       this.updatePreview();
+      this._updateAutoHeight();
       return this;
     }
     /**
