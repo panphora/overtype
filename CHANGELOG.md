@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.1] - 2026-02-20
+
+### Fixed
+- Preview mode CSS variables now use two-tier system with defaults matching v2.2.0
+
+
+
 ## [2.3.0] - 2026-02-20
 
 ### Added
