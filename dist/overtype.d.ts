@@ -3,6 +3,21 @@
 // Definitions generated from themes.js and styles.js
 // DO NOT EDIT MANUALLY - Run 'npm run generate:types' to regenerate
 
+export interface PreviewColors {
+    bg?: string;
+    blockquote?: string;
+    code?: string;
+    codeBg?: string;
+    em?: string;
+    h1?: string;
+    h2?: string;
+    h3?: string;
+    hr?: string;
+    link?: string;
+    strong?: string;
+    text?: string;
+}
+
 export interface Theme {
   name: string;
   colors: {
@@ -38,6 +53,7 @@ export interface Theme {
     toolbarHover?: string;
     toolbarIcon?: string;
   };
+  previewColors?: PreviewColors;
 }
 
 export interface Stats {
@@ -110,6 +126,7 @@ export interface Options {
   // Theme (deprecated in favor of global theme)
   theme?: string | Theme;
   colors?: Partial<Theme['colors']>;
+  previewColors?: PreviewColors;
 
   // File upload
   fileUpload?: {

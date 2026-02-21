@@ -22,21 +22,35 @@ const stylesContent = readFileSync(join(projectRoot, 'src/styles.js'), 'utf-8');
  */
 function extractThemeProperties(themesContent) {
   const properties = new Set();
+  const previewProperties = new Set();
 
-  // Match all properties in the colors objects
-  const colorPropRegex = /colors:\s*{([^}]+)}/gs;
+  // Match previewColors objects
+  const previewColorRegex = /previewColors:\s*{([^}]+)}/gs;
+  const previewMatches = themesContent.matchAll(previewColorRegex);
+  for (const match of previewMatches) {
+    const block = match[1];
+    const propMatches = block.matchAll(/\s+(\w+):/g);
+    for (const propMatch of propMatches) {
+      previewProperties.add(propMatch[1]);
+    }
+  }
+
+  // Match colors objects (not previewColors)
+  const colorPropRegex = /(?<!preview)colors:\s*{([^}]+)}/gs;
   const matches = themesContent.matchAll(colorPropRegex);
 
   for (const match of matches) {
     const colorBlock = match[1];
-    // Extract property names (camelCase before the colon)
     const propMatches = colorBlock.matchAll(/\s+(\w+):/g);
     for (const propMatch of propMatches) {
       properties.add(propMatch[1]);
     }
   }
 
-  return Array.from(properties).sort();
+  return {
+    colors: Array.from(properties).sort(),
+    previewColors: Array.from(previewProperties).sort()
+  };
 }
 
 /**
@@ -44,6 +58,7 @@ function extractThemeProperties(themesContent) {
  */
 function extractCSSVariables(stylesContent) {
   const variables = new Set();
+  const previewVariables = new Set();
 
   // Match all var(--variable-name) patterns (including digits)
   const varRegex = /var\(--([a-z0-9-]+)(?:,|\))/g;
@@ -51,67 +66,83 @@ function extractCSSVariables(stylesContent) {
 
   for (const match of matches) {
     const varName = match[1];
-    // Convert kebab-case to camelCase
-    const camelCase = varName.replace(/-([a-z0-9])/g, (_, letter) => letter.toUpperCase());
 
     // Skip instance-specific variables (these are not theme colors)
-    if (!varName.startsWith('instance-') && !varName.startsWith('link-') && !varName.startsWith('target-')) {
+    if (varName.startsWith('instance-') || varName.startsWith('link-') || varName.startsWith('target-')) {
+      continue;
+    }
+
+    if (varName.startsWith('preview-')) {
+      // Strip 'preview-' prefix and convert to camelCase
+      const stripped = varName.slice('preview-'.length);
+      const camelCase = stripped.replace(/-([a-z0-9])/g, (_, letter) => letter.toUpperCase());
+      previewVariables.add(camelCase);
+    } else {
+      const camelCase = varName.replace(/-([a-z0-9])/g, (_, letter) => letter.toUpperCase());
       variables.add(camelCase);
     }
   }
 
-  return Array.from(variables).sort();
+  return {
+    colors: Array.from(variables).sort(),
+    previewColors: Array.from(previewVariables).sort()
+  };
 }
 
 /**
- * Generate TypeScript interface for Theme colors
+ * Generate TypeScript property lines from combined sources
  */
-function generateThemeInterface(themeProps, cssVars) {
-  // Combine both sources, preferring theme properties as they're more authoritative
+function generatePropertyLines(themeProps, cssVars) {
   const allProps = new Set([...themeProps, ...cssVars]);
 
-  const properties = Array.from(allProps)
+  return Array.from(allProps)
     .sort()
     .map(prop => `    ${prop}?: string;`)
     .join('\n');
-
-  return properties;
 }
 
 /**
  * Read the template and inject generated types
  */
 function generateTypeDefinitions() {
-  const themeProps = extractThemeProperties(themesContent);
-  const cssVars = extractCSSVariables(stylesContent);
+  const themeData = extractThemeProperties(themesContent);
+  const cssData = extractCSSVariables(stylesContent);
 
-  console.log('Theme properties found:', themeProps.length);
-  console.log('CSS variables found:', cssVars.length);
+  console.log('Theme color properties found:', themeData.colors.length);
+  console.log('Theme preview properties found:', themeData.previewColors.length);
+  console.log('CSS color variables found:', cssData.colors.length);
+  console.log('CSS preview variables found:', cssData.previewColors.length);
 
   // Properties that are in CSS but not in themes
-  const missingInThemes = cssVars.filter(v => !themeProps.includes(v));
+  const missingInThemes = cssData.colors.filter(v => !themeData.colors.includes(v));
   if (missingInThemes.length > 0) {
     console.log('⚠️  CSS variables missing from themes:', missingInThemes.join(', '));
   }
 
   // Properties that are in themes but not used in CSS
-  const unusedInCSS = themeProps.filter(p => !cssVars.includes(p));
+  const unusedInCSS = themeData.colors.filter(p => !cssData.colors.includes(p));
   if (unusedInCSS.length > 0) {
     console.log('⚠️  Theme properties not used in CSS:', unusedInCSS.join(', '));
   }
 
-  const colorProperties = generateThemeInterface(themeProps, cssVars);
+  const colorProperties = generatePropertyLines(themeData.colors, cssData.colors);
+  const previewColorProperties = generatePropertyLines(themeData.previewColors, cssData.previewColors);
 
   const typeDefinitions = `// Type definitions for OverType
 // Project: https://github.com/panphora/overtype
 // Definitions generated from themes.js and styles.js
 // DO NOT EDIT MANUALLY - Run 'npm run generate:types' to regenerate
 
+export interface PreviewColors {
+${previewColorProperties}
+}
+
 export interface Theme {
   name: string;
   colors: {
 ${colorProperties}
   };
+  previewColors?: PreviewColors;
 }
 
 export interface Stats {
@@ -184,6 +215,7 @@ export interface Options {
   // Theme (deprecated in favor of global theme)
   theme?: string | Theme;
   colors?: Partial<Theme['colors']>;
+  previewColors?: PreviewColors;
 
   // File upload
   fileUpload?: {

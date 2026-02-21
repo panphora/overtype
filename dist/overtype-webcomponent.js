@@ -879,6 +879,20 @@ var OverTypeEditor = (() => {
       // Lemon Chiffon - active button background
       placeholder: "#999999"
       // Gray - placeholder text
+    },
+    previewColors: {
+      text: "#1a1a1a",
+      h1: "#1a1a1a",
+      h2: "#2a2a2a",
+      h3: "#3a3a3a",
+      strong: "inherit",
+      em: "inherit",
+      link: "#0066cc",
+      code: "#1a1a1a",
+      codeBg: "rgba(135, 131, 120, 0.15)",
+      blockquote: "#555",
+      hr: "#ddd",
+      bg: "transparent"
     }
   };
   var cave = {
@@ -945,6 +959,20 @@ var OverTypeEditor = (() => {
       // Even lighter - active button background
       placeholder: "#6a7a88"
       // Muted blue-gray - placeholder text
+    },
+    previewColors: {
+      text: "#c5dde8",
+      h1: "#e0e0e0",
+      h2: "#d0d0d0",
+      h3: "#c0c0c0",
+      strong: "inherit",
+      em: "inherit",
+      link: "#6cb6e0",
+      code: "#c5dde8",
+      codeBg: "rgba(255, 255, 255, 0.08)",
+      blockquote: "#9aa8b4",
+      hr: "rgba(255, 255, 255, 0.15)",
+      bg: "transparent"
     }
   };
   var themes = {
@@ -968,20 +996,30 @@ var OverTypeEditor = (() => {
     const mq = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
     return (mq == null ? void 0 : mq.matches) ? "cave" : "solar";
   }
-  function themeToCSSVars(colors) {
+  function themeToCSSVars(colors, previewColors) {
     const vars = [];
     for (const [key, value] of Object.entries(colors)) {
       const varName = key.replace(/([A-Z])/g, "-$1").toLowerCase();
       vars.push(`--${varName}: ${value};`);
     }
+    if (previewColors) {
+      for (const [key, value] of Object.entries(previewColors)) {
+        const varName = key.replace(/([A-Z])/g, "-$1").toLowerCase();
+        vars.push(`--preview-${varName}: ${value};`);
+      }
+    }
     return vars.join("\n");
   }
-  function mergeTheme(baseTheme, customColors = {}) {
+  function mergeTheme(baseTheme, customColors = {}, customPreviewColors = {}) {
     return {
       ...baseTheme,
       colors: {
         ...baseTheme.colors,
         ...customColors
+      },
+      previewColors: {
+        ...baseTheme.previewColors,
+        ...customPreviewColors
       }
     };
   }
@@ -1008,7 +1046,7 @@ var OverTypeEditor = (() => {
       }
     }
   ` : "";
-    const themeVars = theme && theme.colors ? themeToCSSVars(theme.colors) : "";
+    const themeVars = theme && theme.colors ? themeToCSSVars(theme.colors, theme.previewColors) : "";
     return `
     /* OverType Editor Styles */
     
@@ -1680,27 +1718,29 @@ var OverTypeEditor = (() => {
     }
 
     /* Headers - restore proper sizing in preview mode */
-    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h1, 
-    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h2, 
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h1,
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h2,
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3 {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
       font-weight: 600 !important;
       margin: 0 !important;
       display: block !important;
-      color: inherit !important; /* Use parent text color */
-      line-height: 1 !important; /* Tight line height for headings */
+      line-height: 1 !important;
     }
-    
-    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h1 { 
-      font-size: 2em !important; 
+
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h1 {
+      font-size: 2em !important;
+      color: var(--preview-h1, #222) !important;
     }
-    
-    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h2 { 
-      font-size: 1.5em !important; 
+
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h2 {
+      font-size: 1.5em !important;
+      color: var(--preview-h2, #333) !important;
     }
-    
-    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3 { 
-      font-size: 1.17em !important; 
+
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3 {
+      font-size: 1.17em !important;
+      color: var(--preview-h3, #444) !important;
     }
 
     /* Lists - restore list styling in preview mode */
@@ -1750,14 +1790,14 @@ var OverTypeEditor = (() => {
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview a {
       pointer-events: auto !important;
       cursor: pointer !important;
-      color: var(--link, #0066cc) !important;
+      color: var(--preview-link, #0066cc) !important;
       text-decoration: underline !important;
     }
 
     /* Code blocks - proper pre/code styling in preview mode */
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview pre.code-block {
-      background: var(--code-bg, rgba(244, 211, 94, 0.4)) !important;
-      color: var(--code, #0d3b66) !important;
+      background: var(--preview-code-bg, rgba(135, 131, 120, 0.15)) !important;
+      color: var(--preview-code, #333) !important;
       padding: 1.2em !important;
       border-radius: 3px !important;
       overflow-x: auto !important;
@@ -1786,7 +1826,8 @@ var OverTypeEditor = (() => {
     /* Blockquotes - enhanced styling in preview mode */
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview .blockquote {
       display: block !important;
-      border-left: 4px solid var(--blockquote, #ddd) !important;
+      border-left: 4px solid var(--preview-blockquote, #666) !important;
+      color: var(--preview-blockquote, #666) !important;
       padding-left: 1em !important;
       margin: 1em 0 !important;
       font-style: italic !important;
@@ -1797,14 +1838,16 @@ var OverTypeEditor = (() => {
       font-family: Georgia, 'Times New Roman', serif !important;
       font-size: 16px !important;
       line-height: 1.8 !important;
-      color: var(--text, #333) !important; /* Consistent text color */
+      color: var(--preview-text, #333) !important;
+      background: var(--preview-bg, transparent) !important;
     }
 
     /* Inline code in preview mode - keep monospace */
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview code {
       font-family: ${fontFamily} !important;
       font-size: 0.9em !important;
-      background: rgba(135, 131, 120, 0.15) !important;
+      background: var(--preview-code-bg, rgba(135, 131, 120, 0.15)) !important;
+      color: var(--preview-code, #333) !important;
       padding: 0.2em 0.4em !important;
       border-radius: 3px !important;
     }
@@ -1812,18 +1855,18 @@ var OverTypeEditor = (() => {
     /* Strong and em elements in preview mode */
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview strong {
       font-weight: 700 !important;
-      color: inherit !important; /* Use parent text color */
+      color: var(--preview-strong, inherit) !important;
     }
 
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview em {
       font-style: italic !important;
-      color: inherit !important; /* Use parent text color */
+      color: var(--preview-em, inherit) !important;
     }
 
     /* HR in preview mode */
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview .hr-marker {
       display: block !important;
-      border-top: 2px solid var(--hr, #ddd) !important;
+      border-top: 2px solid var(--preview-hr, #ddd) !important;
       text-indent: -9999px !important;
       height: 2px !important;
     }
@@ -5485,7 +5528,7 @@ ${blockSuffix}` : suffix;
           this.container.setAttribute("data-theme", themeName);
         }
         if (themeObj && themeObj.colors) {
-          const cssVars = themeToCSSVars(themeObj.colors);
+          const cssVars = themeToCSSVars(themeObj.colors, themeObj.previewColors);
           this.container.style.cssText += cssVars;
         }
         this.updatePreview();
@@ -5497,7 +5540,7 @@ ${blockSuffix}` : suffix;
       const themeObj = getTheme(themeName);
       this.container.setAttribute("data-theme", themeName);
       if (themeObj && themeObj.colors) {
-        this.container.style.cssText = themeToCSSVars(themeObj.colors);
+        this.container.style.cssText = themeToCSSVars(themeObj.colors, themeObj.previewColors);
       }
       this.updatePreview();
     }

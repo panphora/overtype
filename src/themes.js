@@ -40,6 +40,20 @@ export const solar = {
     toolbarHover: '#f5f5f5',     // Light gray - hover background
     toolbarActive: '#faf0ca',    // Lemon Chiffon - active button background
     placeholder: '#999999',      // Gray - placeholder text
+  },
+  previewColors: {
+    text: '#1a1a1a',
+    h1: '#1a1a1a',
+    h2: '#2a2a2a',
+    h3: '#3a3a3a',
+    strong: 'inherit',
+    em: 'inherit',
+    link: '#0066cc',
+    code: '#1a1a1a',
+    codeBg: 'rgba(135, 131, 120, 0.15)',
+    blockquote: '#555',
+    hr: '#ddd',
+    bg: 'transparent',
   }
 };
 
@@ -80,6 +94,20 @@ export const cave = {
     toolbarHover: '#243546',     // Slightly lighter charcoal - hover background
     toolbarActive: '#2a3f52',    // Even lighter - active button background
     placeholder: '#6a7a88',      // Muted blue-gray - placeholder text
+  },
+  previewColors: {
+    text: '#c5dde8',
+    h1: '#e0e0e0',
+    h2: '#d0d0d0',
+    h3: '#c0c0c0',
+    strong: 'inherit',
+    em: 'inherit',
+    link: '#6cb6e0',
+    code: '#c5dde8',
+    codeBg: 'rgba(255, 255, 255, 0.08)',
+    blockquote: '#9aa8b4',
+    hr: 'rgba(255, 255, 255, 0.15)',
+    bg: 'transparent',
   }
 };
 
@@ -125,12 +153,17 @@ export function resolveAutoTheme(themeName) {
  * @param {Object} colors - Theme colors object
  * @returns {string} CSS custom properties string
  */
-export function themeToCSSVars(colors) {
+export function themeToCSSVars(colors, previewColors) {
   const vars = [];
   for (const [key, value] of Object.entries(colors)) {
-    // Convert camelCase to kebab-case
     const varName = key.replace(/([A-Z])/g, '-$1').toLowerCase();
     vars.push(`--${varName}: ${value};`);
+  }
+  if (previewColors) {
+    for (const [key, value] of Object.entries(previewColors)) {
+      const varName = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+      vars.push(`--preview-${varName}: ${value};`);
+    }
   }
   return vars.join('\n');
 }
@@ -141,12 +174,16 @@ export function themeToCSSVars(colors) {
  * @param {Object} customColors - Custom color overrides
  * @returns {Object} Merged theme object
  */
-export function mergeTheme(baseTheme, customColors = {}) {
+export function mergeTheme(baseTheme, customColors = {}, customPreviewColors = {}) {
   return {
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
       ...customColors
+    },
+    previewColors: {
+      ...baseTheme.previewColors,
+      ...customPreviewColors
     }
   };
 }

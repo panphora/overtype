@@ -1223,7 +1223,7 @@ class OverType {
         }
 
         if (themeObj && themeObj.colors) {
-          const cssVars = themeToCSSVars(themeObj.colors);
+          const cssVars = themeToCSSVars(themeObj.colors, themeObj.previewColors);
           this.container.style.cssText += cssVars;
         }
 
@@ -1239,7 +1239,7 @@ class OverType {
       this.container.setAttribute('data-theme', themeName);
 
       if (themeObj && themeObj.colors) {
-        this.container.style.cssText = themeToCSSVars(themeObj.colors);
+        this.container.style.cssText = themeToCSSVars(themeObj.colors, themeObj.previewColors);
       }
 
       this.updatePreview();
