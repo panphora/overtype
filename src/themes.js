@@ -42,17 +42,17 @@ export const solar = {
     placeholder: '#999999',      // Gray - placeholder text
   },
   previewColors: {
-    text: '#1a1a1a',
-    h1: '#1a1a1a',
-    h2: '#2a2a2a',
-    h3: '#3a3a3a',
+    text: '#0d3b66',
+    h1: 'inherit',
+    h2: 'inherit',
+    h3: 'inherit',
     strong: 'inherit',
     em: 'inherit',
-    link: '#0066cc',
-    code: '#1a1a1a',
-    codeBg: 'rgba(135, 131, 120, 0.15)',
-    blockquote: '#555',
-    hr: '#ddd',
+    link: '#0d3b66',
+    code: '#0d3b66',
+    codeBg: 'rgba(244, 211, 94, 0.4)',
+    blockquote: '#5a7a9b',
+    hr: '#5a7a9b',
     bg: 'transparent',
   }
 };
@@ -97,16 +97,16 @@ export const cave = {
   },
   previewColors: {
     text: '#c5dde8',
-    h1: '#e0e0e0',
-    h2: '#d0d0d0',
-    h3: '#c0c0c0',
+    h1: 'inherit',
+    h2: 'inherit',
+    h3: 'inherit',
     strong: 'inherit',
     em: 'inherit',
-    link: '#6cb6e0',
+    link: '#9fcfec',
     code: '#c5dde8',
-    codeBg: 'rgba(255, 255, 255, 0.08)',
-    blockquote: '#9aa8b4',
-    hr: 'rgba(255, 255, 255, 0.15)',
+    codeBg: '#1a232b',
+    blockquote: '#9fcfec',
+    hr: '#c5dde8',
     bg: 'transparent',
   }
 };
@@ -162,7 +162,7 @@ export function themeToCSSVars(colors, previewColors) {
   if (previewColors) {
     for (const [key, value] of Object.entries(previewColors)) {
       const varName = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-      vars.push(`--preview-${varName}: ${value};`);
+      vars.push(`--preview-${varName}-default: ${value};`);
     }
   }
   return vars.join('\n');

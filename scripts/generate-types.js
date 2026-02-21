@@ -73,8 +73,11 @@ function extractCSSVariables(stylesContent) {
     }
 
     if (varName.startsWith('preview-')) {
-      // Strip 'preview-' prefix and convert to camelCase
-      const stripped = varName.slice('preview-'.length);
+      // Strip 'preview-' prefix and '-default' suffix, then convert to camelCase
+      let stripped = varName.slice('preview-'.length);
+      if (stripped.endsWith('-default')) {
+        stripped = stripped.slice(0, -'-default'.length);
+      }
       const camelCase = stripped.replace(/-([a-z0-9])/g, (_, letter) => letter.toUpperCase());
       previewVariables.add(camelCase);
     } else {
