@@ -1334,9 +1334,11 @@ class OverType {
       // Store scroll positions
       const scrollTop = textarea.scrollTop;
       
-      // Reset height to get accurate scrollHeight
+      // Reset heights to get accurate scrollHeight
+      // Wrapper must also reset so the absolute-positioned textarea isn't constrained
+      wrapper.style.setProperty('height', 'auto', 'important');
       textarea.style.setProperty('height', 'auto', 'important');
-      
+
       // Calculate new height based on scrollHeight
       let newHeight = textarea.scrollHeight;
       

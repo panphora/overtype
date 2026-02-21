@@ -5611,6 +5611,7 @@ ${blockSuffix}` : suffix;
       const paddingTop = parseFloat(computed.paddingTop);
       const paddingBottom = parseFloat(computed.paddingBottom);
       const scrollTop = textarea.scrollTop;
+      wrapper.style.setProperty("height", "auto", "important");
       textarea.style.setProperty("height", "auto", "important");
       let newHeight = textarea.scrollHeight;
       if (this.options.minHeight) {
