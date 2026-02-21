@@ -693,6 +693,11 @@ export function generateStyles(options = {}) {
       cursor: text !important;
     }
 
+    .overtype-container.overtype-auto-resize[data-mode="preview"] .overtype-preview {
+      position: static !important;
+      height: auto !important;
+    }
+
     /* Hide syntax markers in preview mode */
     .overtype-container[data-mode="preview"] .syntax-marker {
       display: none !important;

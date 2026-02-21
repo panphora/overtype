@@ -1327,24 +1327,33 @@ class OverType {
       const wrapper = this.wrapper;
       const isPreviewMode = this.container.dataset.mode === 'preview';
 
+      if (isPreviewMode) {
+        // In preview mode, CSS makes the preview position:static so it flows naturally.
+        // Just clear any inline heights left over from edit mode.
+        wrapper.style.removeProperty('height');
+        preview.style.removeProperty('height');
+        preview.style.removeProperty('overflow-y');
+        textarea.style.removeProperty('height');
+        textarea.style.removeProperty('overflow-y');
+        return;
+      }
+
       // Store scroll positions
-      const scrollTop = isPreviewMode ? preview.scrollTop : textarea.scrollTop;
+      const scrollTop = textarea.scrollTop;
 
       // Reset heights to get accurate scrollHeight
       // Wrapper must also reset so the absolute-positioned textarea isn't constrained
       wrapper.style.setProperty('height', 'auto', 'important');
-      preview.style.setProperty('height', 'auto', 'important');
       textarea.style.setProperty('height', 'auto', 'important');
 
-      // In preview mode, textarea is display:none so measure preview instead
-      let newHeight = isPreviewMode ? preview.scrollHeight : textarea.scrollHeight;
-      
+      let newHeight = textarea.scrollHeight;
+
       // Apply min height constraint
       if (this.options.minHeight) {
         const minHeight = parseInt(this.options.minHeight);
         newHeight = Math.max(newHeight, minHeight);
       }
-      
+
       // Apply max height constraint
       let overflow = 'hidden';
       if (this.options.maxHeight) {
@@ -1354,25 +1363,24 @@ class OverType {
           overflow = 'auto';
         }
       }
-      
+
       // Apply the new height to all elements with !important to override base styles
       const heightPx = newHeight + 'px';
       textarea.style.setProperty('height', heightPx, 'important');
       textarea.style.setProperty('overflow-y', overflow, 'important');
-      
+
       preview.style.setProperty('height', heightPx, 'important');
       preview.style.setProperty('overflow-y', overflow, 'important');
-      
+
       wrapper.style.setProperty('height', heightPx, 'important');
-      
+
       // Restore scroll position
       textarea.scrollTop = scrollTop;
       preview.scrollTop = scrollTop;
-      
+
       // Track if height changed
       if (this.previousHeight !== newHeight) {
         this.previousHeight = newHeight;
-        // Could dispatch a custom event here if needed
       }
     }
     

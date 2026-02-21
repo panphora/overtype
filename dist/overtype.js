@@ -1704,6 +1704,11 @@ var OverType = (() => {
       cursor: text !important;
     }
 
+    .overtype-container.overtype-auto-resize[data-mode="preview"] .overtype-preview {
+      position: static !important;
+      height: auto !important;
+    }
+
     /* Hide syntax markers in preview mode */
     .overtype-container[data-mode="preview"] .syntax-marker {
       display: none !important;
@@ -5611,11 +5616,18 @@ ${blockSuffix}` : suffix;
       const preview = this.preview;
       const wrapper = this.wrapper;
       const isPreviewMode = this.container.dataset.mode === "preview";
-      const scrollTop = isPreviewMode ? preview.scrollTop : textarea.scrollTop;
+      if (isPreviewMode) {
+        wrapper.style.removeProperty("height");
+        preview.style.removeProperty("height");
+        preview.style.removeProperty("overflow-y");
+        textarea.style.removeProperty("height");
+        textarea.style.removeProperty("overflow-y");
+        return;
+      }
+      const scrollTop = textarea.scrollTop;
       wrapper.style.setProperty("height", "auto", "important");
-      preview.style.setProperty("height", "auto", "important");
       textarea.style.setProperty("height", "auto", "important");
-      let newHeight = isPreviewMode ? preview.scrollHeight : textarea.scrollHeight;
+      let newHeight = textarea.scrollHeight;
       if (this.options.minHeight) {
         const minHeight = parseInt(this.options.minHeight);
         newHeight = Math.max(newHeight, minHeight);
