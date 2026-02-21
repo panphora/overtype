@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.3] - 2026-02-21
+
+### Fixed
+- Auto-resize height in preview mode and on mode switch
+
+
+
 ## [2.3.2] - 2026-02-20
 
 ### Fixed
