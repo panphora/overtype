@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.3.4] - 2026-02-21
+
+### Added
+- Prompt viewer documentation page
+
+### Changed
+- CDN references switched from unpkg to jsDelivr
+
+### Fixed
+- Preview content now flows naturally in auto-resize mode
+
+
+
 ## [2.3.3] - 2026-02-21
 
 ### Fixed
