@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2] - 2026-02-20
+
+### Fixed
+- Auto-resize collapse on window resize
+
+
+
 ## [2.3.1] - 2026-02-20
 
 ### Fixed
