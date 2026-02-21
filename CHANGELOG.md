@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.0] - 2026-02-20
+
+### Added
+- Preview mode CSS variables for independent color customization
+
+### Changed
+- README.md documentation
+
+
+
 ## [2.2.0] - 2026-02-18
 
 ### Added
