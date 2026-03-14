@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Issue #91 — Tailwind 4 Misalignment Root Cause</title>
+
+  <!-- Tailwind 4 browser CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary: #3b82f6;
+    }
+  </style>
+
+  <!-- Overtype -->
+  <script src="/dist/overtype.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 960px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+    h2 { font-size: 1.15rem; font-weight: 600; margin: 32px 0 8px; }
+    p, li { margin-bottom: 8px; color: #444; font-size: 0.92rem; line-height: 1.6; }
+    ul { padding-left: 20px; }
+    .test-case {
+      margin-bottom: 32px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .test-case-header {
+      background: #f5f5f5;
+      padding: 10px 16px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .test-case-body { padding: 0; }
+    .status {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .status-pass { background: #d4edda; color: #155724; }
+    .status-fail { background: #f8d7da; color: #721c24; }
+    .status-pending { background: #fff3cd; color: #856404; }
+    pre.diag {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      font-family: "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      line-height: 1.5;
+    }
+    .root-cause {
+      background: #fff8e1;
+      border-left: 4px solid #f9a825;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+    .fix-box {
+      background: #e8f5e9;
+      border-left: 4px solid #43a047;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin: 16px 0;
+    }
+    code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 0.88em; }
+  </style>
+</head>
+<body>
+
+  <h1>Issue #91 — Tailwind 4 Text Misalignment</h1>
+  <p>Root cause analysis for <a href="https://github.com/panphora/overtype/issues/91">panphora/overtype#91</a></p>
+
+  <div class="root-cause">
+    <strong>Root Cause: CSS Strut + Font Mismatch on <code>&lt;pre&gt;</code></strong><br>
+    Tailwind 4's preflight sets <code>pre { font-family: ui-monospace, ... }</code>.
+    Overtype hardens <code>font-family</code> on <code>&lt;code&gt;</code> but <strong>not on
+    <code>&lt;pre&gt;</code> itself</strong>. Each line box inside <code>&lt;pre&gt;</code>
+    has an invisible "strut" using <code>&lt;pre&gt;</code>'s font metrics. When the strut's
+    font has different ascent/descent than <code>&lt;code&gt;</code>'s font, line boxes inflate
+    by a few pixels per line — shifting all subsequent overlay text out of alignment with the
+    textarea cursor. Computed <code>line-height</code> reports identically for both, making
+    the bug invisible in DevTools.
+  </div>
+
+  <div class="fix-box">
+    <strong>Fix:</strong> Add <code>font-family: inherit !important</code> to
+    <code>.overtype-wrapper .overtype-preview pre</code> in <code>src/styles.js</code>,
+    so the <code>&lt;pre&gt;</code> inherits the same font as the textarea.
+  </div>
+
+  <h2>Test A — Bug reproduction (mismatched <code>&lt;pre&gt;</code> font)</h2>
+  <p>
+    Injects <code>pre { font-family: "Courier New" !important }</code> to simulate what happens
+    when Tailwind's preflight overrides the <code>&lt;pre&gt;</code> font. Text after the code block
+    should drift downward.
+  </p>
+  <div class="test-case">
+    <div class="test-case-header">
+      <span>Test A: Mismatched &lt;pre&gt; font (reproduces bug)</span>
+      <span class="status status-pending" id="statusA">PENDING</span>
+    </div>
+    <div class="test-case-body">
+      <div id="editor-bug"></div>
+    </div>
+  </div>
+
+  <h2>Test B — With fix (matched <code>&lt;pre&gt;</code> font)</h2>
+  <p>
+    Same content but with <code>pre { font-family: inherit !important }</code> applied.
+    Text after the code block should align perfectly.
+  </p>
+  <div class="test-case">
+    <div class="test-case-header">
+      <span>Test B: &lt;pre&gt; font matched (fix applied)</span>
+      <span class="status status-pending" id="statusB">PENDING</span>
+    </div>
+    <div class="test-case-body">
+      <div id="editor-fix"></div>
+    </div>
+  </div>
+
+  <h2>Test C — Tailwind 4 as-is (current overtype defenses)</h2>
+  <p>
+    No extra styles injected. Tests whether overtype's existing CSS defenses
+    hold against Tailwind 4's preflight on this platform.
+  </p>
+  <div class="test-case">
+    <div class="test-case-header">
+      <span>Test C: Tailwind 4 default (no injection)</span>
+      <span class="status status-pending" id="statusC">PENDING</span>
+    </div>
+    <div class="test-case-body">
+      <div id="editor-default"></div>
+    </div>
+  </div>
+
+  <h2>Diagnostics</h2>
+  <pre class="diag" id="diagnostics"></pre>
+
+  <script>
+    const content = `# Heading before code
+
+Some normal text here.
+
+\`\`\`javascript
+function hello() {
+  const x = 42;
+  return x * 2;
+}
+\`\`\`
+
+Text AFTER the code block — cursor should align here.
+
+More text. If the overlay drifted in the code block, this line is offset.
+
+Even more text to make the drift obvious.`;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const OT = window.OverType?.default || window.OverType;
+
+      // Inject bug reproduction style (mismatched pre font)
+      const bugStyle = document.createElement('style');
+      bugStyle.id = 'bug-repro';
+      bugStyle.textContent = `
+        #editor-bug .overtype-wrapper .overtype-preview pre {
+          font-family: "Courier New", Courier, monospace !important;
+        }
+      `;
+      document.head.appendChild(bugStyle);
+
+      // Inject fix style (matched pre font)
+      const fixStyle = document.createElement('style');
+      fixStyle.id = 'fix-applied';
+      fixStyle.textContent = `
+        #editor-fix .overtype-wrapper .overtype-preview pre {
+          font-family: inherit !important;
+        }
+      `;
+      document.head.appendChild(fixStyle);
+
+      const [eA] = new OT('#editor-bug', { value: content, autoResize: true });
+      const [eB] = new OT('#editor-fix', { value: content, autoResize: true });
+      const [eC] = new OT('#editor-default', { value: content, autoResize: true });
+
+      setTimeout(() => runDiagnostics(), 600);
+    });
+
+    function measureDrift(containerId) {
+      const el = document.getElementById(containerId);
+      const container = el.querySelector('.overtype-container');
+      if (!container) return null;
+
+      const textarea = container.querySelector('.overtype-input');
+      const preview = container.querySelector('.overtype-preview');
+      const pre = preview?.querySelector('pre.code-block');
+      const code = pre?.querySelector('code');
+      if (!textarea || !preview || !pre || !code) return null;
+
+      const taLH = parseFloat(getComputedStyle(textarea).lineHeight);
+      const taPad = parseFloat(getComputedStyle(textarea).paddingTop);
+      const text = textarea.value;
+      const afterIdx = text.indexOf('Text AFTER');
+      if (afterIdx < 0) return null;
+
+      const linesBeforeCursor = text.substring(0, afterIdx).split('\n').length - 1;
+      const expectedY = taPad + linesBeforeCursor * taLH;
+
+      const previewLines = preview.querySelectorAll(':scope > div');
+      let matchLine = null;
+      previewLines.forEach(l => { if (l.textContent.includes('Text AFTER')) matchLine = l; });
+      const actualY = matchLine ? matchLine.offsetTop : null;
+      const drift = actualY !== null ? actualY - expectedY : null;
+
+      return {
+        taFont: getComputedStyle(textarea).fontFamily.substring(0, 50),
+        preFont: getComputedStyle(pre).fontFamily.substring(0, 50),
+        codeFont: getComputedStyle(code).fontFamily.substring(0, 50),
+        taLineHeight: taLH,
+        preLineHeight: parseFloat(getComputedStyle(pre).lineHeight),
+        codeLineHeight: parseFloat(getComputedStyle(code).lineHeight),
+        preHeight: pre.offsetHeight,
+        expectedY: expectedY.toFixed(1),
+        actualY,
+        drift: drift !== null ? drift.toFixed(1) : 'N/A',
+        pass: drift !== null && Math.abs(drift) < 2,
+      };
+    }
+
+    function runDiagnostics() {
+      const tests = [
+        { id: 'editor-bug', label: 'A (Bug repro — mismatched pre font)', statusId: 'statusA' },
+        { id: 'editor-fix', label: 'B (Fix — pre font: inherit)', statusId: 'statusB' },
+        { id: 'editor-default', label: 'C (Tailwind 4 default)', statusId: 'statusC' },
+      ];
+
+      const lines = [];
+      lines.push('╔══════════════════════════════════════════════════════════════╗');
+      lines.push('║  Issue #91 — Root Cause: CSS Strut + Font Mismatch on <pre> ║');
+      lines.push('╚══════════════════════════════════════════════════════════════╝');
+
+      tests.forEach(test => {
+        const r = measureDrift(test.id);
+        if (!r) { lines.push(`\n${test.label}: ERROR — could not measure`); return; }
+
+        const status = r.pass ? '✓ PASS' : '✗ FAIL';
+        lines.push(`\n── ${test.label} ── ${status}`);
+        lines.push(`   textarea font: ${r.taFont}...`);
+        lines.push(`   <pre>    font: ${r.preFont}...`);
+        lines.push(`   <code>   font: ${r.codeFont}...`);
+        lines.push(`   line-height → textarea: ${r.taLineHeight}px, pre: ${r.preLineHeight}px, code: ${r.codeLineHeight}px`);
+        lines.push(`   <pre> rendered height: ${r.preHeight}px`);
+        lines.push(`   "Text AFTER" position → expected: ${r.expectedY}px, actual: ${r.actualY}px`);
+        lines.push(`   DRIFT: ${r.drift}px ${r.pass ? '(aligned)' : '← MISALIGNED'}`);
+
+        const statusEl = document.getElementById(test.statusId);
+        if (statusEl) {
+          statusEl.textContent = r.pass ? 'PASS' : `FAIL — ${r.drift}px drift`;
+          statusEl.className = r.pass ? 'status status-pass' : 'status status-fail';
+        }
+      });
+
+      lines.push('\n── Summary ──');
+      lines.push('Root cause: Tailwind 4 preflight sets font-family on <pre> elements.');
+      lines.push('Overtype sets font-family on <code> but not <pre>.');
+      lines.push('The <pre> element\'s CSS "strut" (invisible zero-width char using');
+      lines.push('<pre>\'s font metrics) inflates line boxes when the fonts differ.');
+      lines.push('This drift accumulates per line in code blocks, shifting all');
+      lines.push('subsequent overlay text out of alignment with the textarea cursor.');
+      lines.push('');
+      lines.push('Fix: Add font-family: inherit !important to the <pre> rule in styles.js');
+
+      document.getElementById('diagnostics').textContent = lines.join('\n');
+    }
+  </script>
+</body>
+</html>

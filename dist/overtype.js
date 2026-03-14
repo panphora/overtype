@@ -1267,6 +1267,16 @@ var OverType = (() => {
       -ms-user-select: none !important;
     }
 
+    /* Prevent external resets (Tailwind, Bootstrap, etc.) from breaking alignment.
+       Any element whose font metrics differ from the textarea causes the CSS "strut"
+       to inflate line boxes, drifting the overlay. Force inheritance so every element
+       inside the preview matches the textarea exactly. */
+    .overtype-wrapper .overtype-preview * {
+      font-family: inherit !important;
+      font-size: inherit !important;
+      line-height: inherit !important;
+    }
+
     /* Defensive styles for preview child divs */
     .overtype-wrapper .overtype-preview div {
       /* Reset any inherited styles */
@@ -4777,6 +4787,7 @@ ${blockSuffix}` : suffix;
         // Callbacks
         onChange: null,
         onKeydown: null,
+        onRender: null,
         // Features
         showActiveLineRaw: false,
         showStats: false,
@@ -5174,6 +5185,9 @@ ${blockSuffix}` : suffix;
       }
       if (this.options.onChange && this.initialized) {
         this.options.onChange(text, this);
+      }
+      if (this.options.onRender) {
+        this.options.onRender(this.preview, isPreviewMode ? "preview" : "normal", this);
       }
     }
     /**

@@ -34,3 +34,7 @@ website/dist/
 
 # Playwright MCP
 .playwright-mcp/
+
+# Claude Code
+CLAUDE.md
+DONT_COMMIT/

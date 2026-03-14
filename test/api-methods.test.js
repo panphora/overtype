@@ -170,6 +170,112 @@ const x = 42;
   assert(normalHTML === plainHTML && plainHTML === previewHTML, 'Modes: consistent HTML', `getRenderedHTML consistent across modes`);
 })();
 
+// ===== onRender Callback Tests =====
+console.log('\n🔄 onRender Callback Tests\n');
+
+// Test: onRender fires on setValue
+(() => {
+  let renderCount = 0;
+  let lastPreview = null;
+  let lastMode = null;
+  let lastInstance = null;
+
+  const editor = new OverType('#editor', {
+    onRender(preview, mode, instance) {
+      renderCount++;
+      lastPreview = preview;
+      lastMode = mode;
+      lastInstance = instance;
+    }
+  })[0];
+
+  editor.showNormalEditMode();
+  renderCount = 0;
+  editor.setValue('# Hello');
+
+  assert(renderCount >= 1, 'onRender fires on setValue', 'Should fire at least once after setValue');
+  assert(lastPreview === editor.preview, 'onRender receives preview element', 'First arg should be the preview element');
+  assert(lastMode === 'normal', 'onRender receives mode (normal)', 'Mode should be "normal" in normal edit mode');
+  assert(lastInstance === editor, 'onRender receives instance', 'Third arg should be the editor instance');
+})();
+
+// Test: onRender fires with 'preview' mode
+(() => {
+  let lastMode = null;
+
+  const editor = new OverType('#editor', {
+    onRender(preview, mode) {
+      lastMode = mode;
+    }
+  })[0];
+
+  editor.showPreviewMode();
+  assert(lastMode === 'preview', 'onRender receives mode (preview)', 'Mode should be "preview" after showPreviewMode');
+})();
+
+// Test: onRender fires on mode switch back to normal
+(() => {
+  let lastMode = null;
+
+  const editor = new OverType('#editor', {
+    onRender(preview, mode) {
+      lastMode = mode;
+    }
+  })[0];
+
+  editor.showPreviewMode();
+  assert(lastMode === 'preview', 'onRender mode after showPreviewMode', 'Should be preview');
+
+  editor.showNormalEditMode();
+  assert(lastMode === 'normal', 'onRender mode after showNormalEditMode', 'Should be normal');
+})();
+
+// Test: onRender fires during construction (initial render)
+(() => {
+  // Use a fresh element so it goes through _buildFromScratch
+  const fresh = document.createElement('div');
+  fresh.id = 'editor-fresh';
+  document.body.appendChild(fresh);
+
+  let firedDuringInit = false;
+
+  const editor = new OverType(fresh, {
+    value: '# Test',
+    onRender() {
+      firedDuringInit = true;
+    }
+  })[0];
+
+  assert(firedDuringInit, 'onRender fires on initial render', 'Should fire during construction when value is set');
+  fresh.remove();
+})();
+
+// Test: onRender not fired when no callback provided
+(() => {
+  let threw = false;
+  try {
+    const editor = new OverType('#editor')[0];
+    editor.setValue('# No callback');
+  } catch (e) {
+    threw = true;
+  }
+  assert(!threw, 'No error when onRender is null', 'Should not throw when onRender is not set');
+})();
+
+// Test: onRender preview element contains rendered HTML
+(() => {
+  let previewHTML = '';
+
+  const editor = new OverType('#editor', {
+    onRender(preview) {
+      previewHTML = preview.innerHTML;
+    }
+  })[0];
+
+  editor.setValue('**bold text**');
+  assert(previewHTML.includes('<strong>'), 'onRender preview has rendered content', 'Preview should contain parsed HTML');
+})();
+
 // ===== Results Summary =====
 console.log('\n━'.repeat(50));
 console.log('\n📊 Test Results Summary\n');

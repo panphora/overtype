@@ -43,6 +43,7 @@ class OverTypeEditor extends HTMLElement {
     // Bind methods to maintain context
     this._handleChange = this._handleChange.bind(this);
     this._handleKeydown = this._handleKeydown.bind(this);
+    this._handleRender = this._handleRender.bind(this);
   }
 
   /**
@@ -263,7 +264,8 @@ class OverTypeEditor extends HTMLElement {
       smartLists: !this.hasAttribute('smart-lists') || this.getAttribute('smart-lists') !== 'false',
       spellcheck: this.hasAttribute('spellcheck') && this.getAttribute('spellcheck') !== 'false',
       onChange: this._handleChange,
-      onKeydown: this._handleKeydown
+      onKeydown: this._handleKeydown,
+      onRender: this._handleRender
     };
 
     // Font and layout options
@@ -515,6 +517,20 @@ class OverTypeEditor extends HTMLElement {
   _handleKeydown(event) {
     this._dispatchEvent('keydown', {
       event,
+      editor: this._editor
+    });
+  }
+
+  /**
+   * Handle render events from OverType
+   * @private
+   * @param {HTMLElement} preview - The preview DOM element
+   * @param {string} mode - Current mode ('normal' or 'preview')
+   */
+  _handleRender(preview, mode) {
+    this._dispatchEvent('render', {
+      preview,
+      mode,
       editor: this._editor
     });
   }

@@ -256,6 +256,16 @@ export function generateStyles(options = {}) {
       -ms-user-select: none !important;
     }
 
+    /* Prevent external resets (Tailwind, Bootstrap, etc.) from breaking alignment.
+       Any element whose font metrics differ from the textarea causes the CSS "strut"
+       to inflate line boxes, drifting the overlay. Force inheritance so every element
+       inside the preview matches the textarea exactly. */
+    .overtype-wrapper .overtype-preview * {
+      font-family: inherit !important;
+      font-size: inherit !important;
+      line-height: inherit !important;
+    }
+
     /* Defensive styles for preview child divs */
     .overtype-wrapper .overtype-preview div {
       /* Reset any inherited styles */

@@ -1241,6 +1241,16 @@ function generateStyles(options = {}) {
       -ms-user-select: none !important;
     }
 
+    /* Prevent external resets (Tailwind, Bootstrap, etc.) from breaking alignment.
+       Any element whose font metrics differ from the textarea causes the CSS "strut"
+       to inflate line boxes, drifting the overlay. Force inheritance so every element
+       inside the preview matches the textarea exactly. */
+    .overtype-wrapper .overtype-preview * {
+      font-family: inherit !important;
+      font-size: inherit !important;
+      line-height: inherit !important;
+    }
+
     /* Defensive styles for preview child divs */
     .overtype-wrapper .overtype-preview div {
       /* Reset any inherited styles */
@@ -4751,6 +4761,7 @@ var _OverType = class _OverType {
       // Callbacks
       onChange: null,
       onKeydown: null,
+      onRender: null,
       // Features
       showActiveLineRaw: false,
       showStats: false,
@@ -5148,6 +5159,9 @@ var _OverType = class _OverType {
     }
     if (this.options.onChange && this.initialized) {
       this.options.onChange(text, this);
+    }
+    if (this.options.onRender) {
+      this.options.onRender(this.preview, isPreviewMode ? "preview" : "normal", this);
     }
   }
   /**
@@ -6015,6 +6029,7 @@ var OverTypeEditor = class extends HTMLElement {
     this._isConnected = false;
     this._handleChange = this._handleChange.bind(this);
     this._handleKeydown = this._handleKeydown.bind(this);
+    this._handleRender = this._handleRender.bind(this);
   }
   /**
    * Decode common escape sequences from attribute string values
@@ -6185,7 +6200,8 @@ var OverTypeEditor = class extends HTMLElement {
       smartLists: !this.hasAttribute("smart-lists") || this.getAttribute("smart-lists") !== "false",
       spellcheck: this.hasAttribute("spellcheck") && this.getAttribute("spellcheck") !== "false",
       onChange: this._handleChange,
-      onKeydown: this._handleKeydown
+      onKeydown: this._handleKeydown,
+      onRender: this._handleRender
     };
     const fontSize = this.getAttribute("font-size");
     if (fontSize)
@@ -6401,6 +6417,19 @@ var OverTypeEditor = class extends HTMLElement {
   _handleKeydown(event) {
     this._dispatchEvent("keydown", {
       event,
+      editor: this._editor
+    });
+  }
+  /**
+   * Handle render events from OverType
+   * @private
+   * @param {HTMLElement} preview - The preview DOM element
+   * @param {string} mode - Current mode ('normal' or 'preview')
+   */
+  _handleRender(preview, mode) {
+    this._dispatchEvent("render", {
+      preview,
+      mode,
       editor: this._editor
     });
   }

@@ -227,6 +227,7 @@ class OverType {
         // Callbacks
         onChange: null,
         onKeydown: null,
+        onRender: null,
         
         // Features
         showActiveLineRaw: false,
@@ -742,6 +743,11 @@ class OverType {
       // Trigger onChange callback
       if (this.options.onChange && this.initialized) {
         this.options.onChange(text, this);
+      }
+
+      // Trigger onRender callback
+      if (this.options.onRender) {
+        this.options.onRender(this.preview, isPreviewMode ? 'preview' : 'normal', this);
       }
     }
 
