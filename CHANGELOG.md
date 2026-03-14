@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.5] - 2026-03-13
+
+### Fixed
+- Prevent CSS framework font resets from breaking overlay alignment
+
+
+
 ## [2.3.4] - 2026-02-21
 
 ### Added
