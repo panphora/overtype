@@ -317,6 +317,26 @@ export type OverType = OverTypeInstance;
 // Module exports - default export is the constructor
 export default OverType;
 
+/** Re-exported markdown-actions. Useful for custom toolbar implementations */
+export const markdownActions: {
+  toggleBold(textarea: HTMLTextAreaElement): void;
+  toggleItalic(textarea: HTMLTextAreaElement): void;
+  toggleCode(textarea: HTMLTextAreaElement): void;
+  insertLink(textarea: HTMLTextAreaElement, options?: { url?: string; text?: string }): void;
+  toggleBulletList(textarea: HTMLTextAreaElement): void;
+  toggleNumberedList(textarea: HTMLTextAreaElement): void;
+  toggleQuote(textarea: HTMLTextAreaElement): void;
+  toggleTaskList(textarea: HTMLTextAreaElement): void;
+  insertHeader(textarea: HTMLTextAreaElement, level?: number, toggle?: boolean): void;
+  toggleH1(textarea: HTMLTextAreaElement): void;
+  toggleH2(textarea: HTMLTextAreaElement): void;
+  toggleH3(textarea: HTMLTextAreaElement): void;
+  getActiveFormats(textarea: HTMLTextAreaElement): string[];
+  hasFormat(textarea: HTMLTextAreaElement, format: string): boolean;
+  expandSelection(textarea: HTMLTextAreaElement, options?: object): void;
+  applyCustomFormat(textarea: HTMLTextAreaElement, format: object): void;
+};
+
 /**
  * Pre-defined toolbar buttons
  */
