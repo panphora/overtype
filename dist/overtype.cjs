@@ -148,13 +148,13 @@ var MarkdownParser = class {
    * @returns {string} Parsed task list item
    */
   static parseTaskList(html, isPreviewMode = false) {
-    return html.replace(/^((?:&nbsp;)*)-\s+\[([ xX])\]\s+(.+)$/, (match, indent, checked, content) => {
+    return html.replace(/^((?:&nbsp;)*)-(\s+)\[([ xX])\](\s*)(.*)$/, (match, indent, spacingBeforeBox, checked, spacingAfterBox, content) => {
       content = this.parseInlineElements(content);
       if (isPreviewMode) {
         const isChecked = checked.toLowerCase() === "x";
         return `${indent}<li class="task-list"><input type="checkbox" ${isChecked ? "checked" : ""}> ${content}</li>`;
       } else {
-        return `${indent}<li class="task-list"><span class="syntax-marker">- [${checked}] </span>${content}</li>`;
+        return `${indent}<li class="task-list"><span class="syntax-marker">-${spacingBeforeBox}[${checked}]${spacingAfterBox}</span>${content}</li>`;
       }
     });
   }

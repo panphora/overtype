@@ -123,7 +123,10 @@ console.log('\n📝 Parser Tests\n');
   const tests = [
     { input: '- Item', expected: '<div><li class="bullet-list"><span class="syntax-marker">- </span>Item</li></div>' },
     { input: '* Item', expected: '<div><li class="bullet-list"><span class="syntax-marker">* </span>Item</li></div>' },
-    { input: '1. First', expected: '<div><li class="ordered-list"><span class="syntax-marker">1. </span>First</li></div>' }
+    { input: '1. First', expected: '<div><li class="ordered-list"><span class="syntax-marker">1. </span>First</li></div>' },
+    { input: '- [ ] Task', expected: '<div><li class="task-list"><span class="syntax-marker">- [ ] </span>Task</li></div>' },
+    { input: '-  [ ] ', expected: '<div><li class="task-list"><span class="syntax-marker">-  [ ] </span></li></div>' },
+    { input: '-  [ ] Task', expected: '<div><li class="task-list"><span class="syntax-marker">-  [ ] </span>Task</li></div>' }
   ];
   
   tests.forEach(test => {
