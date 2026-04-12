@@ -1921,7 +1921,7 @@ var OverType = (() => {
   `;
   }
 
-  // node_modules/markdown-actions/dist/markdown-actions.esm.js
+  // node_modules/.pnpm/markdown-actions@1.1.2/node_modules/markdown-actions/dist/markdown-actions.esm.js
   var __defProp2 = Object.defineProperty;
   var __getOwnPropSymbols = Object.getOwnPropertySymbols;
   var __hasOwnProp2 = Object.prototype.hasOwnProperty;
@@ -3027,7 +3027,7 @@ ${blockSuffix}` : suffix;
     }
   };
 
-  // node_modules/@floating-ui/utils/dist/floating-ui.utils.mjs
+  // node_modules/.pnpm/@floating-ui+utils@0.2.11/node_modules/@floating-ui/utils/dist/floating-ui.utils.mjs
   var min = Math.min;
   var max = Math.max;
   var round = Math.round;
@@ -3040,10 +3040,6 @@ ${blockSuffix}` : suffix;
     right: "left",
     bottom: "top",
     top: "bottom"
-  };
-  var oppositeAlignmentMap = {
-    start: "end",
-    end: "start"
   };
   function clamp(start, value, end) {
     return max(start, min(value, end));
@@ -3063,9 +3059,9 @@ ${blockSuffix}` : suffix;
   function getAxisLength(axis) {
     return axis === "y" ? "height" : "width";
   }
-  var yAxisSides = /* @__PURE__ */ new Set(["top", "bottom"]);
   function getSideAxis(placement) {
-    return yAxisSides.has(getSide(placement)) ? "y" : "x";
+    const firstChar = placement[0];
+    return firstChar === "t" || firstChar === "b" ? "y" : "x";
   }
   function getAlignmentAxis(placement) {
     return getOppositeAxis(getSideAxis(placement));
@@ -3088,7 +3084,7 @@ ${blockSuffix}` : suffix;
     return [getOppositeAlignmentPlacement(placement), oppositePlacement, getOppositeAlignmentPlacement(oppositePlacement)];
   }
   function getOppositeAlignmentPlacement(placement) {
-    return placement.replace(/start|end/g, (alignment) => oppositeAlignmentMap[alignment]);
+    return placement.includes("start") ? placement.replace("start", "end") : placement.replace("end", "start");
   }
   var lrPlacement = ["left", "right"];
   var rlPlacement = ["right", "left"];
@@ -3120,7 +3116,8 @@ ${blockSuffix}` : suffix;
     return list;
   }
   function getOppositePlacement(placement) {
-    return placement.replace(/left|right|bottom|top/g, (side) => oppositeSideMap[side]);
+    const side = getSide(placement);
+    return oppositeSideMap[side] + placement.slice(side.length);
   }
   function expandPaddingObject(padding) {
     return {
@@ -3158,7 +3155,7 @@ ${blockSuffix}` : suffix;
     };
   }
 
-  // node_modules/@floating-ui/core/dist/floating-ui.core.mjs
+  // node_modules/.pnpm/@floating-ui+core@1.7.5/node_modules/@floating-ui/core/dist/floating-ui.core.mjs
   function computeCoordsFromPlacement(_ref, placement, rtl) {
     let {
       reference,
@@ -3270,6 +3267,7 @@ ${blockSuffix}` : suffix;
       right: (elementClientRect.right - clippingClientRect.right + paddingObject.right) / offsetScale.x
     };
   }
+  var MAX_RESET_COUNT = 50;
   var computePosition = async (reference, floating, config) => {
     const {
       placement = "bottom",
@@ -3277,7 +3275,10 @@ ${blockSuffix}` : suffix;
       middleware = [],
       platform: platform2
     } = config;
-    const validMiddleware = middleware.filter(Boolean);
+    const platformWithDetectOverflow = platform2.detectOverflow ? platform2 : {
+      ...platform2,
+      detectOverflow
+    };
     const rtl = await (platform2.isRTL == null ? void 0 : platform2.isRTL(floating));
     let rects = await platform2.getElementRects({
       reference,
@@ -3289,14 +3290,17 @@ ${blockSuffix}` : suffix;
       y
     } = computeCoordsFromPlacement(rects, placement, rtl);
     let statefulPlacement = placement;
-    let middlewareData = {};
     let resetCount = 0;
-    for (let i = 0; i < validMiddleware.length; i++) {
-      var _platform$detectOverf;
+    const middlewareData = {};
+    for (let i = 0; i < middleware.length; i++) {
+      const currentMiddleware = middleware[i];
+      if (!currentMiddleware) {
+        continue;
+      }
       const {
         name,
         fn
-      } = validMiddleware[i];
+      } = currentMiddleware;
       const {
         x: nextX,
         y: nextY,
@@ -3310,10 +3314,7 @@ ${blockSuffix}` : suffix;
         strategy,
         middlewareData,
         rects,
-        platform: {
-          ...platform2,
-          detectOverflow: (_platform$detectOverf = platform2.detectOverflow) != null ? _platform$detectOverf : detectOverflow
-        },
+        platform: platformWithDetectOverflow,
         elements: {
           reference,
           floating
@@ -3321,14 +3322,11 @@ ${blockSuffix}` : suffix;
       });
       x = nextX != null ? nextX : x;
       y = nextY != null ? nextY : y;
-      middlewareData = {
-        ...middlewareData,
-        [name]: {
-          ...middlewareData[name],
-          ...data
-        }
+      middlewareData[name] = {
+        ...middlewareData[name],
+        ...data
       };
-      if (reset && resetCount <= 50) {
+      if (reset && resetCount < MAX_RESET_COUNT) {
         resetCount++;
         if (typeof reset === "object") {
           if (reset.placement) {
@@ -3608,7 +3606,7 @@ ${blockSuffix}` : suffix;
     };
   };
 
-  // node_modules/@floating-ui/utils/dist/floating-ui.utils.dom.mjs
+  // node_modules/.pnpm/@floating-ui+utils@0.2.11/node_modules/@floating-ui/utils/dist/floating-ui.utils.dom.mjs
   function hasWindow() {
     return typeof window !== "undefined";
   }
@@ -3650,7 +3648,6 @@ ${blockSuffix}` : suffix;
     }
     return value instanceof ShadowRoot || value instanceof getWindow(value).ShadowRoot;
   }
-  var invalidOverflowDisplayValues = /* @__PURE__ */ new Set(["inline", "contents"]);
   function isOverflowElement(element) {
     const {
       overflow,
@@ -3658,29 +3655,31 @@ ${blockSuffix}` : suffix;
       overflowY,
       display
     } = getComputedStyle2(element);
-    return /auto|scroll|overlay|hidden|clip/.test(overflow + overflowY + overflowX) && !invalidOverflowDisplayValues.has(display);
+    return /auto|scroll|overlay|hidden|clip/.test(overflow + overflowY + overflowX) && display !== "inline" && display !== "contents";
   }
-  var tableElements = /* @__PURE__ */ new Set(["table", "td", "th"]);
   function isTableElement(element) {
-    return tableElements.has(getNodeName(element));
+    return /^(table|td|th)$/.test(getNodeName(element));
   }
-  var topLayerSelectors = [":popover-open", ":modal"];
   function isTopLayer(element) {
-    return topLayerSelectors.some((selector) => {
-      try {
-        return element.matches(selector);
-      } catch (_e) {
-        return false;
+    try {
+      if (element.matches(":popover-open")) {
+        return true;
       }
-    });
+    } catch (_e) {
+    }
+    try {
+      return element.matches(":modal");
+    } catch (_e) {
+      return false;
+    }
   }
-  var transformProperties = ["transform", "translate", "scale", "rotate", "perspective"];
-  var willChangeValues = ["transform", "translate", "scale", "rotate", "perspective", "filter"];
-  var containValues = ["paint", "layout", "strict", "content"];
+  var willChangeRe = /transform|translate|scale|rotate|perspective|filter/;
+  var containRe = /paint|layout|strict|content/;
+  var isNotNone = (value) => !!value && value !== "none";
+  var isWebKitValue;
   function isContainingBlock(elementOrCss) {
-    const webkit = isWebKit();
     const css = isElement(elementOrCss) ? getComputedStyle2(elementOrCss) : elementOrCss;
-    return transformProperties.some((value) => css[value] ? css[value] !== "none" : false) || (css.containerType ? css.containerType !== "normal" : false) || !webkit && (css.backdropFilter ? css.backdropFilter !== "none" : false) || !webkit && (css.filter ? css.filter !== "none" : false) || willChangeValues.some((value) => (css.willChange || "").includes(value)) || containValues.some((value) => (css.contain || "").includes(value));
+    return isNotNone(css.transform) || isNotNone(css.translate) || isNotNone(css.scale) || isNotNone(css.rotate) || isNotNone(css.perspective) || !isWebKit() && (isNotNone(css.backdropFilter) || isNotNone(css.filter)) || willChangeRe.test(css.willChange || "") || containRe.test(css.contain || "");
   }
   function getContainingBlock(element) {
     let currentNode = getParentNode(element);
@@ -3695,13 +3694,13 @@ ${blockSuffix}` : suffix;
     return null;
   }
   function isWebKit() {
-    if (typeof CSS === "undefined" || !CSS.supports)
-      return false;
-    return CSS.supports("-webkit-backdrop-filter", "none");
+    if (isWebKitValue == null) {
+      isWebKitValue = typeof CSS !== "undefined" && CSS.supports && CSS.supports("-webkit-backdrop-filter", "none");
+    }
+    return isWebKitValue;
   }
-  var lastTraversableNodeNames = /* @__PURE__ */ new Set(["html", "body", "#document"]);
   function isLastTraversableNode(node) {
-    return lastTraversableNodeNames.has(getNodeName(node));
+    return /^(html|body|#document)$/.test(getNodeName(node));
   }
   function getComputedStyle2(element) {
     return getWindow(element).getComputedStyle(element);
@@ -3755,14 +3754,15 @@ ${blockSuffix}` : suffix;
     if (isBody) {
       const frameElement = getFrameElement(win);
       return list.concat(win, win.visualViewport || [], isOverflowElement(scrollableAncestor) ? scrollableAncestor : [], frameElement && traverseIframes ? getOverflowAncestors(frameElement) : []);
+    } else {
+      return list.concat(scrollableAncestor, getOverflowAncestors(scrollableAncestor, [], traverseIframes));
     }
-    return list.concat(scrollableAncestor, getOverflowAncestors(scrollableAncestor, [], traverseIframes));
   }
   function getFrameElement(win) {
     return win.parent && Object.getPrototypeOf(win.parent) ? win.frameElement : null;
   }
 
-  // node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
+  // node_modules/.pnpm/@floating-ui+dom@1.7.6/node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
   function getCssDimensions(element) {
     const css = getComputedStyle2(element);
     let width = parseFloat(css.width) || 0;
@@ -3920,7 +3920,7 @@ ${blockSuffix}` : suffix;
       if (getNodeName(offsetParent) !== "body" || isOverflowElement(documentElement)) {
         scroll = getNodeScroll(offsetParent);
       }
-      if (isHTMLElement(offsetParent)) {
+      if (isOffsetParentAnElement) {
         const offsetRect = getBoundingClientRect(offsetParent);
         scale = getScale(offsetParent);
         offsets.x = offsetRect.x + offsetParent.clientLeft;
@@ -3994,7 +3994,6 @@ ${blockSuffix}` : suffix;
       y
     };
   }
-  var absoluteOrFixed = /* @__PURE__ */ new Set(["absolute", "fixed"]);
   function getInnerBoundingClientRect(element, strategy) {
     const clientRect = getBoundingClientRect(element, true, strategy === "fixed");
     const top = clientRect.top + element.clientTop;
@@ -4052,7 +4051,7 @@ ${blockSuffix}` : suffix;
       if (!currentNodeIsContaining && computedStyle.position === "fixed") {
         currentContainingBlockComputedStyle = null;
       }
-      const shouldDropCurrentNode = elementIsFixed ? !currentNodeIsContaining && !currentContainingBlockComputedStyle : !currentNodeIsContaining && computedStyle.position === "static" && !!currentContainingBlockComputedStyle && absoluteOrFixed.has(currentContainingBlockComputedStyle.position) || isOverflowElement(currentNode) && !currentNodeIsContaining && hasFixedPositionAncestor(element, currentNode);
+      const shouldDropCurrentNode = elementIsFixed ? !currentNodeIsContaining && !currentContainingBlockComputedStyle : !currentNodeIsContaining && computedStyle.position === "static" && !!currentContainingBlockComputedStyle && (currentContainingBlockComputedStyle.position === "absolute" || currentContainingBlockComputedStyle.position === "fixed") || isOverflowElement(currentNode) && !currentNodeIsContaining && hasFixedPositionAncestor(element, currentNode);
       if (shouldDropCurrentNode) {
         result = result.filter((ancestor) => ancestor !== currentNode);
       } else {
@@ -4072,20 +4071,23 @@ ${blockSuffix}` : suffix;
     } = _ref;
     const elementClippingAncestors = boundary === "clippingAncestors" ? isTopLayer(element) ? [] : getClippingElementAncestors(element, this._c) : [].concat(boundary);
     const clippingAncestors = [...elementClippingAncestors, rootBoundary];
-    const firstClippingAncestor = clippingAncestors[0];
-    const clippingRect = clippingAncestors.reduce((accRect, clippingAncestor) => {
-      const rect = getClientRectFromClippingAncestor(element, clippingAncestor, strategy);
-      accRect.top = max(rect.top, accRect.top);
-      accRect.right = min(rect.right, accRect.right);
-      accRect.bottom = min(rect.bottom, accRect.bottom);
-      accRect.left = max(rect.left, accRect.left);
-      return accRect;
-    }, getClientRectFromClippingAncestor(element, firstClippingAncestor, strategy));
+    const firstRect = getClientRectFromClippingAncestor(element, clippingAncestors[0], strategy);
+    let top = firstRect.top;
+    let right = firstRect.right;
+    let bottom = firstRect.bottom;
+    let left = firstRect.left;
+    for (let i = 1; i < clippingAncestors.length; i++) {
+      const rect = getClientRectFromClippingAncestor(element, clippingAncestors[i], strategy);
+      top = max(rect.top, top);
+      right = min(rect.right, right);
+      bottom = min(rect.bottom, bottom);
+      left = max(rect.left, left);
+    }
     return {
-      width: clippingRect.right - clippingRect.left,
-      height: clippingRect.bottom - clippingRect.top,
-      x: clippingRect.left,
-      y: clippingRect.top
+      width: right - left,
+      height: bottom - top,
+      x: left,
+      y: top
     };
   }
   function getDimensions(element) {
@@ -4750,7 +4752,7 @@ ${blockSuffix}` : suffix;
       });
       this.initialized = true;
       if (this.options.onChange) {
-        this.options.onChange(this.getValue(), this);
+        this._notifyChange();
       }
     }
     /**
@@ -5183,12 +5185,18 @@ ${blockSuffix}` : suffix;
       if (this.options.showStats && this.statsBar) {
         this._updateStats();
       }
-      if (this.options.onChange && this.initialized) {
-        this.options.onChange(text, this);
-      }
       if (this.options.onRender) {
         this.options.onRender(this.preview, isPreviewMode ? "preview" : "normal", this);
       }
+    }
+    /**
+     * Notify listeners that the editor value changed
+     * @private
+     */
+    _notifyChange() {
+      if (!this.options.onChange || !this.initialized)
+        return;
+      this.options.onChange(this.textarea.value, this);
     }
     /**
      * Apply background styling to code blocks
@@ -5223,6 +5231,7 @@ ${blockSuffix}` : suffix;
      */
     handleInput(event) {
       this.updatePreview();
+      this._notifyChange();
     }
     /**
      * Handle keydown events
@@ -5403,10 +5412,14 @@ ${blockSuffix}` : suffix;
      * @param {string} value - Markdown content to set
      */
     setValue(value) {
+      const didChange = this.textarea.value !== value;
       this.textarea.value = value;
       this.updatePreview();
       if (this.options.autoResize) {
         this._updateAutoHeight();
+      }
+      if (didChange) {
+        this._notifyChange();
       }
     }
     /**

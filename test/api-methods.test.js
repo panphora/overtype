@@ -170,6 +170,73 @@ const x = 42;
   assert(normalHTML === plainHTML && plainHTML === previewHTML, 'Modes: consistent HTML', `getRenderedHTML consistent across modes`);
 })();
 
+// ===== onChange Callback Tests =====
+console.log('\n✏️ onChange Callback Tests\n');
+
+// Test: onChange fires when content changes via setValue
+(() => {
+  let changeCount = 0;
+  let lastValue = null;
+  let lastInstance = null;
+
+  const editor = new OverType('#editor', {
+    onChange(value, instance) {
+      changeCount++;
+      lastValue = value;
+      lastInstance = instance;
+    }
+  })[0];
+
+  changeCount = 0;
+  editor.setValue('# Changed');
+
+  assert(changeCount === 1, 'onChange fires on setValue', 'Should fire exactly once when setValue changes content');
+  assert(lastValue === '# Changed', 'onChange receives updated value', 'Should receive the latest markdown value');
+  assert(lastInstance === editor, 'onChange receives instance', 'Second arg should be the editor instance');
+})();
+
+// Test: onChange does not fire on render-only updates
+(() => {
+  let changeCount = 0;
+
+  const editor = new OverType('#editor', {
+    onChange() {
+      changeCount++;
+    }
+  })[0];
+
+  changeCount = 0;
+  editor.updatePreview();
+  editor.showPreviewMode();
+  editor.showNormalEditMode();
+
+  assert(changeCount === 0, 'onChange ignores render-only updates', 'Preview refreshes and mode switches should not fire onChange');
+})();
+
+// Test: onChange can force a preview refresh without recursion
+(() => {
+  let changeCount = 0;
+  let threw = false;
+
+  const editor = new OverType('#editor', {
+    onChange(value, instance) {
+      changeCount++;
+      instance.updatePreview();
+    }
+  })[0];
+
+  changeCount = 0;
+
+  try {
+    editor.setValue('```js\nconsole.log(1)\n```');
+  } catch (error) {
+    threw = true;
+  }
+
+  assert(!threw, 'onChange can call updatePreview safely', 'Calling updatePreview inside onChange should not recurse');
+  assert(changeCount === 1, 'onChange stays single-fire during manual refresh', 'Refreshing the preview inside onChange should not trigger a second change callback');
+})();
+
 // ===== onRender Callback Tests =====
 console.log('\n🔄 onRender Callback Tests\n');
 

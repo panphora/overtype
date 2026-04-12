@@ -131,26 +131,35 @@ async function shikiHighlighter(code, language) {
 }
 
 // Synchronous wrapper with caching for real-time highlighting
+const [editor] = new OverType('#editor');
 const highlightCache = new Map();
+const pendingHighlights = new Set();
 
 function syncShikiHighlighter(code, language) {
-    const cacheKey = `${language}:${code.substring(0, 100)}`;
+    const cacheKey = `${language}:${code}`;
 
     if (highlightCache.has(cacheKey)) {
         return highlightCache.get(cacheKey);
     }
 
-    // Start async highlighting
-    shikiHighlighter(code, language).then(result => {
-        highlightCache.set(cacheKey, result);
-        // Trigger re-render
-        OverType.setCodeHighlighter(syncShikiHighlighter);
-    });
+    if (!pendingHighlights.has(cacheKey)) {
+        pendingHighlights.add(cacheKey);
+
+        // Start async highlighting
+        shikiHighlighter(code, language)
+            .then(result => {
+                highlightCache.set(cacheKey, result);
+                editor.updatePreview();
+            })
+            .finally(() => {
+                pendingHighlights.delete(cacheKey);
+            });
+    }
 
     return code; // Return plain code while highlighting
 }
 
-OverType.setCodeHighlighter(syncShikiHighlighter);
+editor.setCodeHighlighter(syncShikiHighlighter);
 ```
 
 ### 2b. Shiki.js Legacy (v0.14)
@@ -309,7 +318,9 @@ function debouncedHighlighter(code, language) {
 }
 
 // For async highlighters, you might need a synchronous wrapper
+const [editor] = new OverType('#editor');
 let highlightCache = new Map();
+let pendingHighlights = new Set();
 
 function cachedAsyncHighlighter(code, language) {
     const cacheKey = `${language}:${code}`;
@@ -318,16 +329,25 @@ function cachedAsyncHighlighter(code, language) {
         return highlightCache.get(cacheKey);
     }
 
-    // Start async highlighting
-    heavyAsyncHighlighter(code, language).then(result => {
-        highlightCache.set(cacheKey, result);
-        // Trigger re-render if needed
-        OverType.setCodeHighlighter(cachedAsyncHighlighter);
-    });
+    if (!pendingHighlights.has(cacheKey)) {
+        pendingHighlights.add(cacheKey);
+
+        // Start async highlighting
+        heavyAsyncHighlighter(code, language)
+            .then(result => {
+                highlightCache.set(cacheKey, result);
+                editor.updatePreview();
+            })
+            .finally(() => {
+                pendingHighlights.delete(cacheKey);
+            });
+    }
 
     // Return plain text while highlighting is in progress
     return code;
 }
+
+editor.setCodeHighlighter(cachedAsyncHighlighter);
 ```
 
 ### Language Detection

@@ -107,7 +107,6 @@
 
         window.codeToHtml = codeToHtml;
 
-        let highlighter = null;
         let shikiEnabled = false;
 
         // Initialize editor with sample content
@@ -277,15 +276,6 @@ impl ConnectionPool {
     }
 }
 \`\`\``,
-            onChange: (value, instance) => {
-                // Debounce highlighting for performance
-                clearTimeout(window.highlightTimeout);
-                window.highlightTimeout = setTimeout(() => {
-                    if (shikiEnabled && highlighter) {
-                        instance.updatePreview();
-                    }
-                }, 150);
-            }
         });
 
         async function initializeShiki() {
@@ -353,6 +343,7 @@ impl ConnectionPool {
 
         // Wrapper for synchronous usage (with caching)
         const highlightCache = new Map();
+        const pendingHighlights = new Set();
 
         function syncShikiHighlighter(code, language) {
             // Use full code as cache key to avoid stale data
@@ -362,6 +353,12 @@ impl ConnectionPool {
                 return highlightCache.get(cacheKey);
             }
 
+            if (pendingHighlights.has(cacheKey)) {
+                return code;
+            }
+
+            pendingHighlights.add(cacheKey);
+
             // Start async highlighting
             shikiHighlighter(code, language).then(result => {
                 highlightCache.set(cacheKey, result);
@@ -369,6 +366,8 @@ impl ConnectionPool {
                 if (shikiEnabled && editor) {
                     editor.updatePreview();
                 }
+            }).finally(() => {
+                pendingHighlights.delete(cacheKey);
             });
 
             // Return unhighlighted code while async highlighting is in progress
@@ -379,9 +378,8 @@ impl ConnectionPool {
             const statusDiv = document.getElementById('status');
 
             // Enable Shiki
-            highlighter = syncShikiHighlighter;
-            OverType.setCodeHighlighter(syncShikiHighlighter);
             shikiEnabled = true;
+            editor.setCodeHighlighter(syncShikiHighlighter);
             statusDiv.className = 'status ready';
             statusDiv.textContent = 'Shiki 3.0 highlighting enabled - code blocks will be highlighted as you type';
 
