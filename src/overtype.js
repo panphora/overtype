@@ -296,6 +296,7 @@ class OverType {
 
       // Disable autofill, spellcheck, and extensions
       this._configureTextarea();
+      this._ensureTextareaId();
 
       // Apply any new options
       this._applyOptions();
@@ -390,6 +391,8 @@ class OverType {
         });
       }
 
+      this._ensureTextareaId();
+
       // Create preview div
       this.preview = document.createElement('div');
       this.preview.className = 'overtype-preview';
@@ -443,6 +446,16 @@ class OverType {
       this.textarea.setAttribute('data-gramm', 'false');
       this.textarea.setAttribute('data-gramm_editor', 'false');
       this.textarea.setAttribute('data-enable-grammarly', 'false');
+    }
+
+    /**
+     * Ensure the textarea can be referenced by aria-controls
+     * @private
+     */
+    _ensureTextareaId() {
+      if (!this.textarea.id) {
+        this.textarea.id = `overtype-${this.instanceId}-input`;
+      }
     }
 
     /**

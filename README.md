@@ -145,6 +145,20 @@ const [editor] = new OverType('#editor', {
 // orderedList, taskList, quote, separator, viewMode
 ```
 
+Custom buttons that behave like toggle buttons can provide `isActive`. When it returns `true` or `false`, OverType updates the button’s `active` class and `aria-pressed` state:
+
+```javascript
+{
+  name: 'customToggle',
+  icon: '<svg>...</svg>',
+  title: 'Custom Toggle',
+  isActive: ({ editor, activeFormats }) => activeFormats.includes('bold'),
+  action: ({ editor }) => {
+    // Toggle your custom formatting
+  }
+}
+```
+
 **Driving formatting from your own UI:**
 
 OverType re-exports the bundled `markdown-actions` library so you can build a fully custom toolbar (or any UI) without installing or bundling `markdown-actions` separately:

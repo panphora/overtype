@@ -176,6 +176,15 @@ export interface ToolbarButton {
     setValue: (value: string) => void;
     event: MouseEvent;
   }) => void | Promise<void>;
+
+  /** Canonical action identifier used by shortcuts and performAction */
+  actionId?: string;
+
+  /** Return true when this button should be announced as pressed */
+  isActive?: (context: {
+    editor: OverType;
+    activeFormats: string[];
+  }) => boolean;
 }
 
 export interface MobileOptions {

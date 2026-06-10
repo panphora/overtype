@@ -19,6 +19,7 @@ export const toolbarButtons = {
     actionId: 'toggleBold',
     icon: icons.boldIcon,
     title: 'Bold (Ctrl+B)',
+    isActive: ({ activeFormats }) => activeFormats.includes('bold'),
     action: ({ editor }) => {
       markdownActions.toggleBold(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -30,6 +31,7 @@ export const toolbarButtons = {
     actionId: 'toggleItalic',
     icon: icons.italicIcon,
     title: 'Italic (Ctrl+I)',
+    isActive: ({ activeFormats }) => activeFormats.includes('italic'),
     action: ({ editor }) => {
       markdownActions.toggleItalic(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -41,6 +43,7 @@ export const toolbarButtons = {
     actionId: 'toggleCode',
     icon: icons.codeIcon,
     title: 'Inline Code',
+    isActive: () => false,
     action: ({ editor }) => {
       markdownActions.toggleCode(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -68,6 +71,7 @@ export const toolbarButtons = {
     actionId: 'toggleH1',
     icon: icons.h1Icon,
     title: 'Heading 1',
+    isActive: ({ activeFormats }) => activeFormats.includes('header'),
     action: ({ editor }) => {
       markdownActions.toggleH1(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -79,6 +83,7 @@ export const toolbarButtons = {
     actionId: 'toggleH2',
     icon: icons.h2Icon,
     title: 'Heading 2',
+    isActive: ({ activeFormats }) => activeFormats.includes('header-2'),
     action: ({ editor }) => {
       markdownActions.toggleH2(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -90,6 +95,7 @@ export const toolbarButtons = {
     actionId: 'toggleH3',
     icon: icons.h3Icon,
     title: 'Heading 3',
+    isActive: ({ activeFormats }) => activeFormats.includes('header-3'),
     action: ({ editor }) => {
       markdownActions.toggleH3(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -101,6 +107,7 @@ export const toolbarButtons = {
     actionId: 'toggleBulletList',
     icon: icons.bulletListIcon,
     title: 'Bullet List',
+    isActive: ({ activeFormats }) => activeFormats.includes('bullet-list'),
     action: ({ editor }) => {
       markdownActions.toggleBulletList(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -112,6 +119,7 @@ export const toolbarButtons = {
     actionId: 'toggleNumberedList',
     icon: icons.orderedListIcon,
     title: 'Numbered List',
+    isActive: ({ activeFormats }) => activeFormats.includes('numbered-list'),
     action: ({ editor }) => {
       markdownActions.toggleNumberedList(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -123,6 +131,7 @@ export const toolbarButtons = {
     actionId: 'toggleTaskList',
     icon: icons.taskListIcon,
     title: 'Task List',
+    isActive: ({ activeFormats }) => activeFormats.includes('task-list'),
     action: ({ editor }) => {
       if (markdownActions.toggleTaskList) {
         markdownActions.toggleTaskList(editor.textarea);
@@ -136,6 +145,7 @@ export const toolbarButtons = {
     actionId: 'toggleQuote',
     icon: icons.quoteIcon,
     title: 'Quote',
+    isActive: ({ activeFormats }) => activeFormats.includes('quote'),
     action: ({ editor }) => {
       markdownActions.toggleQuote(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
