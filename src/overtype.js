@@ -297,6 +297,8 @@ class OverType {
       // Disable autofill, spellcheck, and extensions
       this._configureTextarea();
 
+      this._syncPreviewInteractivity();
+
       // Apply any new options
       this._applyOptions();
     }
@@ -429,6 +431,8 @@ class OverType {
         // Ensure auto-resize class is removed if not using auto-resize
         this.container.classList.remove('overtype-auto-resize');
       }
+
+      this._syncPreviewInteractivity();
     }
 
     /**
@@ -443,6 +447,25 @@ class OverType {
       this.textarea.setAttribute('data-gramm', 'false');
       this.textarea.setAttribute('data-gramm_editor', 'false');
       this.textarea.setAttribute('data-enable-grammarly', 'false');
+    }
+
+    /**
+     * Keep rendered preview content out of keyboard navigation until Preview mode.
+     * @private
+     */
+    _syncPreviewInteractivity() {
+      if (!this.preview || !this.container) return;
+
+      const isPreviewMode = this.container.dataset.mode === 'preview';
+      this.preview.inert = !isPreviewMode;
+      this.preview.toggleAttribute('inert', !isPreviewMode);
+
+      if (isPreviewMode) {
+        this.preview.removeAttribute('aria-hidden');
+        return;
+      }
+
+      this.preview.setAttribute('aria-hidden', 'true');
     }
 
     /**
@@ -877,75 +900,16 @@ class OverType {
      * @private
      */
     handleKeydown(event) {
-      // Handle Tab key to prevent focus loss and insert spaces
+      // Let collapsed Tab/Shift+Tab use native focus traversal.
       if (event.key === 'Tab') {
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
-        const value = this.textarea.value;
 
-        // If Shift+Tab without a selection, allow default behavior (navigate to previous element)
-        if (event.shiftKey && start === end) {
+        if (start !== end && this._canEditTextarea()) {
+          event.preventDefault();
+          event.shiftKey ? this.outdentSelection() : this.indentSelection();
           return;
         }
-
-        event.preventDefault();
-
-        // If there's a selection, indent/outdent based on shift key
-        if (start !== end && event.shiftKey) {
-          // Outdent: remove 2 spaces from start of each selected line
-          const before = value.substring(0, start);
-          const selection = value.substring(start, end);
-          const after = value.substring(end);
-          
-          const lines = selection.split('\n');
-          const outdented = lines.map(line => line.replace(/^  /, '')).join('\n');
-          
-          // Try to use execCommand first to preserve undo history
-          if (document.execCommand) {
-            // Select the text that needs to be replaced
-            this.textarea.setSelectionRange(start, end);
-            document.execCommand('insertText', false, outdented);
-          } else {
-            // Fallback to direct manipulation
-            this.textarea.value = before + outdented + after;
-            this.textarea.selectionStart = start;
-            this.textarea.selectionEnd = start + outdented.length;
-          }
-        } else if (start !== end) {
-          // Indent: add 2 spaces to start of each selected line
-          const before = value.substring(0, start);
-          const selection = value.substring(start, end);
-          const after = value.substring(end);
-          
-          const lines = selection.split('\n');
-          const indented = lines.map(line => '  ' + line).join('\n');
-          
-          // Try to use execCommand first to preserve undo history
-          if (document.execCommand) {
-            // Select the text that needs to be replaced
-            this.textarea.setSelectionRange(start, end);
-            document.execCommand('insertText', false, indented);
-          } else {
-            // Fallback to direct manipulation
-            this.textarea.value = before + indented + after;
-            this.textarea.selectionStart = start;
-            this.textarea.selectionEnd = start + indented.length;
-          }
-        } else {
-          // No selection: just insert 2 spaces
-          // Use execCommand to preserve undo history
-          if (document.execCommand) {
-            document.execCommand('insertText', false, '  ');
-          } else {
-            // Fallback to direct manipulation
-            this.textarea.value = value.substring(0, start) + '  ' + value.substring(end);
-            this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
-          }
-        }
-        
-        // Trigger input event to update preview
-        this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
-        return;
       }
       
       // Handle Enter key for smart list continuation
@@ -1204,6 +1168,65 @@ class OverType {
      */
     getPreviewHTML() {
       return this.preview.innerHTML;
+    }
+
+    /**
+     * Indent the current line or selected lines by two spaces.
+     */
+    indentSelection() {
+      this._replaceSelectedLines(line => `  ${line}`);
+    }
+
+    /**
+     * Outdent the current line or selected lines by up to two spaces or one tab.
+     */
+    outdentSelection() {
+      this._replaceSelectedLines(line => line.replace(/^( {1,2}|\t)/, ''));
+    }
+
+    /**
+     * Replace full lines touched by the current selection.
+     * @private
+     */
+    _replaceSelectedLines(transformLine) {
+      if (!this._canEditTextarea()) return false;
+
+      const textarea = this.textarea;
+      const { selectionStart, selectionEnd, value } = textarea;
+      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+      const effectiveEnd = this._effectiveSelectionEnd(value, selectionStart, selectionEnd);
+      const lineEndOffset = value.indexOf('\n', effectiveEnd);
+      const lineEnd = lineEndOffset === -1 ? value.length : lineEndOffset;
+      const selectedLines = value.slice(lineStart, lineEnd);
+      const replacement = selectedLines
+        .split('\n')
+        .map(transformLine)
+        .join('\n');
+
+      if (replacement === selectedLines) return false;
+
+      textarea.setRangeText(replacement, lineStart, lineEnd, 'preserve');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+      return true;
+    }
+
+    /**
+     * @private
+     */
+    _effectiveSelectionEnd(value, selectionStart, selectionEnd) {
+      if (selectionEnd > selectionStart && value[selectionEnd - 1] === '\n') {
+        return selectionEnd - 1;
+      }
+
+      return selectionEnd;
+    }
+
+    /**
+     * @private
+     */
+    _canEditTextarea() {
+      return this.textarea && !this.textarea.disabled && !this.textarea.readOnly;
     }
     
     /**
@@ -1495,6 +1518,7 @@ class OverType {
      */
     showNormalEditMode() {
       this.container.dataset.mode = 'normal';
+      this._syncPreviewInteractivity();
       this.updatePreview(); // Re-render with normal mode (e.g., show syntax markers)
       this._updateAutoHeight();
 
@@ -1513,6 +1537,7 @@ class OverType {
      */
     showPlainTextarea() {
       this.container.dataset.mode = 'plain';
+      this._syncPreviewInteractivity();
       this._updateAutoHeight();
 
       // Update toolbar button if exists
@@ -1533,6 +1558,7 @@ class OverType {
      */
     showPreviewMode() {
       this.container.dataset.mode = 'preview';
+      this._syncPreviewInteractivity();
       this.updatePreview(); // Re-render with preview mode (e.g., checkboxes)
       this._updateAutoHeight();
       return this;
@@ -1855,7 +1881,15 @@ class OverType {
      * Initialize global event listeners
      */
     static initGlobalListeners() {
-      if (OverType.globalListenersInitialized) return;
+      const globalScope = typeof window !== 'undefined' ? window : globalThis;
+      const globalListenersKey = '__overtypeGlobalListenersInitialized';
+
+      if (OverType.globalListenersInitialized || globalScope[globalListenersKey]) {
+        OverType.globalListenersInitialized = true;
+        return;
+      }
+
+      globalScope[globalListenersKey] = true;
 
       // Input event
       document.addEventListener('input', (e) => {

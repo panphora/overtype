@@ -758,6 +758,16 @@ var ShortcutsManager = class {
     const modKey = isMac ? event.metaKey : event.ctrlKey;
     if (!modKey)
       return false;
+    if (event.key === "]") {
+      event.preventDefault();
+      this.editor.indentSelection();
+      return true;
+    }
+    if (event.key === "[") {
+      event.preventDefault();
+      this.editor.outdentSelection();
+      return true;
+    }
     let actionId = null;
     switch (event.key.toLowerCase()) {
       case "b":
@@ -4943,6 +4953,7 @@ var _OverType = class _OverType {
     this.wrapper._instance = this;
     this._applyInstanceCSSVars();
     this._configureTextarea();
+    this._syncPreviewInteractivity();
     this._applyOptions();
   }
   /**
@@ -5029,6 +5040,7 @@ var _OverType = class _OverType {
     } else {
       this.container.classList.remove("overtype-auto-resize");
     }
+    this._syncPreviewInteractivity();
   }
   /**
    * Configure textarea attributes
@@ -5042,6 +5054,22 @@ var _OverType = class _OverType {
     this.textarea.setAttribute("data-gramm", "false");
     this.textarea.setAttribute("data-gramm_editor", "false");
     this.textarea.setAttribute("data-enable-grammarly", "false");
+  }
+  /**
+   * Keep rendered preview content out of keyboard navigation until Preview mode.
+   * @private
+   */
+  _syncPreviewInteractivity() {
+    if (!this.preview || !this.container)
+      return;
+    const isPreviewMode = this.container.dataset.mode === "preview";
+    this.preview.inert = !isPreviewMode;
+    this.preview.toggleAttribute("inert", !isPreviewMode);
+    if (isPreviewMode) {
+      this.preview.removeAttribute("aria-hidden");
+      return;
+    }
+    this.preview.setAttribute("aria-hidden", "true");
   }
   /**
    * Create and setup toolbar
@@ -5408,49 +5436,11 @@ var _OverType = class _OverType {
     if (event.key === "Tab") {
       const start = this.textarea.selectionStart;
       const end = this.textarea.selectionEnd;
-      const value = this.textarea.value;
-      if (event.shiftKey && start === end) {
+      if (start !== end && this._canEditTextarea()) {
+        event.preventDefault();
+        event.shiftKey ? this.outdentSelection() : this.indentSelection();
         return;
       }
-      event.preventDefault();
-      if (start !== end && event.shiftKey) {
-        const before = value.substring(0, start);
-        const selection = value.substring(start, end);
-        const after = value.substring(end);
-        const lines = selection.split("\n");
-        const outdented = lines.map((line) => line.replace(/^  /, "")).join("\n");
-        if (document.execCommand) {
-          this.textarea.setSelectionRange(start, end);
-          document.execCommand("insertText", false, outdented);
-        } else {
-          this.textarea.value = before + outdented + after;
-          this.textarea.selectionStart = start;
-          this.textarea.selectionEnd = start + outdented.length;
-        }
-      } else if (start !== end) {
-        const before = value.substring(0, start);
-        const selection = value.substring(start, end);
-        const after = value.substring(end);
-        const lines = selection.split("\n");
-        const indented = lines.map((line) => "  " + line).join("\n");
-        if (document.execCommand) {
-          this.textarea.setSelectionRange(start, end);
-          document.execCommand("insertText", false, indented);
-        } else {
-          this.textarea.value = before + indented + after;
-          this.textarea.selectionStart = start;
-          this.textarea.selectionEnd = start + indented.length;
-        }
-      } else {
-        if (document.execCommand) {
-          document.execCommand("insertText", false, "  ");
-        } else {
-          this.textarea.value = value.substring(0, start) + "  " + value.substring(end);
-          this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
-        }
-      }
-      this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-      return;
     }
     if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey && this.options.smartLists) {
       if (this.handleSmartListContinuation()) {
@@ -5646,6 +5636,54 @@ var _OverType = class _OverType {
    */
   getPreviewHTML() {
     return this.preview.innerHTML;
+  }
+  /**
+   * Indent the current line or selected lines by two spaces.
+   */
+  indentSelection() {
+    this._replaceSelectedLines((line) => `  ${line}`);
+  }
+  /**
+   * Outdent the current line or selected lines by up to two spaces or one tab.
+   */
+  outdentSelection() {
+    this._replaceSelectedLines((line) => line.replace(/^( {1,2}|\t)/, ""));
+  }
+  /**
+   * Replace full lines touched by the current selection.
+   * @private
+   */
+  _replaceSelectedLines(transformLine) {
+    if (!this._canEditTextarea())
+      return false;
+    const textarea = this.textarea;
+    const { selectionStart, selectionEnd, value } = textarea;
+    const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+    const effectiveEnd = this._effectiveSelectionEnd(value, selectionStart, selectionEnd);
+    const lineEndOffset = value.indexOf("\n", effectiveEnd);
+    const lineEnd = lineEndOffset === -1 ? value.length : lineEndOffset;
+    const selectedLines = value.slice(lineStart, lineEnd);
+    const replacement = selectedLines.split("\n").map(transformLine).join("\n");
+    if (replacement === selectedLines)
+      return false;
+    textarea.setRangeText(replacement, lineStart, lineEnd, "preserve");
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  }
+  /**
+   * @private
+   */
+  _effectiveSelectionEnd(value, selectionStart, selectionEnd) {
+    if (selectionEnd > selectionStart && value[selectionEnd - 1] === "\n") {
+      return selectionEnd - 1;
+    }
+    return selectionEnd;
+  }
+  /**
+   * @private
+   */
+  _canEditTextarea() {
+    return this.textarea && !this.textarea.disabled && !this.textarea.readOnly;
   }
   /**
    * Get clean HTML without any OverType-specific markup
@@ -5870,6 +5908,7 @@ var _OverType = class _OverType {
    */
   showNormalEditMode() {
     this.container.dataset.mode = "normal";
+    this._syncPreviewInteractivity();
     this.updatePreview();
     this._updateAutoHeight();
     requestAnimationFrame(() => {
@@ -5884,6 +5923,7 @@ var _OverType = class _OverType {
    */
   showPlainTextarea() {
     this.container.dataset.mode = "plain";
+    this._syncPreviewInteractivity();
     this._updateAutoHeight();
     if (this.toolbar) {
       const toggleBtn = this.container.querySelector('[data-action="toggle-plain"]');
@@ -5900,6 +5940,7 @@ var _OverType = class _OverType {
    */
   showPreviewMode() {
     this.container.dataset.mode = "preview";
+    this._syncPreviewInteractivity();
     this.updatePreview();
     this._updateAutoHeight();
     return this;
@@ -6176,8 +6217,13 @@ var _OverType = class _OverType {
    * Initialize global event listeners
    */
   static initGlobalListeners() {
-    if (_OverType.globalListenersInitialized)
+    const globalScope = typeof window !== "undefined" ? window : globalThis;
+    const globalListenersKey = "__overtypeGlobalListenersInitialized";
+    if (_OverType.globalListenersInitialized || globalScope[globalListenersKey]) {
+      _OverType.globalListenersInitialized = true;
       return;
+    }
+    globalScope[globalListenersKey] = true;
     document.addEventListener("input", (e) => {
       if (e.target && e.target.classList && e.target.classList.contains("overtype-input")) {
         const wrapper = e.target.closest(".overtype-wrapper");

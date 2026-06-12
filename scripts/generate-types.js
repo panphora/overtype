@@ -300,6 +300,8 @@ export interface OverTypeInstance {
   showToolbar(): void;
   hideToolbar(): void;
   insertAtCursor(text: string): void;
+  indentSelection(): void;
+  outdentSelection(): void;
 
   // HTML output methods
   getRenderedHTML(options?: RenderOptions): string;

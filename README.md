@@ -216,8 +216,12 @@ The toolbar and keyboard shortcuts work together seamlessly:
 - **Cmd/Ctrl + K** - Insert link
 - **Cmd/Ctrl + Shift + 7** - Numbered list
 - **Cmd/Ctrl + Shift + 8** - Bullet list
+- **Cmd/Ctrl + ]** - Indent current line or selection
+- **Cmd/Ctrl + [** - Outdent current line or selection
+- **Tab / Shift+Tab** - Indent or outdent selected lines
 
-All shortcuts preserve text selection, allowing you to apply multiple formats quickly.
+Collapsed **Tab** and **Shift+Tab** follow normal browser focus navigation so keyboard users can leave the editor.
+Editing shortcuts preserve text selection, allowing you to apply multiple formats quickly.
 
 ### Multiple Editors
 
@@ -637,10 +641,14 @@ OverType.themes.cave
 |----------|--------|
 | Cmd/Ctrl + B | Toggle bold |
 | Cmd/Ctrl + I | Toggle italic |
-| Cmd/Ctrl + K | Wrap in code |
-| Cmd/Ctrl + Shift + K | Insert link |
+| Cmd/Ctrl + K | Insert link |
 | Cmd/Ctrl + Shift + 7 | Toggle numbered list |
 | Cmd/Ctrl + Shift + 8 | Toggle bullet list |
+| Cmd/Ctrl + ] | Indent current line or selection |
+| Cmd/Ctrl + [ | Outdent current line or selection |
+| Tab / Shift+Tab | Indent or outdent selected lines |
+
+When no text is selected, Tab and Shift+Tab use normal browser focus navigation.
 
 ## Supported Markdown
 

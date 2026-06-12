@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Prevent Tab from trapping keyboard focus in the editor while preserving selected-line indentation.
+- Keep rendered preview content out of keyboard focus order until Preview mode is active.
+
 ## [2.3.10] - 2026-05-02
 
 ### Added
@@ -166,8 +172,6 @@ All notable changes to OverType will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
 
 ## [2.0.6] - 2025-11-19
 
