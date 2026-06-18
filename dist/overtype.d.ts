@@ -84,6 +84,15 @@ export interface ToolbarButton {
     setValue: (value: string) => void;
     event: MouseEvent;
   }) => void | Promise<void>;
+
+  /** Canonical action identifier used by shortcuts and performAction */
+  actionId?: string;
+
+  /** Return true when this button should be announced as pressed */
+  isActive?: (context: {
+    editor: OverType;
+    activeFormats: string[];
+  }) => boolean;
 }
 
 export interface MobileOptions {
@@ -122,6 +131,7 @@ export interface Options {
   spellcheck?: boolean;       // Browser spellcheck (default: false)
   statsFormatter?: (stats: Stats) => string;
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
+  transformLinkUrl?: ((url: string) => string) | null;  // Transform URLs shown/opened in the link tooltip
 
   // Theme (deprecated in favor of global theme)
   theme?: string | Theme;
@@ -208,6 +218,8 @@ export interface OverTypeInstance {
   showToolbar(): void;
   hideToolbar(): void;
   insertAtCursor(text: string): void;
+  indentSelection(): void;
+  outdentSelection(): void;
 
   // HTML output methods
   getRenderedHTML(options?: RenderOptions): string;

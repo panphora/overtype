@@ -66,6 +66,8 @@ if (editorsWithOptions.length > 0) {
   instance.focus();
   instance.blur();
   instance.updatePreview();
+  instance.indentSelection();
+  instance.outdentSelection();
   instance.showStats(true);
   instance.setTheme('cave');
   instance.reinit({ fontSize: '18px' });

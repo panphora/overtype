@@ -21,6 +21,8 @@ These features could be considered if someone proposes a performant, elegant sol
 - Works with existing architecture
 
 ### Autocompletion / Suggestion Popups
+**Today's answer:** build it in the host app, not in core. OverType exposes everything needed (`editor.textarea`, `onChange`, `getValue`/`setValue`), and there is a complete, tested recipe for GitHub-style `@mention` / `#issue` popups: [docs/AUTOCOMPLETE.md](docs/AUTOCOMPLETE.md). The door stays open to a clean, opt-in core implementation if one proves itself in the wild first.
+
 **Why it's challenging:**
 - Needs to feel snappy on every keystroke; trigger detection runs in the input hot path
 - Trigger configuration (`@`, `#`, custom patterns) must not fight the host app's own input handling

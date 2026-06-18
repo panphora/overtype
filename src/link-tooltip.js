@@ -4,6 +4,7 @@
  */
 
 import { computePosition, offset, shift, flip } from '@floating-ui/dom';
+import { MarkdownParser } from './parser.js';
 
 export class LinkTooltip {
   constructor(editor) {
@@ -85,7 +86,10 @@ export class LinkTooltip {
       e.preventDefault();
       e.stopPropagation();
       if (this.currentLink) {
-        window.open(this.currentLink.url, '_blank');
+        const safeUrl = MarkdownParser.sanitizeUrl(this.currentLink.url);
+        if (safeUrl !== '#') {
+          window.open(safeUrl, '_blank');
+        }
         this.hide();
       }
     });
@@ -123,7 +127,7 @@ export class LinkTooltip {
       if (position >= start && position <= end) {
         return {
           text: match[1],
-          url: match[2],
+          url: this.transformUrl(match[2]),
           index: linkIndex,
           start: start,
           end: end
@@ -133,6 +137,18 @@ export class LinkTooltip {
     }
 
     return null;
+  }
+
+  transformUrl(url) {
+    const transform = this.editor.options.transformLinkUrl;
+    if (typeof transform !== 'function') return url;
+    try {
+      const result = transform(url);
+      return typeof result === 'string' ? result : url;
+    } catch (e) {
+      console.warn('transformLinkUrl threw:', e);
+      return url;
+    }
   }
 
   async show(linkInfo) {

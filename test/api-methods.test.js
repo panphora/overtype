@@ -343,6 +343,49 @@ console.log('\n🔄 onRender Callback Tests\n');
   assert(previewHTML.includes('<strong>'), 'onRender preview has rendered content', 'Preview should contain parsed HTML');
 })();
 
+// ===== initFromData data attributes (Issue #112) =====
+
+// Test: data-ot-textarea-required puts a real required attribute on the textarea
+(() => {
+  const host = document.createElement('div');
+  host.className = 'ot112-req';
+  host.setAttribute('data-ot-textarea-required', 'true');
+  document.body.appendChild(host);
+  const editor = OverType.initFromData('.ot112-req')[0];
+  assert(editor.textarea.hasAttribute('required'),
+    'initFromData: data-ot-textarea-required sets required', 'textarea should have required attribute');
+})();
+
+// Test: data-ot-textarea-props JSON sets multiple textarea attributes
+(() => {
+  const host = document.createElement('div');
+  host.className = 'ot112-json';
+  host.setAttribute('data-ot-textarea-props', '{"name":"message","required":true}');
+  document.body.appendChild(host);
+  const editor = OverType.initFromData('.ot112-json')[0];
+  assert(editor.textarea.getAttribute('name') === 'message' && editor.textarea.hasAttribute('required'),
+    'initFromData: data-ot-textarea-props JSON sets attributes', 'expected name=message and required');
+})();
+
+// Test: _parseDataValue parses JSON objects
+(() => {
+  const parsed = OverType._parseDataValue('{"a":1,"b":true}');
+  assert(parsed && parsed.a === 1 && parsed.b === true,
+    '_parseDataValue parses JSON object', `got ${JSON.stringify(parsed)}`);
+})();
+
+// Test: _parseDataValue falls back to the raw string on malformed JSON
+(() => {
+  assert(OverType._parseDataValue('{nope}') === '{nope}',
+    '_parseDataValue malformed JSON falls back to string', 'should return raw string');
+})();
+
+// Test: _parseDataValue still coerces scalars
+(() => {
+  assert(OverType._parseDataValue('true') === true && OverType._parseDataValue('42') === 42,
+    '_parseDataValue still coerces scalars', 'true->bool, 42->number');
+})();
+
 // ===== Results Summary =====
 console.log('\n━'.repeat(50));
 console.log('\n📊 Test Results Summary\n');

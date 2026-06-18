@@ -12,6 +12,25 @@ import { Toolbar } from './toolbar.js';
 import { LinkTooltip } from './link-tooltip.js';
 import { defaultToolbarButtons, toolbarButtons as builtinToolbarButtons } from './toolbar-buttons.js';
 
+let _isSafariCache;
+/**
+ * Detect Safari (desktop, iOS, and iPadOS), excluding Chromium/Firefox-on-iOS.
+ * Memoized; guards against non-browser environments.
+ * @returns {boolean}
+ */
+function isSafariBrowser() {
+  if (_isSafariCache !== undefined) return _isSafariCache;
+  _isSafariCache = false;
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    _isSafariCache =
+      /^((?!chrome|android|crios|fxios|edg|opr).)*safari/i.test(ua) ||
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1 && /Safari/.test(ua));
+  }
+  return _isSafariCache;
+}
+
 /**
  * Build action map from toolbar button configurations
  * @param {Array} buttons - Array of button config objects
@@ -131,6 +150,8 @@ class OverType {
       this.options = this._mergeOptions(options);
       this.instanceId = ++OverType.instanceCount;
       this.initialized = false;
+      this._isSafari = isSafariBrowser();
+      this._safariReflowRaf = null;
 
       // Inject styles if needed
       OverType.injectStyles();
@@ -225,7 +246,8 @@ class OverType {
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
         codeHighlighter: null,  // Per-instance code highlighter
-        spellcheck: false  // Browser spellcheck (disabled by default)
+        spellcheck: false,  // Browser spellcheck (disabled by default)
+        transformLinkUrl: null  // Transform URLs shown/opened in the link tooltip
       };
       
       // Remove theme and colors from options - these are now global
@@ -296,6 +318,9 @@ class OverType {
 
       // Disable autofill, spellcheck, and extensions
       this._configureTextarea();
+      this._ensureTextareaId();
+
+      this._syncPreviewInteractivity();
 
       // Apply any new options
       this._applyOptions();
@@ -390,6 +415,8 @@ class OverType {
         });
       }
 
+      this._ensureTextareaId();
+
       // Create preview div
       this.preview = document.createElement('div');
       this.preview.className = 'overtype-preview';
@@ -429,6 +456,8 @@ class OverType {
         // Ensure auto-resize class is removed if not using auto-resize
         this.container.classList.remove('overtype-auto-resize');
       }
+
+      this._syncPreviewInteractivity();
     }
 
     /**
@@ -443,6 +472,35 @@ class OverType {
       this.textarea.setAttribute('data-gramm', 'false');
       this.textarea.setAttribute('data-gramm_editor', 'false');
       this.textarea.setAttribute('data-enable-grammarly', 'false');
+    }
+
+    /**
+     * Ensure the textarea can be referenced by aria-controls
+     * @private
+     */
+    _ensureTextareaId() {
+      if (!this.textarea.id) {
+        this.textarea.id = `overtype-${this.instanceId}-input`;
+      }
+    }
+
+    /**
+     * Keep rendered preview content out of keyboard navigation until Preview mode.
+     * @private
+     */
+    _syncPreviewInteractivity() {
+      if (!this.preview || !this.container) return;
+
+      const isPreviewMode = this.container.dataset.mode === 'preview';
+      this.preview.inert = !isPreviewMode;
+      this.preview.toggleAttribute('inert', !isPreviewMode);
+
+      if (isPreviewMode) {
+        this.preview.removeAttribute('aria-hidden');
+        return;
+      }
+
+      this.preview.setAttribute('aria-hidden', 'true');
     }
 
     /**
@@ -850,6 +908,28 @@ class OverType {
     handleInput(event) {
       this.updatePreview();
       this._notifyChange();
+      this._scheduleSafariReflow();
+    }
+
+    /**
+     * Force Safari to re-shape stale textarea text after an edit.
+     * Safari can leave a textarea's glyph layout cached after incremental edits,
+     * desyncing the caret/wrap from the styled preview overlay. Toggling
+     * letter-spacing (with !important to beat the stylesheet rule) and reading
+     * offsetHeight forces a synchronous re-shape. Safari-only, coalesced to one
+     * run per animation frame.
+     * @private
+     */
+    _scheduleSafariReflow() {
+      if (!this._isSafari || this._safariReflowRaf) return;
+      this._safariReflowRaf = requestAnimationFrame(() => {
+        this._safariReflowRaf = null;
+        const ta = this.textarea;
+        if (!ta) return;
+        ta.style.setProperty('letter-spacing', '-0.001px', 'important');
+        void ta.offsetHeight;
+        ta.style.removeProperty('letter-spacing');
+      });
     }
 
     /**
@@ -877,75 +957,16 @@ class OverType {
      * @private
      */
     handleKeydown(event) {
-      // Handle Tab key to prevent focus loss and insert spaces
+      // Let collapsed Tab/Shift+Tab use native focus traversal.
       if (event.key === 'Tab') {
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
-        const value = this.textarea.value;
 
-        // If Shift+Tab without a selection, allow default behavior (navigate to previous element)
-        if (event.shiftKey && start === end) {
+        if (start !== end && this._canEditTextarea()) {
+          event.preventDefault();
+          event.shiftKey ? this.outdentSelection() : this.indentSelection();
           return;
         }
-
-        event.preventDefault();
-
-        // If there's a selection, indent/outdent based on shift key
-        if (start !== end && event.shiftKey) {
-          // Outdent: remove 2 spaces from start of each selected line
-          const before = value.substring(0, start);
-          const selection = value.substring(start, end);
-          const after = value.substring(end);
-          
-          const lines = selection.split('\n');
-          const outdented = lines.map(line => line.replace(/^  /, '')).join('\n');
-          
-          // Try to use execCommand first to preserve undo history
-          if (document.execCommand) {
-            // Select the text that needs to be replaced
-            this.textarea.setSelectionRange(start, end);
-            document.execCommand('insertText', false, outdented);
-          } else {
-            // Fallback to direct manipulation
-            this.textarea.value = before + outdented + after;
-            this.textarea.selectionStart = start;
-            this.textarea.selectionEnd = start + outdented.length;
-          }
-        } else if (start !== end) {
-          // Indent: add 2 spaces to start of each selected line
-          const before = value.substring(0, start);
-          const selection = value.substring(start, end);
-          const after = value.substring(end);
-          
-          const lines = selection.split('\n');
-          const indented = lines.map(line => '  ' + line).join('\n');
-          
-          // Try to use execCommand first to preserve undo history
-          if (document.execCommand) {
-            // Select the text that needs to be replaced
-            this.textarea.setSelectionRange(start, end);
-            document.execCommand('insertText', false, indented);
-          } else {
-            // Fallback to direct manipulation
-            this.textarea.value = before + indented + after;
-            this.textarea.selectionStart = start;
-            this.textarea.selectionEnd = start + indented.length;
-          }
-        } else {
-          // No selection: just insert 2 spaces
-          // Use execCommand to preserve undo history
-          if (document.execCommand) {
-            document.execCommand('insertText', false, '  ');
-          } else {
-            // Fallback to direct manipulation
-            this.textarea.value = value.substring(0, start) + '  ' + value.substring(end);
-            this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
-          }
-        }
-        
-        // Trigger input event to update preview
-        this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
-        return;
       }
       
       // Handle Enter key for smart list continuation
@@ -1134,6 +1155,7 @@ class OverType {
 
       if (didChange) {
         this._notifyChange();
+        this._scheduleSafariReflow();
       }
     }
 
@@ -1204,6 +1226,77 @@ class OverType {
      */
     getPreviewHTML() {
       return this.preview.innerHTML;
+    }
+
+    /**
+     * Indent the current line or selected lines by two spaces.
+     */
+    indentSelection() {
+      this._replaceSelectedLines(line => `  ${line}`);
+    }
+
+    /**
+     * Outdent the current line or selected lines by up to two spaces or one tab.
+     */
+    outdentSelection() {
+      this._replaceSelectedLines(line => line.replace(/^( {1,2}|\t)/, ''));
+    }
+
+    /**
+     * Replace full lines touched by the current selection.
+     * @private
+     */
+    _replaceSelectedLines(transformLine) {
+      if (!this._canEditTextarea()) return false;
+
+      const textarea = this.textarea;
+      const { selectionStart, selectionEnd, value } = textarea;
+      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+      const effectiveEnd = this._effectiveSelectionEnd(value, selectionStart, selectionEnd);
+      const lineEndOffset = value.indexOf('\n', effectiveEnd);
+      const lineEnd = lineEndOffset === -1 ? value.length : lineEndOffset;
+      const selectedLines = value.slice(lineStart, lineEnd);
+      const replacement = selectedLines
+        .split('\n')
+        .map(transformLine)
+        .join('\n');
+
+      if (replacement === selectedLines) return false;
+
+      // Replace via execCommand to preserve native undo history (matches
+      // insertAtCursor); fall back to setRangeText where execCommand is unavailable.
+      textarea.setSelectionRange(lineStart, lineEnd);
+      let inserted = false;
+      try {
+        inserted = document.execCommand('insertText', false, replacement);
+      } catch (_) {}
+
+      if (!inserted) {
+        textarea.setRangeText(replacement, lineStart, lineEnd, 'preserve');
+      }
+
+      textarea.setSelectionRange(lineStart, lineStart + replacement.length);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+
+      return true;
+    }
+
+    /**
+     * @private
+     */
+    _effectiveSelectionEnd(value, selectionStart, selectionEnd) {
+      if (selectionEnd > selectionStart && value[selectionEnd - 1] === '\n') {
+        return selectionEnd - 1;
+      }
+
+      return selectionEnd;
+    }
+
+    /**
+     * @private
+     */
+    _canEditTextarea() {
+      return this.textarea && !this.textarea.disabled && !this.textarea.readOnly;
     }
     
     /**
@@ -1495,6 +1588,7 @@ class OverType {
      */
     showNormalEditMode() {
       this.container.dataset.mode = 'normal';
+      this._syncPreviewInteractivity();
       this.updatePreview(); // Re-render with normal mode (e.g., show syntax markers)
       this._updateAutoHeight();
 
@@ -1513,6 +1607,7 @@ class OverType {
      */
     showPlainTextarea() {
       this.container.dataset.mode = 'plain';
+      this._syncPreviewInteractivity();
       this._updateAutoHeight();
 
       // Update toolbar button if exists
@@ -1533,6 +1628,7 @@ class OverType {
      */
     showPreviewMode() {
       this.container.dataset.mode = 'preview';
+      this._syncPreviewInteractivity();
       this.updatePreview(); // Re-render with preview mode (e.g., checkboxes)
       this._updateAutoHeight();
       return this;
@@ -1558,11 +1654,17 @@ class OverType {
         this.shortcuts.destroy();
       }
 
+      // Cancel any pending Safari reflow nudge
+      if (this._safariReflowRaf) {
+        cancelAnimationFrame(this._safariReflowRaf);
+        this._safariReflowRaf = null;
+      }
+
       // Remove DOM if created by us
       if (this.wrapper) {
         const content = this.getValue();
         this.wrapper.remove();
-        
+
         // Restore original content
         this.element.textContent = content;
       }
@@ -1598,11 +1700,19 @@ class OverType {
 
         // Parse data-ot-* attributes (kebab-case to camelCase)
         for (const attr of el.attributes) {
-          if (attr.name.startsWith('data-ot-')) {
-            const kebab = attr.name.slice(8); // Remove 'data-ot-'
-            const key = kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-            options[key] = OverType._parseDataValue(attr.value);
+          if (!attr.name.startsWith('data-ot-')) continue;
+          const kebab = attr.name.slice(8); // Remove 'data-ot-'
+
+          // data-ot-textarea-<attr> maps onto textareaProps (e.g. data-ot-textarea-required).
+          // data-ot-textarea-props is the whole-object JSON form, handled generically below.
+          if (kebab.startsWith('textarea-') && kebab !== 'textarea-props') {
+            const propKey = kebab.slice(9).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+            options.textareaProps = { ...(options.textareaProps || {}), [propKey]: OverType._parseDataValue(attr.value) };
+            continue;
           }
+
+          const key = kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+          options[key] = OverType._parseDataValue(attr.value);
         }
 
         return new OverType(el, options)[0];
@@ -1647,6 +1757,14 @@ class OverType {
       if (value === 'false') return false;
       if (value === 'null') return null;
       if (value !== '' && !isNaN(Number(value))) return Number(value);
+      const trimmed = value.trim();
+      if (trimmed[0] === '{' || trimmed[0] === '[') {
+        try {
+          return JSON.parse(trimmed);
+        } catch (e) {
+          return value;
+        }
+      }
       return value;
     }
 
@@ -1855,7 +1973,15 @@ class OverType {
      * Initialize global event listeners
      */
     static initGlobalListeners() {
-      if (OverType.globalListenersInitialized) return;
+      const globalScope = typeof window !== 'undefined' ? window : globalThis;
+      const globalListenersKey = '__overtypeGlobalListenersInitialized';
+
+      if (OverType.globalListenersInitialized || globalScope[globalListenersKey]) {
+        OverType.globalListenersInitialized = true;
+        return;
+      }
+
+      globalScope[globalListenersKey] = true;
 
       // Input event
       document.addEventListener('input', (e) => {

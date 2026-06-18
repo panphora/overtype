@@ -1,5 +1,5 @@
 /**
- * OverType v2.3.10
+ * OverType v2.4.0
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -758,6 +758,16 @@ var ShortcutsManager = class {
     const modKey = isMac ? event.metaKey : event.ctrlKey;
     if (!modKey)
       return false;
+    if (event.key === "]") {
+      event.preventDefault();
+      this.editor.indentSelection();
+      return true;
+    }
+    if (event.key === "[") {
+      event.preventDefault();
+      this.editor.outdentSelection();
+      return true;
+    }
     let actionId = null;
     switch (event.key.toLowerCase()) {
       case "b":
@@ -2870,6 +2880,10 @@ var Toolbar = class {
     this.editor = editor;
     this.container = null;
     this.buttons = {};
+    this.currentItemIndex = 0;
+    this.handleDocumentClick = null;
+    this.activeDropdown = null;
+    this.activeDropdownButton = null;
     this.toolbarButtons = options.toolbarButtons || [];
   }
   /**
@@ -2878,8 +2892,10 @@ var Toolbar = class {
   create() {
     this.container = document.createElement("div");
     this.container.className = "overtype-toolbar";
+    this.container.id = this.getInstanceElementId("toolbar");
     this.container.setAttribute("role", "toolbar");
     this.container.setAttribute("aria-label", "Formatting toolbar");
+    this.container.setAttribute("aria-controls", this.editor.textarea.id);
     this.toolbarButtons.forEach((buttonConfig) => {
       if (buttonConfig.name === "separator") {
         const separator = this.createSeparator();
@@ -2890,7 +2906,115 @@ var Toolbar = class {
         this.container.appendChild(button);
       }
     });
+    this.setupRovingTabIndex();
+    this.updateButtonStates();
     this.editor.container.insertBefore(this.container, this.editor.wrapper);
+  }
+  /**
+   * Build a stable id from the owning OverType instance
+   */
+  getInstanceElementId(name) {
+    return `overtype-${this.editor.instanceId}-${name}`;
+  }
+  /**
+   * Configure toolbar focus management per the ARIA toolbar pattern
+   */
+  setupRovingTabIndex() {
+    const toolbarItems = this.getToolbarItems();
+    if (toolbarItems.length === 0) {
+      return;
+    }
+    this.currentItemIndex = this.getValidItemIndex(this.currentItemIndex);
+    this.updateTabIndexes();
+    this.container.addEventListener("keydown", (e) => {
+      this.onToolbarKeydown(e);
+    });
+    this.container.addEventListener("focusin", (e) => {
+      this.onToolbarFocusin(e);
+    });
+  }
+  /**
+   * Get toolbar buttons in DOM order for keyboard navigation
+   */
+  getToolbarItems() {
+    if (!this.container) {
+      return [];
+    }
+    return Array.from(this.container.querySelectorAll(".overtype-toolbar-button"));
+  }
+  /**
+   * Handle keyboard navigation within the toolbar
+   */
+  onToolbarKeydown(e) {
+    const toolbarItems = this.getToolbarItems();
+    if (!toolbarItems.includes(e.target)) {
+      return;
+    }
+    switch (e.key) {
+      case "ArrowRight":
+        e.preventDefault();
+        this.focusItem(this.currentItemIndex + 1);
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        this.focusItem(this.currentItemIndex - 1);
+        break;
+      case "Home":
+        e.preventDefault();
+        this.focusItem(0);
+        break;
+      case "End":
+        e.preventDefault();
+        this.focusItem(toolbarItems.length - 1);
+        break;
+    }
+  }
+  /**
+   * Remember the focused toolbar item as the toolbar tab stop
+   */
+  onToolbarFocusin(e) {
+    const focusedItemIndex = this.getToolbarItems().indexOf(e.target);
+    if (focusedItemIndex === -1) {
+      return;
+    }
+    this.currentItemIndex = focusedItemIndex;
+    this.updateTabIndexes();
+  }
+  /**
+   * Move focus to a toolbar item and make it the only tab stop
+   */
+  focusItem(index) {
+    const toolbarItems = this.getToolbarItems();
+    if (toolbarItems.length === 0) {
+      return;
+    }
+    this.currentItemIndex = this.getValidItemIndex(index, toolbarItems);
+    this.updateTabIndexes();
+    toolbarItems[this.currentItemIndex].focus();
+  }
+  /**
+   * Normalize toolbar item indexes with wrapping
+   */
+  getValidItemIndex(index, toolbarItems = this.getToolbarItems()) {
+    const itemCount = toolbarItems.length;
+    if (itemCount === 0) {
+      return 0;
+    }
+    if (index < 0) {
+      return itemCount - 1;
+    }
+    if (index >= itemCount) {
+      return 0;
+    }
+    return index;
+  }
+  /**
+   * Keep exactly one toolbar item in the page tab sequence
+   */
+  updateTabIndexes() {
+    this.getToolbarItems().forEach((item, index) => {
+      item.tabIndex = index === this.currentItemIndex ? 0 : -1;
+    });
   }
   /**
    * Create a toolbar separator
@@ -2915,10 +3039,22 @@ var Toolbar = class {
     if (buttonConfig.name === "viewMode") {
       button.classList.add("has-dropdown");
       button.dataset.dropdown = "true";
-      button.addEventListener("click", (e) => {
+      button.setAttribute("aria-haspopup", "menu");
+      button.setAttribute("aria-expanded", "false");
+      button._clickHandler = (e) => {
         e.preventDefault();
         this.toggleViewModeDropdown(button);
-      });
+      };
+      button._keydownHandler = (e) => {
+        if (!["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
+          return;
+        }
+        e.preventDefault();
+        const placement = e.key === "ArrowUp" ? "last" : "current";
+        this.openViewModeDropdown(button, placement);
+      };
+      button.addEventListener("click", button._clickHandler);
+      button.addEventListener("keydown", button._keydownHandler);
       return button;
     }
     button._clickHandler = (e) => {
@@ -2973,12 +3109,17 @@ var Toolbar = class {
    * Not exposed to users - viewMode button behavior is fixed
    */
   toggleViewModeDropdown(button) {
-    const existingDropdown = document.querySelector(".overtype-dropdown-menu");
-    if (existingDropdown) {
-      existingDropdown.remove();
-      button.classList.remove("dropdown-active");
+    if (this.activeDropdown) {
+      this.closeViewModeDropdown(button);
       return;
     }
+    this.openViewModeDropdown(button);
+  }
+  /**
+   * Open the view mode dropdown
+   */
+  openViewModeDropdown(button, focusPlacement = null) {
+    this.closeViewModeDropdown(button);
     button.classList.add("dropdown-active");
     const dropdown = this.createViewModeDropdown(button);
     const rect = button.getBoundingClientRect();
@@ -2986,16 +3127,42 @@ var Toolbar = class {
     dropdown.style.top = `${rect.bottom + 5}px`;
     dropdown.style.left = `${rect.left}px`;
     document.body.appendChild(dropdown);
+    this.activeDropdown = dropdown;
+    this.activeDropdownButton = button;
+    button.setAttribute("aria-controls", dropdown.id);
+    button.setAttribute("aria-expanded", "true");
     this.handleDocumentClick = (e) => {
       if (!dropdown.contains(e.target) && !button.contains(e.target)) {
-        dropdown.remove();
-        button.classList.remove("dropdown-active");
-        document.removeEventListener("click", this.handleDocumentClick);
+        this.closeViewModeDropdown(button);
       }
     };
     setTimeout(() => {
       document.addEventListener("click", this.handleDocumentClick);
     }, 0);
+    if (focusPlacement) {
+      this.focusViewModeMenuItem(dropdown, focusPlacement);
+    }
+  }
+  /**
+   * Close the view mode dropdown
+   */
+  closeViewModeDropdown(button = this.activeDropdownButton, returnFocus = false) {
+    if (this.activeDropdown) {
+      this.activeDropdown.remove();
+      this.activeDropdown = null;
+    }
+    if (button) {
+      button.classList.remove("dropdown-active");
+      button.setAttribute("aria-expanded", "false");
+    }
+    if (this.handleDocumentClick) {
+      document.removeEventListener("click", this.handleDocumentClick);
+      this.handleDocumentClick = null;
+    }
+    this.activeDropdownButton = null;
+    if (returnFocus && button) {
+      button.focus();
+    }
   }
   /**
    * Create view mode dropdown menu (internal implementation)
@@ -3003,6 +3170,12 @@ var Toolbar = class {
   createViewModeDropdown(button) {
     const dropdown = document.createElement("div");
     dropdown.className = "overtype-dropdown-menu";
+    dropdown.id = this.getInstanceElementId("toolbar-view-mode-menu");
+    dropdown.setAttribute("role", "menu");
+    dropdown.setAttribute("aria-label", "View mode");
+    dropdown.addEventListener("keydown", (e) => {
+      this.onViewModeMenuKeydown(e, button);
+    });
     const items = [
       { id: "normal", label: "Normal Edit", icon: "\u2713" },
       { id: "plain", label: "Plain Textarea", icon: "\u2713" },
@@ -3013,12 +3186,15 @@ var Toolbar = class {
       const menuItem = document.createElement("button");
       menuItem.className = "overtype-dropdown-item";
       menuItem.type = "button";
+      menuItem.tabIndex = -1;
+      menuItem.setAttribute("role", "menuitemradio");
+      menuItem.setAttribute("aria-checked", String(item.id === currentMode));
       menuItem.textContent = item.label;
       if (item.id === currentMode) {
         menuItem.classList.add("active");
-        menuItem.setAttribute("aria-current", "true");
         const checkmark = document.createElement("span");
         checkmark.className = "overtype-dropdown-icon";
+        checkmark.setAttribute("aria-hidden", "true");
         checkmark.textContent = item.icon;
         menuItem.prepend(checkmark);
       }
@@ -3036,13 +3212,76 @@ var Toolbar = class {
             this.editor.showNormalEditMode();
             break;
         }
-        dropdown.remove();
-        button.classList.remove("dropdown-active");
-        document.removeEventListener("click", this.handleDocumentClick);
+        this.closeViewModeDropdown(button, true);
       });
       dropdown.appendChild(menuItem);
     });
     return dropdown;
+  }
+  /**
+   * Handle keyboard navigation inside the view mode menu
+   */
+  onViewModeMenuKeydown(e, button) {
+    const menuItems = this.getViewModeMenuItems();
+    const currentIndex = menuItems.indexOf(e.target);
+    if (currentIndex === -1) {
+      return;
+    }
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        this.focusViewModeMenuItem(this.activeDropdown, currentIndex + 1);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        this.focusViewModeMenuItem(this.activeDropdown, currentIndex - 1);
+        break;
+      case "Home":
+        e.preventDefault();
+        this.focusViewModeMenuItem(this.activeDropdown, "first");
+        break;
+      case "End":
+        e.preventDefault();
+        this.focusViewModeMenuItem(this.activeDropdown, "last");
+        break;
+      case "Escape":
+        e.preventDefault();
+        this.closeViewModeDropdown(button, true);
+        break;
+    }
+  }
+  /**
+   * Focus a view mode menu item by index or placement
+   */
+  focusViewModeMenuItem(dropdown, placement) {
+    const menuItems = this.getViewModeMenuItems(dropdown);
+    if (menuItems.length === 0) {
+      return;
+    }
+    let index = placement;
+    if (placement === "first") {
+      index = 0;
+    } else if (placement === "last") {
+      index = menuItems.length - 1;
+    } else if (placement === "current") {
+      index = menuItems.findIndex((item) => item.getAttribute("aria-checked") === "true");
+    }
+    if (index < 0) {
+      index = menuItems.length - 1;
+    }
+    if (index >= menuItems.length) {
+      index = 0;
+    }
+    menuItems[index].focus();
+  }
+  /**
+   * Get the current view mode menu items
+   */
+  getViewModeMenuItems(dropdown = this.activeDropdown) {
+    if (!dropdown) {
+      return [];
+    }
+    return Array.from(dropdown.querySelectorAll('[role="menuitemradio"]'));
   }
   /**
    * Update active states of toolbar buttons
@@ -3057,39 +3296,14 @@ var Toolbar = class {
       Object.entries(this.buttons).forEach(([name, button]) => {
         if (name === "viewMode")
           return;
-        let isActive = false;
-        switch (name) {
-          case "bold":
-            isActive = activeFormats.includes("bold");
-            break;
-          case "italic":
-            isActive = activeFormats.includes("italic");
-            break;
-          case "code":
-            isActive = false;
-            break;
-          case "bulletList":
-            isActive = activeFormats.includes("bullet-list");
-            break;
-          case "orderedList":
-            isActive = activeFormats.includes("numbered-list");
-            break;
-          case "taskList":
-            isActive = activeFormats.includes("task-list");
-            break;
-          case "quote":
-            isActive = activeFormats.includes("quote");
-            break;
-          case "h1":
-            isActive = activeFormats.includes("header");
-            break;
-          case "h2":
-            isActive = activeFormats.includes("header-2");
-            break;
-          case "h3":
-            isActive = activeFormats.includes("header-3");
-            break;
+        const buttonConfig = this.toolbarButtons.find((buttonConfig2) => buttonConfig2.name === name);
+        if (!(buttonConfig == null ? void 0 : buttonConfig.isActive)) {
+          return;
         }
+        const isActive = Boolean(buttonConfig.isActive({
+          editor: this.editor,
+          activeFormats
+        }));
         button.classList.toggle("active", isActive);
         button.setAttribute("aria-pressed", isActive.toString());
       });
@@ -3111,13 +3325,20 @@ var Toolbar = class {
    */
   destroy() {
     if (this.container) {
-      if (this.handleDocumentClick) {
+      if (this.activeDropdown) {
+        this.closeViewModeDropdown();
+      } else if (this.handleDocumentClick) {
         document.removeEventListener("click", this.handleDocumentClick);
+        this.handleDocumentClick = null;
       }
       Object.values(this.buttons).forEach((button) => {
         if (button._clickHandler) {
           button.removeEventListener("click", button._clickHandler);
           delete button._clickHandler;
+        }
+        if (button._keydownHandler) {
+          button.removeEventListener("keydown", button._keydownHandler);
+          delete button._keydownHandler;
         }
       });
       this.container.remove();
@@ -4385,7 +4606,10 @@ var LinkTooltip = class {
       e.preventDefault();
       e.stopPropagation();
       if (this.currentLink) {
-        window.open(this.currentLink.url, "_blank");
+        const safeUrl = MarkdownParser.sanitizeUrl(this.currentLink.url);
+        if (safeUrl !== "#") {
+          window.open(safeUrl, "_blank");
+        }
         this.hide();
       }
     });
@@ -4413,7 +4637,7 @@ var LinkTooltip = class {
       if (position >= start && position <= end) {
         return {
           text: match[1],
-          url: match[2],
+          url: this.transformUrl(match[2]),
           index: linkIndex,
           start,
           end
@@ -4422,6 +4646,18 @@ var LinkTooltip = class {
       linkIndex++;
     }
     return null;
+  }
+  transformUrl(url) {
+    const transform = this.editor.options.transformLinkUrl;
+    if (typeof transform !== "function")
+      return url;
+    try {
+      const result = transform(url);
+      return typeof result === "string" ? result : url;
+    } catch (e) {
+      console.warn("transformLinkUrl threw:", e);
+      return url;
+    }
   }
   async show(linkInfo) {
     this.currentLink = linkInfo;
@@ -4574,6 +4810,7 @@ var toolbarButtons = {
     actionId: "toggleBold",
     icon: boldIcon,
     title: "Bold (Ctrl+B)",
+    isActive: ({ activeFormats }) => activeFormats.includes("bold"),
     action: ({ editor }) => {
       toggleBold(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4584,6 +4821,7 @@ var toolbarButtons = {
     actionId: "toggleItalic",
     icon: italicIcon,
     title: "Italic (Ctrl+I)",
+    isActive: ({ activeFormats }) => activeFormats.includes("italic"),
     action: ({ editor }) => {
       toggleItalic(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4594,6 +4832,7 @@ var toolbarButtons = {
     actionId: "toggleCode",
     icon: codeIcon,
     title: "Inline Code",
+    isActive: () => false,
     action: ({ editor }) => {
       toggleCode(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4618,6 +4857,7 @@ var toolbarButtons = {
     actionId: "toggleH1",
     icon: h1Icon,
     title: "Heading 1",
+    isActive: ({ activeFormats }) => activeFormats.includes("header"),
     action: ({ editor }) => {
       toggleH1(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4628,6 +4868,7 @@ var toolbarButtons = {
     actionId: "toggleH2",
     icon: h2Icon,
     title: "Heading 2",
+    isActive: ({ activeFormats }) => activeFormats.includes("header-2"),
     action: ({ editor }) => {
       toggleH2(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4638,6 +4879,7 @@ var toolbarButtons = {
     actionId: "toggleH3",
     icon: h3Icon,
     title: "Heading 3",
+    isActive: ({ activeFormats }) => activeFormats.includes("header-3"),
     action: ({ editor }) => {
       toggleH3(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4648,6 +4890,7 @@ var toolbarButtons = {
     actionId: "toggleBulletList",
     icon: bulletListIcon,
     title: "Bullet List",
+    isActive: ({ activeFormats }) => activeFormats.includes("bullet-list"),
     action: ({ editor }) => {
       toggleBulletList(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4658,6 +4901,7 @@ var toolbarButtons = {
     actionId: "toggleNumberedList",
     icon: orderedListIcon,
     title: "Numbered List",
+    isActive: ({ activeFormats }) => activeFormats.includes("numbered-list"),
     action: ({ editor }) => {
       toggleNumberedList(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4668,6 +4912,7 @@ var toolbarButtons = {
     actionId: "toggleTaskList",
     icon: taskListIcon,
     title: "Task List",
+    isActive: ({ activeFormats }) => activeFormats.includes("task-list"),
     action: ({ editor }) => {
       if (toggleTaskList) {
         toggleTaskList(editor.textarea);
@@ -4680,6 +4925,7 @@ var toolbarButtons = {
     actionId: "toggleQuote",
     icon: quoteIcon,
     title: "Quote",
+    isActive: ({ activeFormats }) => activeFormats.includes("quote"),
     action: ({ editor }) => {
       toggleQuote(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -4741,6 +4987,17 @@ var defaultToolbarButtons = [
 ];
 
 // src/overtype.js
+var _isSafariCache;
+function isSafariBrowser() {
+  if (_isSafariCache !== void 0)
+    return _isSafariCache;
+  _isSafariCache = false;
+  if (typeof navigator !== "undefined") {
+    const ua = navigator.userAgent || "";
+    _isSafariCache = /^((?!chrome|android|crios|fxios|edg|opr).)*safari/i.test(ua) || /iPad|iPhone|iPod/.test(ua) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1 && /Safari/.test(ua);
+  }
+  return _isSafariCache;
+}
 function buildActionsMap(buttons) {
   const map = {};
   (buttons || []).forEach((btn) => {
@@ -4815,6 +5072,8 @@ var _OverType = class _OverType {
     this.options = this._mergeOptions(options);
     this.instanceId = ++_OverType.instanceCount;
     this.initialized = false;
+    this._isSafari = isSafariBrowser();
+    this._safariReflowRaf = null;
     _OverType.injectStyles();
     _OverType.initGlobalListeners();
     const container = element.querySelector(".overtype-container");
@@ -4889,8 +5148,10 @@ var _OverType = class _OverType {
       // Enable smart list continuation
       codeHighlighter: null,
       // Per-instance code highlighter
-      spellcheck: false
+      spellcheck: false,
       // Browser spellcheck (disabled by default)
+      transformLinkUrl: null
+      // Transform URLs shown/opened in the link tooltip
     };
     const { theme, colors, ...cleanOptions } = options;
     return {
@@ -4943,6 +5204,8 @@ var _OverType = class _OverType {
     this.wrapper._instance = this;
     this._applyInstanceCSSVars();
     this._configureTextarea();
+    this._ensureTextareaId();
+    this._syncPreviewInteractivity();
     this._applyOptions();
   }
   /**
@@ -5006,6 +5269,7 @@ var _OverType = class _OverType {
         }
       });
     }
+    this._ensureTextareaId();
     this.preview = document.createElement("div");
     this.preview.className = "overtype-preview";
     this.preview.setAttribute("aria-hidden", "true");
@@ -5029,6 +5293,7 @@ var _OverType = class _OverType {
     } else {
       this.container.classList.remove("overtype-auto-resize");
     }
+    this._syncPreviewInteractivity();
   }
   /**
    * Configure textarea attributes
@@ -5042,6 +5307,31 @@ var _OverType = class _OverType {
     this.textarea.setAttribute("data-gramm", "false");
     this.textarea.setAttribute("data-gramm_editor", "false");
     this.textarea.setAttribute("data-enable-grammarly", "false");
+  }
+  /**
+   * Ensure the textarea can be referenced by aria-controls
+   * @private
+   */
+  _ensureTextareaId() {
+    if (!this.textarea.id) {
+      this.textarea.id = `overtype-${this.instanceId}-input`;
+    }
+  }
+  /**
+   * Keep rendered preview content out of keyboard navigation until Preview mode.
+   * @private
+   */
+  _syncPreviewInteractivity() {
+    if (!this.preview || !this.container)
+      return;
+    const isPreviewMode = this.container.dataset.mode === "preview";
+    this.preview.inert = !isPreviewMode;
+    this.preview.toggleAttribute("inert", !isPreviewMode);
+    if (isPreviewMode) {
+      this.preview.removeAttribute("aria-hidden");
+      return;
+    }
+    this.preview.setAttribute("aria-hidden", "true");
   }
   /**
    * Create and setup toolbar
@@ -5381,6 +5671,29 @@ var _OverType = class _OverType {
   handleInput(event) {
     this.updatePreview();
     this._notifyChange();
+    this._scheduleSafariReflow();
+  }
+  /**
+   * Force Safari to re-shape stale textarea text after an edit.
+   * Safari can leave a textarea's glyph layout cached after incremental edits,
+   * desyncing the caret/wrap from the styled preview overlay. Toggling
+   * letter-spacing (with !important to beat the stylesheet rule) and reading
+   * offsetHeight forces a synchronous re-shape. Safari-only, coalesced to one
+   * run per animation frame.
+   * @private
+   */
+  _scheduleSafariReflow() {
+    if (!this._isSafari || this._safariReflowRaf)
+      return;
+    this._safariReflowRaf = requestAnimationFrame(() => {
+      this._safariReflowRaf = null;
+      const ta = this.textarea;
+      if (!ta)
+        return;
+      ta.style.setProperty("letter-spacing", "-0.001px", "important");
+      void ta.offsetHeight;
+      ta.style.removeProperty("letter-spacing");
+    });
   }
   /**
    * Handle focus events
@@ -5408,49 +5721,11 @@ var _OverType = class _OverType {
     if (event.key === "Tab") {
       const start = this.textarea.selectionStart;
       const end = this.textarea.selectionEnd;
-      const value = this.textarea.value;
-      if (event.shiftKey && start === end) {
+      if (start !== end && this._canEditTextarea()) {
+        event.preventDefault();
+        event.shiftKey ? this.outdentSelection() : this.indentSelection();
         return;
       }
-      event.preventDefault();
-      if (start !== end && event.shiftKey) {
-        const before = value.substring(0, start);
-        const selection = value.substring(start, end);
-        const after = value.substring(end);
-        const lines = selection.split("\n");
-        const outdented = lines.map((line) => line.replace(/^  /, "")).join("\n");
-        if (document.execCommand) {
-          this.textarea.setSelectionRange(start, end);
-          document.execCommand("insertText", false, outdented);
-        } else {
-          this.textarea.value = before + outdented + after;
-          this.textarea.selectionStart = start;
-          this.textarea.selectionEnd = start + outdented.length;
-        }
-      } else if (start !== end) {
-        const before = value.substring(0, start);
-        const selection = value.substring(start, end);
-        const after = value.substring(end);
-        const lines = selection.split("\n");
-        const indented = lines.map((line) => "  " + line).join("\n");
-        if (document.execCommand) {
-          this.textarea.setSelectionRange(start, end);
-          document.execCommand("insertText", false, indented);
-        } else {
-          this.textarea.value = before + indented + after;
-          this.textarea.selectionStart = start;
-          this.textarea.selectionEnd = start + indented.length;
-        }
-      } else {
-        if (document.execCommand) {
-          document.execCommand("insertText", false, "  ");
-        } else {
-          this.textarea.value = value.substring(0, start) + "  " + value.substring(end);
-          this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
-        }
-      }
-      this.textarea.dispatchEvent(new Event("input", { bubbles: true }));
-      return;
     }
     if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey && this.options.smartLists) {
       if (this.handleSmartListContinuation()) {
@@ -5587,6 +5862,7 @@ var _OverType = class _OverType {
     }
     if (didChange) {
       this._notifyChange();
+      this._scheduleSafariReflow();
     }
   }
   /**
@@ -5646,6 +5922,63 @@ var _OverType = class _OverType {
    */
   getPreviewHTML() {
     return this.preview.innerHTML;
+  }
+  /**
+   * Indent the current line or selected lines by two spaces.
+   */
+  indentSelection() {
+    this._replaceSelectedLines((line) => `  ${line}`);
+  }
+  /**
+   * Outdent the current line or selected lines by up to two spaces or one tab.
+   */
+  outdentSelection() {
+    this._replaceSelectedLines((line) => line.replace(/^( {1,2}|\t)/, ""));
+  }
+  /**
+   * Replace full lines touched by the current selection.
+   * @private
+   */
+  _replaceSelectedLines(transformLine) {
+    if (!this._canEditTextarea())
+      return false;
+    const textarea = this.textarea;
+    const { selectionStart, selectionEnd, value } = textarea;
+    const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+    const effectiveEnd = this._effectiveSelectionEnd(value, selectionStart, selectionEnd);
+    const lineEndOffset = value.indexOf("\n", effectiveEnd);
+    const lineEnd = lineEndOffset === -1 ? value.length : lineEndOffset;
+    const selectedLines = value.slice(lineStart, lineEnd);
+    const replacement = selectedLines.split("\n").map(transformLine).join("\n");
+    if (replacement === selectedLines)
+      return false;
+    textarea.setSelectionRange(lineStart, lineEnd);
+    let inserted = false;
+    try {
+      inserted = document.execCommand("insertText", false, replacement);
+    } catch (_) {
+    }
+    if (!inserted) {
+      textarea.setRangeText(replacement, lineStart, lineEnd, "preserve");
+    }
+    textarea.setSelectionRange(lineStart, lineStart + replacement.length);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+    return true;
+  }
+  /**
+   * @private
+   */
+  _effectiveSelectionEnd(value, selectionStart, selectionEnd) {
+    if (selectionEnd > selectionStart && value[selectionEnd - 1] === "\n") {
+      return selectionEnd - 1;
+    }
+    return selectionEnd;
+  }
+  /**
+   * @private
+   */
+  _canEditTextarea() {
+    return this.textarea && !this.textarea.disabled && !this.textarea.readOnly;
   }
   /**
    * Get clean HTML without any OverType-specific markup
@@ -5870,6 +6203,7 @@ var _OverType = class _OverType {
    */
   showNormalEditMode() {
     this.container.dataset.mode = "normal";
+    this._syncPreviewInteractivity();
     this.updatePreview();
     this._updateAutoHeight();
     requestAnimationFrame(() => {
@@ -5884,6 +6218,7 @@ var _OverType = class _OverType {
    */
   showPlainTextarea() {
     this.container.dataset.mode = "plain";
+    this._syncPreviewInteractivity();
     this._updateAutoHeight();
     if (this.toolbar) {
       const toggleBtn = this.container.querySelector('[data-action="toggle-plain"]');
@@ -5900,6 +6235,7 @@ var _OverType = class _OverType {
    */
   showPreviewMode() {
     this.container.dataset.mode = "preview";
+    this._syncPreviewInteractivity();
     this.updatePreview();
     this._updateAutoHeight();
     return this;
@@ -5917,6 +6253,10 @@ var _OverType = class _OverType {
     _OverType.instances.delete(this.element);
     if (this.shortcuts) {
       this.shortcuts.destroy();
+    }
+    if (this._safariReflowRaf) {
+      cancelAnimationFrame(this._safariReflowRaf);
+      this._safariReflowRaf = null;
     }
     if (this.wrapper) {
       const content = this.getValue();
@@ -5949,11 +6289,16 @@ var _OverType = class _OverType {
     return elements.map((el) => {
       const options = { ...defaults };
       for (const attr of el.attributes) {
-        if (attr.name.startsWith("data-ot-")) {
-          const kebab = attr.name.slice(8);
-          const key = kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-          options[key] = _OverType._parseDataValue(attr.value);
+        if (!attr.name.startsWith("data-ot-"))
+          continue;
+        const kebab = attr.name.slice(8);
+        if (kebab.startsWith("textarea-") && kebab !== "textarea-props") {
+          const propKey = kebab.slice(9).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+          options.textareaProps = { ...options.textareaProps || {}, [propKey]: _OverType._parseDataValue(attr.value) };
+          continue;
         }
+        const key = kebab.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+        options[key] = _OverType._parseDataValue(attr.value);
       }
       return new _OverType(el, options)[0];
     });
@@ -5998,6 +6343,14 @@ var _OverType = class _OverType {
       return null;
     if (value !== "" && !isNaN(Number(value)))
       return Number(value);
+    const trimmed = value.trim();
+    if (trimmed[0] === "{" || trimmed[0] === "[") {
+      try {
+        return JSON.parse(trimmed);
+      } catch (e) {
+        return value;
+      }
+    }
     return value;
   }
   /**
@@ -6176,8 +6529,13 @@ var _OverType = class _OverType {
    * Initialize global event listeners
    */
   static initGlobalListeners() {
-    if (_OverType.globalListenersInitialized)
+    const globalScope = typeof window !== "undefined" ? window : globalThis;
+    const globalListenersKey = "__overtypeGlobalListenersInitialized";
+    if (_OverType.globalListenersInitialized || globalScope[globalListenersKey]) {
+      _OverType.globalListenersInitialized = true;
       return;
+    }
+    globalScope[globalListenersKey] = true;
     document.addEventListener("input", (e) => {
       if (e.target && e.target.classList && e.target.classList.contains("overtype-input")) {
         const wrapper = e.target.closest(".overtype-wrapper");

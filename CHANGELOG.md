@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.4.0] - 2026-06-18
+
+### Added
+- `transformLinkUrl` option to rewrite the URL shown in and opened from the link tooltip, per instance (#85)
+- Indent/outdent selected lines with Tab/Shift+Tab, plus `Cmd/Ctrl+]` and `Cmd/Ctrl+[` shortcuts, and public `indentSelection()` / `outdentSelection()` methods (#115)
+- JSON parsing for `data-ot-*` attributes and `data-ot-textarea-*` shortcuts, so options like `textareaProps` (e.g. `required`) can be set from HTML (#112)
+- Autocomplete recipe for building `@mention` / `#issue` popups on the public API, in docs/AUTOCOMPLETE.md (#96)
+
+### Fixed
+- Keyboard focus trap: collapsed Tab/Shift+Tab now uses native focus traversal instead of inserting spaces, so keyboard users can move out of the editor (WCAG 2.1.2) (#113)
+- Toolbar accessibility now follows the W3C APG Toolbar pattern: roving tabindex, `aria-pressed` on toggle buttons only, `aria-controls`, and menu-button semantics for the view-mode dropdown (#114)
+- Safari: nudge the textarea to re-flow after edits so the caret and word-wrap stop desyncing from the overlay (#116)
+- `exports.browser` in package.json pointed to a non-existent file (`overtype.iife.min.js`); now points to `overtype.min.js`
+- Link tooltip now sanitizes the URL before opening, closing a latent `javascript:` URL vector
+
 ## [2.3.10] - 2026-05-02
 
 ### Added

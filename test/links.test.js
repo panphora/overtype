@@ -4,6 +4,7 @@
  */
 
 import { MarkdownParser } from '../src/parser.js';
+import { LinkTooltip } from '../src/link-tooltip.js';
 
 // Test results storage
 const results = {
@@ -384,6 +385,84 @@ console.log('\n🔧 URL Escaping (Fix for Issue #63)\n');
     urlPartMatch !== null,
     'Alignment preserved with special chars',
     `URL escaping should preserve alignment. Got: ${parsed}`
+  );
+})();
+
+// ===== transformLinkUrl (Issue #85) =====
+console.log('\n🔁 transformLinkUrl\n');
+
+function makeTooltip(options) {
+  const tt = Object.create(LinkTooltip.prototype);
+  tt.editor = { options };
+  return tt;
+}
+
+// Test: transform rewrites the tooltip URL
+(() => {
+  const urlPreviewRegExp = [[/^\//, '/preview/'], [/www\./, '']];
+  const transformLinkUrl = (url) => urlPreviewRegExp.reduce((value, re) => value.replace(...re), url);
+  const tt = makeTooltip({ transformLinkUrl });
+  const info = tt.findLinkAtPosition('[Home](/about)', 2);
+  assert(
+    info && info.url === '/preview/about',
+    'transformLinkUrl rewrites relative URL',
+    `Expected /preview/about. Got: ${info && info.url}`
+  );
+})();
+
+// Test: no transform leaves URL unchanged
+(() => {
+  const tt = makeTooltip({ transformLinkUrl: null });
+  const info = tt.findLinkAtPosition('[Home](/about)', 2);
+  assert(
+    info && info.url === '/about',
+    'transformLinkUrl null leaves URL unchanged',
+    `Expected /about. Got: ${info && info.url}`
+  );
+})();
+
+// Test: throwing transform falls back to original URL
+(() => {
+  const tt = makeTooltip({ transformLinkUrl: () => { throw new Error('boom'); } });
+  const info = tt.findLinkAtPosition('[Home](/about)', 2);
+  assert(
+    info && info.url === '/about',
+    'transformLinkUrl that throws falls back to original',
+    `Expected /about. Got: ${info && info.url}`
+  );
+})();
+
+// Test: non-string return falls back to original URL
+(() => {
+  const tt = makeTooltip({ transformLinkUrl: () => 42 });
+  const info = tt.findLinkAtPosition('[Home](/about)', 2);
+  assert(
+    info && info.url === '/about',
+    'transformLinkUrl non-string return falls back to original',
+    `Expected /about. Got: ${info && info.url}`
+  );
+})();
+
+// Test: source text is not mutated
+(() => {
+  const text = '[Home](/about)';
+  const tt = makeTooltip({ transformLinkUrl: (u) => '/preview' + u });
+  tt.findLinkAtPosition(text, 2);
+  assert(
+    text === '[Home](/about)',
+    'transformLinkUrl does not mutate source text',
+    `Source text should be unchanged. Got: ${text}`
+  );
+})();
+
+// Test: dangerous transformed URL is sanitized to # before open
+(() => {
+  const tt = makeTooltip({ transformLinkUrl: () => 'javascript:alert(1)' });
+  const info = tt.findLinkAtPosition('[x](/safe)', 2);
+  assert(
+    MarkdownParser.sanitizeUrl(info.url) === '#',
+    'transformed dangerous URL is sanitized to # before open',
+    `Expected #. Got: ${MarkdownParser.sanitizeUrl(info.url)}`
   );
 })();
 

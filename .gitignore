@@ -40,3 +40,6 @@ CLAUDE.md
 
 # Codex CLI session data
 .claude/
+
+# Local working files (issue dumps, brainstorms, planning docs)
+DONT_COMMIT/

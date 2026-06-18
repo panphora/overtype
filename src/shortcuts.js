@@ -22,6 +22,18 @@ export class ShortcutsManager {
 
     if (!modKey) return false;
 
+    if (event.key === ']') {
+      event.preventDefault();
+      this.editor.indentSelection();
+      return true;
+    }
+
+    if (event.key === '[') {
+      event.preventDefault();
+      this.editor.outdentSelection();
+      return true;
+    }
+
     let actionId = null;
 
     switch (event.key.toLowerCase()) {
