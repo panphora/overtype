@@ -255,9 +255,11 @@ The toolbar and keyboard shortcuts work together seamlessly:
 
 - **Cmd/Ctrl + B** - Bold
 - **Cmd/Ctrl + I** - Italic
+- **Cmd/Ctrl + E** - Inline code
 - **Cmd/Ctrl + K** - Insert link
 - **Cmd/Ctrl + Shift + 7** - Numbered list
 - **Cmd/Ctrl + Shift + 8** - Bullet list
+- **Cmd/Ctrl + Shift + .** - Quote
 - **Cmd/Ctrl + ]** - Indent current line or selection
 - **Cmd/Ctrl + [** - Outdent current line or selection
 - **Tab / Shift+Tab** - Indent or outdent selected lines
@@ -686,9 +688,11 @@ OverType.themes.cave
 |----------|--------|
 | Cmd/Ctrl + B | Toggle bold |
 | Cmd/Ctrl + I | Toggle italic |
+| Cmd/Ctrl + E | Toggle inline code |
 | Cmd/Ctrl + K | Insert link |
 | Cmd/Ctrl + Shift + 7 | Toggle numbered list |
 | Cmd/Ctrl + Shift + 8 | Toggle bullet list |
+| Cmd/Ctrl + Shift + . | Toggle quote |
 | Cmd/Ctrl + ] | Indent current line or selection |
 | Cmd/Ctrl + [ | Outdent current line or selection |
 | Tab / Shift+Tab | Indent or outdent selected lines |
