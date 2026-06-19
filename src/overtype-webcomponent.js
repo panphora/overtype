@@ -15,7 +15,7 @@ const DEFAULT_PLACEHOLDER = 'Start typing...';
 const OBSERVED_ATTRIBUTES = [
   'value', 'theme', 'toolbar', 'height', 'min-height', 'max-height', 
   'placeholder', 'font-size', 'line-height', 'padding', 'auto-resize', 
-  'autofocus', 'show-stats', 'smart-lists', 'readonly', 'spellcheck'
+  'autofocus', 'show-stats', 'smart-lists', 'link-paste', 'readonly', 'spellcheck'
 ];
 
 /**
@@ -262,6 +262,7 @@ class OverTypeEditor extends HTMLElement {
       autoResize: this.hasAttribute('auto-resize'),
       showStats: this.hasAttribute('show-stats'),
       smartLists: !this.hasAttribute('smart-lists') || this.getAttribute('smart-lists') !== 'false',
+      linkPaste: !this.hasAttribute('link-paste') || this.getAttribute('link-paste') !== 'false',
       spellcheck: this.hasAttribute('spellcheck') && this.getAttribute('spellcheck') !== 'false',
       onChange: this._handleChange,
       onKeydown: this._handleKeydown,
@@ -388,6 +389,13 @@ class OverTypeEditor extends HTMLElement {
       case 'smart-lists': {
         const newSmartLists = !this.hasAttribute('smart-lists') || this.getAttribute('smart-lists') !== 'false';
         if (!!this._editor.options.smartLists === !!newSmartLists) return;
+        this._reinitializeEditor();
+        break;
+      }
+
+      case 'link-paste': {
+        const newLinkPaste = !this.hasAttribute('link-paste') || this.getAttribute('link-paste') !== 'false';
+        if (!!this._editor.options.linkPaste === !!newLinkPaste) return;
         this._reinitializeEditor();
         break;
       }

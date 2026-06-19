@@ -42,6 +42,7 @@ const editorsWithOptions: OverTypeInstance[] = new OverType('#editor', {
   showActiveLineRaw: true,
   showStats: true,
   toolbar: true,
+  linkPaste: true,
   statsFormatter: (stats: Stats) => `${stats.words} words, ${stats.chars} chars`,
 
   // Callbacks
