@@ -144,7 +144,7 @@ const [editor] = new OverType('#editor', {
   value: '# Document\n\nSelect text and use the toolbar!'
 });
 
-// Default toolbar: Bold, Italic, Code | Link | H1, H2, H3 | Lists, Tasks | Quote | View Mode
+// Default toolbar: Bold, Italic, Strikethrough, Code | Link | H1, H2, H3 | Lists, Tasks | Quote | View Mode
 ```
 
 **Custom Toolbar (v2.0):**
@@ -169,7 +169,7 @@ const [editor] = new OverType('#editor', {
   ]
 });
 
-// Available: bold, italic, code, link, h1, h2, h3, bulletList,
+// Available: bold, italic, strikethrough, code, link, h1, h2, h3, h4, h5, h6, bulletList,
 // orderedList, taskList, quote, separator, viewMode
 ```
 
@@ -203,7 +203,7 @@ document.querySelector('#bold-btn').addEventListener('click', () => {
 });
 ```
 
-Available actions include `toggleBold`, `toggleItalic`, `toggleCode`, `insertLink`, `toggleBulletList`, `toggleNumberedList`, `toggleQuote`, `toggleTaskList`, `insertHeader`, `toggleH1`/`H2`/`H3`, `getActiveFormats`, `hasFormat`, `expandSelection`, and `applyCustomFormat`. The same namespace is available as `window.markdownActions` and `OverType.markdownActions` in script-tag builds.
+Available actions include `toggleBold`, `toggleItalic`, `toggleStrikethrough`, `toggleCode`, `insertLink`, `toggleBulletList`, `toggleNumberedList`, `toggleQuote`, `toggleTaskList`, `insertHeader`, `toggleH1`/`H2`/`H3`/`H4`/`H5`/`H6`, `getActiveFormats`, `hasFormat`, `expandSelection`, and `applyCustomFormat`. The same namespace is available as `window.markdownActions` and `OverType.markdownActions` in script-tag builds.
 
 See [examples/custom-toolbar.html](examples/custom-toolbar.html) for complete examples.
 
@@ -345,6 +345,9 @@ const [editor] = new OverType('#editor', {
       h1: '#f95738',
       h2: '#ee964b',
       h3: '#3d8a51',
+      h4: '#0d3b66',
+      h5: '#5a7a9b',
+      h6: '#999999',
       strong: '#ee964b',
       em: '#f95738',
       link: '#0d3b66',
@@ -697,7 +700,7 @@ When no text is selected, Tab and Shift+Tab use normal browser focus navigation.
 
 ## Supported Markdown
 
-- **Headers** - `# H1`, `## H2`, `### H3`
+- **Headers** - `# H1` through `###### H6`
 - **Bold** - `**text**` or `__text__`
 - **Italic** - `*text*` or `_text_`
 - **Strikethrough** - `~~text~~` or `~text~` (GFM)
