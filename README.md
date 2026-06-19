@@ -1,6 +1,6 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~117KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~119KB minified with all features.
 
 ## Live Examples
 
@@ -19,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~117KB minified
+- 🚀 **Lightweight** - ~119KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -35,7 +35,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~117KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~119KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -332,6 +332,16 @@ const [editor] = new OverType('#editor', {
 
 See [examples/file-upload.html](website/examples/file-upload.html) for a complete working demo.
 
+### Link Paste
+
+When `linkPaste` is enabled, pasting a URL over selected text converts it into a Markdown link:
+
+```text
+Example + paste https://example.com -> [Example](https://example.com)
+```
+
+Pasting a URL without selected text keeps the paste native. Use Ctrl/Cmd+Shift+V to bypass link formatting for the next paste. Set `linkPaste: false` to keep URL pastes fully native.
+
 ### Custom Theme
 
 ```javascript
@@ -560,6 +570,9 @@ new OverType(target, options)
 
   // Smart lists
   smartLists: true,       // Enable GitHub-style list continuation on Enter
+
+  // Link paste
+  linkPaste: true,        // Convert pasted URLs into markdown links
 
   // Spellcheck
   spellcheck: false,      // Enable browser spellcheck (disabled by default)
@@ -914,7 +927,7 @@ Both put a real `required`/`name`/etc. attribute on the underlying `<textarea>`,
 
 Any object-valued option can also be passed as JSON (values starting with `{` or `[` are parsed; malformed JSON falls back to the raw string).
 
-**Supported:** `toolbar`, `theme`, `value`, `placeholder`, `autofocus`, `auto-resize`, `min-height`, `max-height`, `font-size`, `line-height`, `show-stats`, `smart-lists`, `show-active-line-raw`, `textarea-props` / `textarea-*`
+**Supported:** `toolbar`, `theme`, `value`, `placeholder`, `autofocus`, `auto-resize`, `min-height`, `max-height`, `font-size`, `line-height`, `show-stats`, `smart-lists`, `link-paste`, `show-active-line-raw`, `textarea-props` / `textarea-*`
 
 **Not supported (use JS):** `toolbarButtons`, `onChange`, `onKeydown`, `onFocus`, `onBlur`, `statsFormatter`, `codeHighlighter`, `colors`, `mobile`
 

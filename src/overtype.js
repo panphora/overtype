@@ -4,7 +4,7 @@
  * @license MIT
  */
 
-import { MarkdownParser } from './parser.js';
+import { MarkdownParser, safeUrlPrefixes } from './parser.js';
 import { ShortcutsManager } from './shortcuts.js';
 import { generateStyles } from './styles.js';
 import { getTheme, mergeTheme, solar, themeToCSSVars, resolveAutoTheme } from './themes.js';
@@ -245,6 +245,7 @@ class OverType {
         toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
+        linkPaste: true,  // Convert pasted URLs into markdown links
         codeHighlighter: null,  // Per-instance code highlighter
         spellcheck: false,  // Browser spellcheck (disabled by default)
         transformLinkUrl: null  // Transform URLs shown/opened in the link tooltip
@@ -646,8 +647,123 @@ class OverType {
         this._destroyFileUpload();
       }
 
+      // Setup or remove link paste
+      if (this.options.linkPaste && !this.linkPasteInitialized) {
+        this._initLinkPaste();
+      } else if (!this.options.linkPaste && this.linkPasteInitialized) {
+        this._destroyLinkPaste();
+      }
+
       // Update preview with initial content
       this.updatePreview();
+    }
+
+    _initLinkPaste() {
+      this._pasteAsPlainText = false;
+      this._pasteAsPlainTextTimeout = null;
+      this._boundHandleLinkPaste = this._handleLinkPaste.bind(this);
+      this._boundHandleLinkPasteKeydown = this._handleLinkPasteKeydown.bind(this);
+
+      this.textarea.addEventListener('paste', this._boundHandleLinkPaste);
+      this.textarea.addEventListener('keydown', this._boundHandleLinkPasteKeydown);
+
+      this.linkPasteInitialized = true;
+    }
+
+    _handleLinkPaste(event) {
+      if (this._pasteAsPlainText) {
+        this._clearPasteAsPlainText();
+        return;
+      }
+
+      if (
+        event.defaultPrevented ||
+        !this._canEditTextarea() ||
+        this.textarea.selectionStart === this.textarea.selectionEnd ||
+        event.clipboardData?.files?.length
+      ) {
+        return;
+      }
+
+      const pastedText = event.clipboardData?.getData('text/plain').trim();
+
+      if (!pastedText || !this._isLinkPasteUrl(pastedText)) {
+        return;
+      }
+
+      event.preventDefault();
+      this._insertLinkAtSelection(pastedText);
+    }
+
+    _handleLinkPasteKeydown(event) {
+      if (
+        this._isModifierKeyPressed(event) &&
+        event.shiftKey &&
+        event.key.toLowerCase() === 'v'
+      ) {
+        this._allowNextPasteAsPlainText();
+      }
+    }
+
+    _allowNextPasteAsPlainText() {
+      this._pasteAsPlainText = true;
+
+      if (this._pasteAsPlainTextTimeout) {
+        clearTimeout(this._pasteAsPlainTextTimeout);
+      }
+
+      this._pasteAsPlainTextTimeout = setTimeout(() => {
+        this._pasteAsPlainText = false;
+        this._pasteAsPlainTextTimeout = null;
+      }, 1000);
+    }
+
+    _clearPasteAsPlainText() {
+      this._pasteAsPlainText = false;
+
+      if (this._pasteAsPlainTextTimeout) {
+        clearTimeout(this._pasteAsPlainTextTimeout);
+        this._pasteAsPlainTextTimeout = null;
+      }
+    }
+
+    _insertLinkAtSelection(url) {
+      const { selectionStart, selectionEnd, value } = this.textarea;
+      const selectedText = value.slice(selectionStart, selectionEnd);
+      const markdown = `[${selectedText}](${url})`;
+
+      this.textarea.setRangeText(markdown, selectionStart, selectionEnd, 'end');
+
+      this.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    _isLinkPasteUrl(value) {
+      const trimmed = value.trim();
+      const lower = trimmed.toLowerCase();
+
+      try {
+        new URL(trimmed);
+
+        return safeUrlPrefixes.some(prefix => lower.startsWith(prefix));
+      } catch (_) {
+        return false;
+      }
+    }
+
+    _isModifierKeyPressed(event) {
+      const isMac = navigator.platform.toLowerCase().includes('mac');
+
+      return isMac ? event.metaKey : event.ctrlKey;
+    }
+
+    _destroyLinkPaste() {
+      this._clearPasteAsPlainText();
+
+      this.textarea.removeEventListener('paste', this._boundHandleLinkPaste);
+      this.textarea.removeEventListener('keydown', this._boundHandleLinkPasteKeydown);
+      this._boundHandleLinkPaste = null;
+      this._boundHandleLinkPasteKeydown = null;
+      this.linkPasteInitialized = false;
     }
 
     _initFileUpload() {
@@ -1643,6 +1759,9 @@ class OverType {
 
       if (this.fileUploadInitialized) {
         this._destroyFileUpload();
+      }
+      if (this.linkPasteInitialized) {
+        this._destroyLinkPaste();
       }
 
       // Remove instance reference

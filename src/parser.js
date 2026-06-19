@@ -1,3 +1,13 @@
+export const safeUrlPrefixes = [
+  'http://',
+  'https://',
+  'mailto:',
+  'ftp://',
+  'ftps://',
+  'tel:',
+  'sms:'
+];
+
 /**
  * MarkdownParser - Parses markdown into HTML while preserving character alignment
  *
@@ -243,17 +253,8 @@ export class MarkdownParser {
     const trimmed = url.trim();
     const lower = trimmed.toLowerCase();
 
-    // Allow safe protocols
-    const safeProtocols = [
-      'http://',
-      'https://',
-      'mailto:',
-      'ftp://',
-      'ftps://'
-    ];
-
     // Check if URL starts with a safe protocol
-    const hasSafeProtocol = safeProtocols.some(protocol => lower.startsWith(protocol));
+    const hasSafeProtocol = safeUrlPrefixes.some(prefix => lower.startsWith(prefix));
 
     // Allow relative URLs (starting with / or # or no protocol)
     const isRelative = trimmed.startsWith('/') ||
