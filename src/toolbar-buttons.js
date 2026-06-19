@@ -38,6 +38,18 @@ export const toolbarButtons = {
     }
   },
 
+  strikethrough: {
+    name: 'strikethrough',
+    actionId: 'toggleStrikethrough',
+    icon: icons.strikethroughIcon,
+    title: 'Strikethrough',
+    isActive: ({ activeFormats }) => activeFormats.includes('strikethrough'),
+    action: ({ editor }) => {
+      markdownActions.toggleStrikethrough(editor.textarea);
+      editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  },
+
   code: {
     name: 'code',
     actionId: 'toggleCode',
@@ -98,6 +110,42 @@ export const toolbarButtons = {
     isActive: ({ activeFormats }) => activeFormats.includes('header-3'),
     action: ({ editor }) => {
       markdownActions.toggleH3(editor.textarea);
+      editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  },
+
+  h4: {
+    name: 'h4',
+    actionId: 'toggleH4',
+    icon: icons.h4Icon,
+    title: 'Heading 4',
+    isActive: ({ activeFormats }) => activeFormats.includes('header-4'),
+    action: ({ editor }) => {
+      markdownActions.toggleH4(editor.textarea);
+      editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  },
+
+  h5: {
+    name: 'h5',
+    actionId: 'toggleH5',
+    icon: icons.h5Icon,
+    title: 'Heading 5',
+    isActive: ({ activeFormats }) => activeFormats.includes('header-5'),
+    action: ({ editor }) => {
+      markdownActions.toggleH5(editor.textarea);
+      editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  },
+
+  h6: {
+    name: 'h6',
+    actionId: 'toggleH6',
+    icon: icons.h6Icon,
+    title: 'Heading 6',
+    isActive: ({ activeFormats }) => activeFormats.includes('header-6'),
+    action: ({ editor }) => {
+      markdownActions.toggleH6(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
   },
@@ -191,6 +239,7 @@ export const toolbarButtons = {
 export const defaultToolbarButtons = [
   toolbarButtons.bold,
   toolbarButtons.italic,
+  toolbarButtons.strikethrough,
   toolbarButtons.code,
   toolbarButtons.separator,
   toolbarButtons.link,
