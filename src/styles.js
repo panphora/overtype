@@ -296,11 +296,23 @@ export function generateStyles(options = {}) {
     .overtype-wrapper .overtype-preview .h3 { 
       color: var(--h3, #3d8a51) !important; 
     }
+    .overtype-wrapper .overtype-preview .h4 {
+      color: var(--h4, #0d3b66) !important;
+    }
+    .overtype-wrapper .overtype-preview .h5 {
+      color: var(--h5, #5a7a9b) !important;
+    }
+    .overtype-wrapper .overtype-preview .h6 {
+      color: var(--h6, #999999) !important;
+    }
 
     /* Semantic headers - flatten in edit mode */
     .overtype-wrapper .overtype-preview h1,
     .overtype-wrapper .overtype-preview h2,
-    .overtype-wrapper .overtype-preview h3 {
+    .overtype-wrapper .overtype-preview h3,
+    .overtype-wrapper .overtype-preview h4,
+    .overtype-wrapper .overtype-preview h5,
+    .overtype-wrapper .overtype-preview h6 {
       font-size: inherit !important;
       font-weight: bold !important;
       margin: 0 !important;
@@ -318,6 +330,15 @@ export function generateStyles(options = {}) {
     }
     .overtype-wrapper .overtype-preview h3 { 
       color: var(--h3, #3d8a51) !important; 
+    }
+    .overtype-wrapper .overtype-preview h4 {
+      color: var(--h4, #0d3b66) !important;
+    }
+    .overtype-wrapper .overtype-preview h5 {
+      color: var(--h5, #5a7a9b) !important;
+    }
+    .overtype-wrapper .overtype-preview h6 {
+      color: var(--h6, #999999) !important;
     }
 
     /* Lists - remove styling in edit mode */
@@ -718,7 +739,10 @@ export function generateStyles(options = {}) {
     /* Headers - restore proper sizing in preview mode */
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h1,
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h2,
-    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3 {
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3,
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h4,
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h5,
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h6 {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
       font-weight: 600 !important;
       margin: 0 !important;
@@ -739,6 +763,21 @@ export function generateStyles(options = {}) {
     .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h3 {
       font-size: 1.17em !important;
       color: var(--preview-h3, var(--preview-h3-default)) !important;
+    }
+
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h4 {
+      font-size: 1em !important;
+      color: var(--preview-h4, var(--preview-h4-default)) !important;
+    }
+
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h5 {
+      font-size: 0.83em !important;
+      color: var(--preview-h5, var(--preview-h5-default)) !important;
+    }
+
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview h6 {
+      font-size: 0.67em !important;
+      color: var(--preview-h6, var(--preview-h6-default)) !important;
     }
 
     /* Lists - restore list styling in preview mode */

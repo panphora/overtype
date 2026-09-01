@@ -51,7 +51,10 @@ console.log('\n📝 Parser Tests\n');
     { input: '# Title', expected: '<div><h1><span class="syntax-marker"># </span>Title</h1></div>' },
     { input: '## Subtitle', expected: '<div><h2><span class="syntax-marker">## </span>Subtitle</h2></div>' },
     { input: '### Section', expected: '<div><h3><span class="syntax-marker">### </span>Section</h3></div>' },
-    { input: '#### Too Deep', expected: '<div>#### Too Deep</div>' }
+    { input: '#### Detail', expected: '<div><h4><span class="syntax-marker">#### </span>Detail</h4></div>' },
+    { input: '##### Fine Print', expected: '<div><h5><span class="syntax-marker">##### </span>Fine Print</h5></div>' },
+    { input: '###### Caption', expected: '<div><h6><span class="syntax-marker">###### </span>Caption</h6></div>' },
+    { input: '####### Too Deep', expected: '<div>####### Too Deep</div>' }
   ];
   
   tests.forEach(test => {

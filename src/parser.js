@@ -80,12 +80,12 @@ export class MarkdownParser {
   }
 
   /**
-   * Parse headers (h1-h3 only)
+   * Parse headers (h1-h6)
    * @param {string} html - HTML line to parse
    * @returns {string} Parsed HTML with header styling
    */
   static parseHeader(html) {
-    return html.replace(/^(#{1,3})\s(.+)$/, (match, hashes, content) => {
+    return html.replace(/^(#{1,6})\s(.+)$/, (match, hashes, content) => {
       const level = hashes.length;
       content = this.parseInlineElements(content);
       return `<h${level}><span class="syntax-marker">${hashes} </span>${content}</h${level}>`;

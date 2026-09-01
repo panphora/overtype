@@ -17,6 +17,9 @@ export const solar = {
     h1: '#f95738',               // Tomato - h1 headers
     h2: '#ee964b',               // Sandy Brown - h2 headers
     h3: '#3d8a51',               // Forest green - h3 headers
+    h4: '#0d3b66',               // Yale Blue - h4 headers
+    h5: '#5a7a9b',               // Muted blue - h5 headers
+    h6: '#999999',               // Gray - h6 headers
     strong: '#ee964b',           // Sandy Brown - bold text
     em: '#f95738',               // Tomato - italic text
     del: '#ee964b',              // Sandy Brown - deleted text (same as strong)
@@ -46,6 +49,9 @@ export const solar = {
     h1: 'inherit',
     h2: 'inherit',
     h3: 'inherit',
+    h4: 'inherit',
+    h5: 'inherit',
+    h6: 'inherit',
     strong: 'inherit',
     em: 'inherit',
     link: '#0d3b66',
@@ -71,6 +77,9 @@ export const cave = {
     h1: '#d4a5ff',               // Rich lavender - h1 headers
     h2: '#f6ae2d',               // Hunyadi Yellow - h2 headers
     h3: '#9fcfec',               // Brighter blue - h3 headers
+    h4: '#c5dde8',               // Light blue-gray - h4 headers
+    h5: '#9fcfec',               // Brighter blue - h5 headers
+    h6: '#7a8c98',               // Muted gray-blue - h6 headers
     strong: '#f6ae2d',           // Hunyadi Yellow - bold text
     em: '#9fcfec',               // Brighter blue - italic text
     del: '#f6ae2d',              // Hunyadi Yellow - deleted text (same as strong)
@@ -100,6 +109,9 @@ export const cave = {
     h1: 'inherit',
     h2: 'inherit',
     h3: 'inherit',
+    h4: 'inherit',
+    h5: 'inherit',
+    h6: 'inherit',
     strong: 'inherit',
     em: 'inherit',
     link: '#9fcfec',

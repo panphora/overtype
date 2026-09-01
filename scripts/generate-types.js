@@ -337,6 +337,7 @@ export default OverType;
 export const markdownActions: {
   toggleBold(textarea: HTMLTextAreaElement): void;
   toggleItalic(textarea: HTMLTextAreaElement): void;
+  toggleStrikethrough(textarea: HTMLTextAreaElement): void;
   toggleCode(textarea: HTMLTextAreaElement): void;
   insertLink(textarea: HTMLTextAreaElement, options?: { url?: string; text?: string }): void;
   toggleBulletList(textarea: HTMLTextAreaElement): void;
@@ -347,6 +348,9 @@ export const markdownActions: {
   toggleH1(textarea: HTMLTextAreaElement): void;
   toggleH2(textarea: HTMLTextAreaElement): void;
   toggleH3(textarea: HTMLTextAreaElement): void;
+  toggleH4(textarea: HTMLTextAreaElement): void;
+  toggleH5(textarea: HTMLTextAreaElement): void;
+  toggleH6(textarea: HTMLTextAreaElement): void;
   getActiveFormats(textarea: HTMLTextAreaElement): string[];
   hasFormat(textarea: HTMLTextAreaElement, format: string): boolean;
   expandSelection(textarea: HTMLTextAreaElement, options?: object): void;
@@ -359,12 +363,16 @@ export const markdownActions: {
 export const toolbarButtons: {
   bold: ToolbarButton;
   italic: ToolbarButton;
+  strikethrough: ToolbarButton;
   code: ToolbarButton;
   separator: ToolbarButton;
   link: ToolbarButton;
   h1: ToolbarButton;
   h2: ToolbarButton;
   h3: ToolbarButton;
+  h4: ToolbarButton;
+  h5: ToolbarButton;
+  h6: ToolbarButton;
   bulletList: ToolbarButton;
   orderedList: ToolbarButton;
   taskList: ToolbarButton;

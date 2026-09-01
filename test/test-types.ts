@@ -1,6 +1,13 @@
 // Test file to verify TypeScript definitions work correctly
 // Run: npx tsc --noEmit test-types.ts
-import OverType, { Theme, Options, Stats, OverType as OverTypeInstance } from '../src/overtype';
+import OverType, {
+  Theme,
+  Options,
+  Stats,
+  OverType as OverTypeInstance,
+  markdownActions,
+  toolbarButtons
+} from '../src/overtype';
 
 // Test basic initialization - constructor returns array
 const editors1: OverTypeInstance[] = new OverType('#editor');
@@ -93,6 +100,9 @@ const customTheme: Theme = {
     h1: '#000000',
     h2: '#111111',
     h3: '#222222',
+    h4: '#333333',
+    h5: '#444444',
+    h6: '#555555',
     strong: '#444444',
     em: '#555555',
     link: '#0066cc',
@@ -113,6 +123,21 @@ const customTheme: Theme = {
   }
 };
 OverType.setTheme(customTheme);
+
+// Test formatting additions exposed from markdown-actions and toolbar buttons
+const formattingTextarea = document.createElement('textarea');
+markdownActions.toggleStrikethrough(formattingTextarea);
+markdownActions.toggleH4(formattingTextarea);
+markdownActions.toggleH5(formattingTextarea);
+markdownActions.toggleH6(formattingTextarea);
+
+const formattingButtons = [
+  toolbarButtons.strikethrough,
+  toolbarButtons.h4,
+  toolbarButtons.h5,
+  toolbarButtons.h6
+];
+formattingButtons.forEach(button => console.log(button.name));
 
 // Test accessing built-in themes
 const solarTheme: Theme = OverType.themes.solar;
