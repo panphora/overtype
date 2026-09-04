@@ -114,6 +114,7 @@ if (!dom.window.ResizeObserver) {
 // Test counters
 let passedTests = 0;
 let totalTests = 0;
+let failedTests = 0;
 
 function runTest(name, testFn) {
   totalTests++;
@@ -123,13 +124,33 @@ function runTest(name, testFn) {
     passedTests++;
     return true;
   } catch (error) {
+    failedTests++;
+    process.exitCode = 1;
     console.error(`  ❌ ${name}: ${error.message}`);
     return false;
   }
 }
 
+function runAsyncTest(name, testFn, delay) {
+  totalTests++;
+  return new Promise(resolve => {
+    setTimeout(() => {
+      try {
+        testFn();
+        console.log(`  ✅ ${name}`);
+        passedTests++;
+      } catch (error) {
+        failedTests++;
+        process.exitCode = 1;
+        console.error(`  ❌ ${name}: ${error.message}`);
+      }
+      resolve();
+    }, delay);
+  });
+}
+
 // Wait for script to load and run tests
-setTimeout(() => {
+setTimeout(async () => {
   console.log('\n📋 Test Suite: Web Component Registration');
   
   // Test 1: Custom element registration
@@ -422,50 +443,37 @@ setTimeout(() => {
   });
   
   // Test 7: Basic API functionality
-  runTest('Basic API functionality works', () => {
+  await runAsyncTest('Basic API functionality works', () => {
     const editor = dom.window.document.createElement('overtype-editor');
     const container = dom.window.document.getElementById('test-container');
-    
+
     editor.setAttribute('value', '# Initial Content');
     container.appendChild(editor);
-    
-    // Give it a moment to initialize
-    setTimeout(() => {
-      try {
-        const value = editor.getValue();
-        if (typeof value !== 'string') throw new Error('getValue did not return string');
-        
-        editor.setValue('# Updated Content');
-        const newValue = editor.getValue();
-        if (newValue !== '# Updated Content') throw new Error('setValue/getValue roundtrip failed');
-        
-        const html = editor.getHTML();
-        if (typeof html !== 'string') throw new Error('getHTML did not return string');
-        
-        const ready = editor.isReady();
-        if (typeof ready !== 'boolean') throw new Error('isReady did not return boolean');
-        
-        console.log('  ✅ API functionality verification passed');
-        
-        container.removeChild(editor);
-        
-        // Final results
-        setTimeout(() => {
-          const successRate = ((passedTests / totalTests) * 100).toFixed(1);
-          console.log(`\n🎉 Web Component Tests Completed!`);
-          console.log(`✨ Success rate: ${successRate}%`);
-          
-          if (passedTests < totalTests) {
-            console.log(`⚠️  ${totalTests - passedTests} test(s) failed. Review errors above.`);
-          } else {
-            console.log('✨ All tests passed successfully! The Web Component implementation is working correctly.');
-          }
-        }, 50);
-        
-      } catch (error) {
-        console.error('  ❌ API functionality verification failed:', error.message);
-      }
-    }, 100);
-  });
-  
+
+    const value = editor.getValue();
+    if (typeof value !== 'string') throw new Error('getValue did not return string');
+
+    editor.setValue('# Updated Content');
+    const newValue = editor.getValue();
+    if (newValue !== '# Updated Content') throw new Error('setValue/getValue roundtrip failed');
+
+    const html = editor.getHTML();
+    if (typeof html !== 'string') throw new Error('getHTML did not return string');
+
+    const ready = editor.isReady();
+    if (typeof ready !== 'boolean') throw new Error('isReady did not return boolean');
+
+    container.removeChild(editor);
+  }, 100);
+
+  const successRate = ((passedTests / totalTests) * 100).toFixed(1);
+  console.log(`\n🎉 Web Component Tests Completed!`);
+  console.log(`✨ Success rate: ${successRate}%`);
+
+  if (failedTests > 0) {
+    console.log(`⚠️  ${failedTests} test(s) failed. Review errors above.`);
+    process.exitCode = 1;
+  } else {
+    console.log('✨ All tests passed successfully! The Web Component implementation is working correctly.');
+  }
 }, 200);

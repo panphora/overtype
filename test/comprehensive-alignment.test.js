@@ -256,6 +256,7 @@ if (passed === testCases.length) {
   console.log('\n✨ All alignment tests passed! Issue #32 is fully resolved.');
 } else {
   console.log('\n⚠️  Some alignment issues remain. Review failed tests above.');
+  process.exit(1);
 }
 
 export default { passed, failed, total: testCases.length };

@@ -124,6 +124,7 @@ if (passed === testCases.length) {
   console.log('\n✨ All list indentation tests passed! Virtual overlay alignment is fixed.');
 } else {
   console.log('\n⚠️  Some indentation alignment issues remain.');
+  process.exit(1);
 }
 
 export default { passed, failed, total: testCases.length };

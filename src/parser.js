@@ -1,3 +1,9 @@
+import {
+  findCodeSpans,
+  findLinks as scanLinks,
+  findRenderableLinks as scanRenderableLinks
+} from './link-scanner.js';
+
 /**
  * MarkdownParser - Parses markdown into HTML while preserving character alignment
  *
@@ -135,6 +141,7 @@ export class MarkdownParser {
    */
   static parseTaskList(html, isPreviewMode = false) {
     return html.replace(/^((?:&nbsp;)*)-(\s+)\[([ xX])\](\s*)(.*)$/, (match, indent, spacingBeforeBox, checked, spacingAfterBox, content) => {
+      if (spacingAfterBox === '' && content !== '') return match;
       content = this.parseInlineElements(content);
       if (isPreviewMode) {
         // Preview mode: render actual checkbox
@@ -222,15 +229,12 @@ export class MarkdownParser {
    * @returns {string} HTML with code styling
    */
   static parseInlineCode(html) {
-    // Must have equal number of backticks before and after inline code
-    //
-    // Regex explainer:
-    // (?<!`): A negative lookbehind ensuring the opening backticks are not preceded by another backtick.
-    // (`+): A capturing group that matches and remembers the opening sequence of one or more backticks. This is Group 1.
-    // ((?:(?!\1).)+?): A capturing group that greedily matches any character that is not the exact sequence of backticks captured in Group 1. This is Group 2.
-    // (\1): A backreference to Group 1, ensuring the closing sequence has the exact same number of backticks as the opening sequence. This is Group 3.
-    // (?!`): A negative lookahead ensuring the closing backticks are not followed by another backtick.
-    return html.replace(/(?<!`)(`+)(?!`)((?:(?!\1).)+?)(\1)(?!`)/g, '<code><span class="syntax-marker">$1</span>$2<span class="syntax-marker">$3</span></code>');
+    const spans = findCodeSpans(html);
+    for (const span of spans.reverse()) {
+      const replacement = `<code><span class="syntax-marker">${span.openTicks}</span>${span.content}<span class="syntax-marker">${span.closeTicks}</span></code>`;
+      html = html.slice(0, span.start) + replacement + html.slice(span.end);
+    }
+    return html;
   }
 
   /**
@@ -271,19 +275,45 @@ export class MarkdownParser {
     return '#';
   }
 
+  static findLinks(text, options = {}) {
+    const { allowEmptyText = false, ...scannerOptions } = options;
+    return scanLinks(text, scannerOptions).filter(link =>
+      (allowEmptyText || link.text.raw.length > 0) &&
+      link.destination !== null &&
+      link.destination.value.length > 0
+    );
+  }
+
+  static findRenderableLinks(text, options = {}) {
+    const { allowEmptyText = false, ...scannerOptions } = options;
+    return scanRenderableLinks(text, scannerOptions).filter(link =>
+      (allowEmptyText || link.text.raw.length > 0) &&
+      link.destination !== null &&
+      link.destination.value.length > 0
+    );
+  }
+
   /**
    * Parse links
    * @param {string} html - HTML with potential link markdown
    * @returns {string} HTML with link styling
    */
   static parseLinks(html) {
-    return html.replace(/\[(.+?)\]\((.+?)\)/g, (match, text, url) => {
-      const anchorName = `--link-${this.linkIndex++}`;
-      // Sanitize URL to prevent XSS attacks
-      const safeUrl = this.sanitizeUrl(url);
-      // Use real href - pointer-events handles click prevention in normal mode
-      return `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${text}<span class="syntax-marker url-part">](${url})</span></a>`;
+    const links = this.findLinks(html, { htmlEntities: true });
+    links.forEach(link => {
+      link.anchorName = `--link-${this.linkIndex++}`;
     });
+
+    for (const link of links.reverse()) {
+      const safeUrl = this.escapeHtml(this.sanitizeUrl(link.destination.value));
+      const title = link.title === null ? '' : ` title="${this.escapeHtml(link.title.value)}"`;
+      const linkText = html.slice(link.text.start, link.text.end);
+      const tail = html.slice(link.text.end, link.end);
+      const replacement = `<a href="${safeUrl}"${title} style="anchor-name: ${link.anchorName}"><span class="syntax-marker">[</span>${linkText}<span class="syntax-marker url-part">${tail}</span></a>`;
+      html = html.slice(0, link.start) + replacement + html.slice(link.end);
+    }
+
+    return html;
   }
 
   /**
@@ -296,73 +326,47 @@ export class MarkdownParser {
     let sanctuaryCounter = 0;
     let protectedText = text;
     
-    // Create a map to track protected regions (URLs should not be processed)
-    const protectedRegions = [];
-    
-    // First, find all links and mark their URL regions as protected
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    let linkMatch;
-    while ((linkMatch = linkRegex.exec(text)) !== null) {
-      // Calculate the exact position of the URL part
-      // linkMatch.index is the start of the match
-      // We need to find where "](" starts, then add 2 to get URL start
-      const bracketPos = linkMatch.index + linkMatch[0].indexOf('](');
-      const urlStart = bracketPos + 2;
-      const urlEnd = urlStart + linkMatch[2].length;
-      protectedRegions.push({ start: urlStart, end: urlEnd });
-    }
-    
-    // Now protect inline code, but skip if it's inside a protected region (URL)
-    const codeRegex = /(?<!`)(`+)(?!`)((?:(?!\1).)+?)(\1)(?!`)/g;
-    let codeMatch;
-    const codeMatches = [];
-    
-    while ((codeMatch = codeRegex.exec(text)) !== null) {
-      const codeStart = codeMatch.index;
-      const codeEnd = codeMatch.index + codeMatch[0].length;
-      
-      // Check if this code is inside a protected URL region
-      const inProtectedRegion = protectedRegions.some(region => 
-        codeStart >= region.start && codeEnd <= region.end
-      );
-      
-      if (!inProtectedRegion) {
-        codeMatches.push({
-          match: codeMatch[0],
-          index: codeMatch.index,
-          openTicks: codeMatch[1],
-          content: codeMatch[2],
-          closeTicks: codeMatch[3]
-        });
-      }
-    }
+    const links = text.includes('[')
+      ? this.findRenderableLinks(text, { htmlEntities: true })
+      : [];
+    const protectedRegions = links.map(link => ({ start: link.text.end, end: link.end }));
+    const codeMatches = findCodeSpans(text, protectedRegions);
     
     // Replace code matches from end to start to preserve indices
-    codeMatches.sort((a, b) => b.index - a.index);
+    codeMatches.sort((a, b) => b.start - a.start);
     codeMatches.forEach(codeInfo => {
       const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
       sanctuaries.set(placeholder, {
         type: 'code',
-        original: codeInfo.match,
+        original: codeInfo.raw,
         openTicks: codeInfo.openTicks,
         content: codeInfo.content,
         closeTicks: codeInfo.closeTicks
       });
-      protectedText = protectedText.substring(0, codeInfo.index) + 
+      protectedText = protectedText.substring(0, codeInfo.start) +
                      placeholder + 
-                     protectedText.substring(codeInfo.index + codeInfo.match.length);
+                     protectedText.substring(codeInfo.end);
     });
     
-    // Then protect links - they can contain sanctuary placeholders for code but not raw code
-    protectedText = protectedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+    const codePlaceholders = [...sanctuaries.keys()];
+    const protectedLinks = (protectedText.includes('[')
+      ? this.findLinks(protectedText, { htmlEntities: true })
+      : [])
+      .filter(link => {
+        const tail = protectedText.slice(link.text.end, link.end);
+        return codePlaceholders.every(placeholder => !tail.includes(placeholder));
+      });
+    protectedLinks.sort((a, b) => b.start - a.start).forEach(link => {
       const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
       sanctuaries.set(placeholder, {
         type: 'link',
-        original: match,
-        linkText,
-        url
+        original: protectedText.slice(link.start, link.end),
+        linkText: protectedText.slice(link.text.start, link.text.end),
+        tail: protectedText.slice(link.text.end, link.end),
+        url: link.destination.value,
+        title: link.title?.value ?? null
       });
-      return placeholder;
+      protectedText = protectedText.slice(0, link.start) + placeholder + protectedText.slice(link.end);
     });
     
     return { protectedText, sanctuaries };
@@ -399,7 +403,7 @@ export class MarkdownParser {
           if (processedLinkText.includes(innerPlaceholder)) {
             if (innerSanctuary.type === 'code') {
               const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${innerSanctuary.content}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
-              processedLinkText = processedLinkText.replace(innerPlaceholder, codeHtml);
+              processedLinkText = processedLinkText.replace(innerPlaceholder, () => codeHtml);
             }
           }
         });
@@ -412,11 +416,12 @@ export class MarkdownParser {
         // Transform link sanctuary to HTML
         // URL should NOT be processed for markdown - use it as-is
         const anchorName = `--link-${this.linkIndex++}`;
-        const safeUrl = this.sanitizeUrl(sanctuary.url);
-        replacement = `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">](${sanctuary.url})</span></a>`;
+        const safeUrl = this.escapeHtml(this.sanitizeUrl(sanctuary.url));
+        const title = sanctuary.title === null ? '' : ` title="${this.escapeHtml(sanctuary.title)}"`;
+        replacement = `<a href="${safeUrl}"${title} style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">${sanctuary.tail}</span></a>`;
       }
       
-      html = html.replace(placeholder, replacement);
+      html = html.replace(placeholder, () => replacement);
     });
     
     return html;

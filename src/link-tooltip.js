@@ -14,6 +14,8 @@ export class LinkTooltip {
     this.hideTimeout = null;
     this.visibilityChangeHandler = null;
     this.isTooltipHovered = false;
+    this.linkCacheText = null;
+    this.linkCache = [];
 
     this.init();
   }
@@ -115,25 +117,27 @@ export class LinkTooltip {
   }
 
   findLinkAtPosition(text, position) {
-    // Regex to find markdown links: [text](url)
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    let match;
-    let linkIndex = 0;
+    if (this.editor.options.showActiveLineRaw) return null;
 
-    while ((match = linkRegex.exec(text)) !== null) {
-      const start = match.index;
-      const end = match.index + match[0].length;
+    if (this.linkCacheText !== text) {
+      this.linkCacheText = text;
+      this.linkCache = MarkdownParser.findRenderableLinks(text);
+    }
+    const links = this.linkCache;
+
+    for (const [linkIndex, link] of links.entries()) {
+      const start = link.start;
+      const end = link.end;
 
       if (position >= start && position <= end) {
         return {
-          text: match[1],
-          url: this.transformUrl(match[2]),
+          text: link.text.raw,
+          url: this.transformUrl(link.destination.value),
           index: linkIndex,
-          start: start,
-          end: end
+          start,
+          end
         };
       }
-      linkIndex++;
     }
 
     return null;

@@ -1,6 +1,6 @@
 {
   "name": "overtype",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay",
   "main": "dist/overtype.cjs",
   "module": "dist/overtype.esm.js",
@@ -28,10 +28,10 @@
   "scripts": {
     "generate:types": "node scripts/generate-types.js",
     "build": "npm run generate:types && node scripts/build.js",
-    "build:prod": "npm test && npm run build",
+    "build:prod": "npm run build && npm test",
     "dev": "http-server website -p 8080 -c-1",
     "watch": "node scripts/build.js --watch",
-    "test": "node test/overtype.test.js && node test/preview-mode.test.js && node test/links.test.js && node test/api-methods.test.js && node test/keyboard-accessibility.test.js && node test/comprehensive-alignment.test.js && node test/sanctuary-parsing.test.js && node test/mode-switching.test.js && node test/toolbar.test.js && node test/syntax-highlighting.test.js && node test/webcomponent.test.js && node test/custom-syntax.test.js && node test/auto-theme.test.js && npm run test:types",
+    "test": "node scripts/run-tests.js && npm run test:types",
     "test:main": "node test/overtype.test.js",
     "test:preview": "node test/preview-mode.test.js",
     "test:links": "node test/links.test.js",
@@ -63,6 +63,8 @@
   "author": "David Miranda",
   "license": "MIT",
   "devDependencies": {
+    "commonmark": "0.31.2",
+    "commonmark-spec": "0.31.2",
     "esbuild": "^0.19.0",
     "gzip-size-cli": "^5.1.0",
     "highlight.js": "^11.9.0",

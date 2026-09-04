@@ -1,5 +1,5 @@
 /**
- * OverType v2.4.0
+ * OverType v2.4.1
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -38,6 +38,347 @@ var OverType = (() => {
     markdownActions: () => markdown_actions_esm_exports,
     toolbarButtons: () => toolbarButtons
   });
+
+  // src/link-scanner.js
+  var ESCAPABLE = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/;
+  var ENTITY = /^&(?:amp|lt|gt|quot|#39);/;
+  var DECODED_ENTITY = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&#39;": "'"
+  };
+  function makeReader(text, htmlEntities) {
+    return function at(index) {
+      if (index >= text.length)
+        return [null, 0];
+      if (htmlEntities && text.charCodeAt(index) === 38) {
+        const match = ENTITY.exec(text.slice(index, index + 6));
+        if (match)
+          return [DECODED_ENTITY[match[0]], match[0].length];
+      }
+      return [text[index], 1];
+    };
+  }
+  function isEscaped(text, index) {
+    let slashes = 0;
+    while (index > 0 && text[--index] === "\\")
+      slashes++;
+    return slashes % 2 === 1;
+  }
+  var isSpace = (character) => character === " " || character === "	";
+  var isControl = (character) => character !== null && (character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127);
+  function scanTail(text, index, at, maxParenDepth) {
+    let [character, length] = at(index);
+    if (character !== "(")
+      return null;
+    index += length;
+    while (isSpace(character = at(index)[0]))
+      index += at(index)[1];
+    let destination = null;
+    [character, length] = at(index);
+    if (character === "<") {
+      const start = index;
+      let value = "";
+      index += length;
+      for (; ; ) {
+        [character, length] = at(index);
+        if (character === null || character === "<" || character === "\n")
+          return null;
+        if (character === "\\") {
+          const [next, nextLength] = at(index + length);
+          if (next !== null && ESCAPABLE.test(next)) {
+            value += next;
+            index += length + nextLength;
+            continue;
+          }
+        }
+        if (character === ">") {
+          index += length;
+          break;
+        }
+        value += character;
+        index += length;
+      }
+      destination = {
+        start,
+        end: index,
+        raw: text.slice(start, index),
+        value
+      };
+    } else if (character !== ")") {
+      const start = index;
+      let depth = 0;
+      let value = "";
+      for (; ; ) {
+        [character, length] = at(index);
+        if (character === null || character === "\n" || isSpace(character))
+          break;
+        if (isControl(character))
+          return null;
+        if (character === "\\") {
+          const [next, nextLength] = at(index + length);
+          if (next !== null && ESCAPABLE.test(next)) {
+            value += next;
+            index += length + nextLength;
+            continue;
+          }
+          value += character;
+          index += length;
+          continue;
+        }
+        if (character === "(") {
+          depth++;
+          if (depth > maxParenDepth)
+            return null;
+          value += character;
+          index += length;
+          continue;
+        }
+        if (character === ")") {
+          if (depth === 0)
+            break;
+          depth--;
+          value += character;
+          index += length;
+          continue;
+        }
+        value += character;
+        index += length;
+      }
+      if (depth !== 0)
+        return null;
+      destination = {
+        start,
+        end: index,
+        raw: text.slice(start, index),
+        value
+      };
+    }
+    const afterDestination = index;
+    while (isSpace(character = at(index)[0]))
+      index += at(index)[1];
+    let title = null;
+    [character, length] = at(index);
+    if (character === '"' || character === "'" || character === "(") {
+      if (destination && index === afterDestination)
+        return null;
+      const close = character === "(" ? ")" : character;
+      const start = index;
+      let value = "";
+      index += length;
+      for (; ; ) {
+        [character, length] = at(index);
+        if (character === null || character === "\n")
+          return null;
+        if (character === "\\") {
+          const [next, nextLength] = at(index + length);
+          if (next !== null && ESCAPABLE.test(next)) {
+            value += next;
+            index += length + nextLength;
+            continue;
+          }
+          value += character;
+          index += length;
+          continue;
+        }
+        if (character === close) {
+          index += length;
+          break;
+        }
+        if (close === ")" && character === "(")
+          return null;
+        value += character;
+        index += length;
+      }
+      title = {
+        start,
+        end: index,
+        raw: text.slice(start, index),
+        value,
+        delimiter: close === ")" ? "(" : close
+      };
+      while (isSpace(character = at(index)[0]))
+        index += at(index)[1];
+    }
+    [character, length] = at(index);
+    if (character !== ")")
+      return null;
+    return { end: index + length, destination, title };
+  }
+  function rangeAt(ranges, index, rangeIndex) {
+    while (rangeIndex < ranges.length && ranges[rangeIndex].end <= index)
+      rangeIndex++;
+    const range = ranges[rangeIndex];
+    return {
+      range: range && range.start <= index && index < range.end ? range : null,
+      rangeIndex
+    };
+  }
+  function findLinks(text, {
+    htmlEntities = false,
+    maxParenDepth = 32,
+    ignoreRanges = []
+  } = {}) {
+    const at = makeReader(text, htmlEntities);
+    const ranges = [...ignoreRanges].sort((a, b) => a.start - b.start);
+    const links = [];
+    const openers = [];
+    let rangeIndex = 0;
+    let index = 0;
+    while (index < text.length) {
+      const rangeResult = rangeAt(ranges, index, rangeIndex);
+      rangeIndex = rangeResult.rangeIndex;
+      if (rangeResult.range) {
+        index = rangeResult.range.end;
+        continue;
+      }
+      const [character, length] = at(index);
+      if (character === "\\") {
+        const [next, nextLength] = at(index + length);
+        index += next !== null && ESCAPABLE.test(next) ? length + nextLength : length;
+        continue;
+      }
+      if (character === "\n") {
+        openers.length = 0;
+        index += length;
+        continue;
+      }
+      if (character === "[") {
+        const imageMarker = index > 0 && text[index - 1] === "!" && !isEscaped(text, index - 1);
+        openers.push({ index, image: imageMarker });
+        index += length;
+        continue;
+      }
+      if (character === "]") {
+        const opener = openers.pop();
+        if (opener) {
+          const tail = scanTail(text, index + length, at, maxParenDepth);
+          if (tail) {
+            links.push({
+              start: opener.index,
+              end: tail.end,
+              image: opener.image,
+              text: {
+                start: opener.index + 1,
+                end: index,
+                raw: text.slice(opener.index + 1, index)
+              },
+              destination: tail.destination,
+              title: tail.title
+            });
+            openers.length = 0;
+            index = tail.end;
+            continue;
+          }
+        }
+      }
+      index += length;
+    }
+    return links;
+  }
+  function findCodeSpans(text, excludedRanges = []) {
+    const runs = [];
+    const spans = [];
+    let index = 0;
+    while (index < text.length) {
+      if (text[index] !== "`") {
+        index++;
+        continue;
+      }
+      const start = index;
+      while (text[index] === "`")
+        index++;
+      runs.push({ start, end: index, length: index - start });
+    }
+    const nextRun = new Array(runs.length);
+    const lastRunByLength = /* @__PURE__ */ new Map();
+    for (let runIndex = runs.length - 1; runIndex >= 0; runIndex--) {
+      const run = runs[runIndex];
+      nextRun[runIndex] = lastRunByLength.get(run.length);
+      lastRunByLength.set(run.length, runIndex);
+    }
+    for (let runIndex = 0; runIndex < runs.length; ) {
+      const open = runs[runIndex];
+      const excluded = isEscaped(text, open.start) || excludedRanges.some((range) => open.start >= range.start && open.start < range.end);
+      const closeIndex = nextRun[runIndex];
+      if (excluded || closeIndex === void 0) {
+        runIndex++;
+        continue;
+      }
+      const close = runs[closeIndex];
+      spans.push({
+        start: open.start,
+        end: close.end,
+        raw: text.slice(open.start, close.end),
+        openTicks: text.slice(open.start, open.end),
+        content: text.slice(open.end, close.start),
+        closeTicks: text.slice(close.start, close.end)
+      });
+      runIndex = closeIndex + 1;
+    }
+    return spans;
+  }
+  function shiftLink(link, offset3) {
+    return {
+      ...link,
+      start: link.start + offset3,
+      end: link.end + offset3,
+      text: {
+        ...link.text,
+        start: link.text.start + offset3,
+        end: link.text.end + offset3
+      },
+      destination: link.destination && {
+        ...link.destination,
+        start: link.destination.start + offset3,
+        end: link.destination.end + offset3
+      },
+      title: link.title && {
+        ...link.title,
+        start: link.title.start + offset3,
+        end: link.title.end + offset3
+      }
+    };
+  }
+  function findRenderableLineLinks(text, options) {
+    if (!text.includes("["))
+      return [];
+    let links = findLinks(text, options);
+    const seen = /* @__PURE__ */ new Set();
+    for (; ; ) {
+      const signature = links.map((link) => `${link.start}:${link.end}`).join(",");
+      if (seen.has(signature))
+        return links;
+      seen.add(signature);
+      const targetRanges = links.map((link) => ({
+        start: link.text.end,
+        end: link.end
+      }));
+      const codeRanges = findCodeSpans(text, targetRanges);
+      const next = findLinks(text, { ...options, ignoreRanges: codeRanges });
+      const nextSignature = next.map((link) => `${link.start}:${link.end}`).join(",");
+      if (nextSignature === signature)
+        return next;
+      links = next;
+    }
+  }
+  function findRenderableLinks(text, options = {}) {
+    const links = [];
+    const lines = text.split("\n");
+    let inCodeBlock = false;
+    let offset3 = 0;
+    for (const line of lines) {
+      if (/^```[^`]*$/.test(line)) {
+        inCodeBlock = !inCodeBlock;
+      } else if (!inCodeBlock) {
+        links.push(...findRenderableLineLinks(line, options).map((link) => shiftLink(link, offset3)));
+      }
+      offset3 += line.length + 1;
+    }
+    return links;
+  }
 
   // src/parser.js
   var MarkdownParser = class {
@@ -150,6 +491,8 @@ var OverType = (() => {
      */
     static parseTaskList(html, isPreviewMode = false) {
       return html.replace(/^((?:&nbsp;)*)-(\s+)\[([ xX])\](\s*)(.*)$/, (match, indent, spacingBeforeBox, checked, spacingAfterBox, content) => {
+        if (spacingAfterBox === "" && content !== "")
+          return match;
         content = this.parseInlineElements(content);
         if (isPreviewMode) {
           const isChecked = checked.toLowerCase() === "x";
@@ -220,7 +563,12 @@ var OverType = (() => {
      * @returns {string} HTML with code styling
      */
     static parseInlineCode(html) {
-      return html.replace(new RegExp("(?<!`)(`+)(?!`)((?:(?!\\1).)+?)(\\1)(?!`)", "g"), '<code><span class="syntax-marker">$1</span>$2<span class="syntax-marker">$3</span></code>');
+      const spans = findCodeSpans(html);
+      for (const span of spans.reverse()) {
+        const replacement = `<code><span class="syntax-marker">${span.openTicks}</span>${span.content}<span class="syntax-marker">${span.closeTicks}</span></code>`;
+        html = html.slice(0, span.start) + replacement + html.slice(span.end);
+      }
+      return html;
     }
     /**
      * Sanitize URL to prevent XSS attacks
@@ -244,17 +592,37 @@ var OverType = (() => {
       }
       return "#";
     }
+    static findLinks(text, options = {}) {
+      const { allowEmptyText = false, ...scannerOptions } = options;
+      return findLinks(text, scannerOptions).filter(
+        (link) => (allowEmptyText || link.text.raw.length > 0) && link.destination !== null && link.destination.value.length > 0
+      );
+    }
+    static findRenderableLinks(text, options = {}) {
+      const { allowEmptyText = false, ...scannerOptions } = options;
+      return findRenderableLinks(text, scannerOptions).filter(
+        (link) => (allowEmptyText || link.text.raw.length > 0) && link.destination !== null && link.destination.value.length > 0
+      );
+    }
     /**
      * Parse links
      * @param {string} html - HTML with potential link markdown
      * @returns {string} HTML with link styling
      */
     static parseLinks(html) {
-      return html.replace(/\[(.+?)\]\((.+?)\)/g, (match, text, url) => {
-        const anchorName = `--link-${this.linkIndex++}`;
-        const safeUrl = this.sanitizeUrl(url);
-        return `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${text}<span class="syntax-marker url-part">](${url})</span></a>`;
+      const links = this.findLinks(html, { htmlEntities: true });
+      links.forEach((link) => {
+        link.anchorName = `--link-${this.linkIndex++}`;
       });
+      for (const link of links.reverse()) {
+        const safeUrl = this.escapeHtml(this.sanitizeUrl(link.destination.value));
+        const title = link.title === null ? "" : ` title="${this.escapeHtml(link.title.value)}"`;
+        const linkText = html.slice(link.text.start, link.text.end);
+        const tail = html.slice(link.text.end, link.end);
+        const replacement = `<a href="${safeUrl}"${title} style="anchor-name: ${link.anchorName}"><span class="syntax-marker">[</span>${linkText}<span class="syntax-marker url-part">${tail}</span></a>`;
+        html = html.slice(0, link.start) + replacement + html.slice(link.end);
+      }
+      return html;
     }
     /**
      * Identify and protect sanctuaries (code and links) before parsing
@@ -265,55 +633,38 @@ var OverType = (() => {
       const sanctuaries = /* @__PURE__ */ new Map();
       let sanctuaryCounter = 0;
       let protectedText = text;
-      const protectedRegions = [];
-      const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-      let linkMatch;
-      while ((linkMatch = linkRegex.exec(text)) !== null) {
-        const bracketPos = linkMatch.index + linkMatch[0].indexOf("](");
-        const urlStart = bracketPos + 2;
-        const urlEnd = urlStart + linkMatch[2].length;
-        protectedRegions.push({ start: urlStart, end: urlEnd });
-      }
-      const codeRegex = new RegExp("(?<!`)(`+)(?!`)((?:(?!\\1).)+?)(\\1)(?!`)", "g");
-      let codeMatch;
-      const codeMatches = [];
-      while ((codeMatch = codeRegex.exec(text)) !== null) {
-        const codeStart = codeMatch.index;
-        const codeEnd = codeMatch.index + codeMatch[0].length;
-        const inProtectedRegion = protectedRegions.some(
-          (region) => codeStart >= region.start && codeEnd <= region.end
-        );
-        if (!inProtectedRegion) {
-          codeMatches.push({
-            match: codeMatch[0],
-            index: codeMatch.index,
-            openTicks: codeMatch[1],
-            content: codeMatch[2],
-            closeTicks: codeMatch[3]
-          });
-        }
-      }
-      codeMatches.sort((a, b) => b.index - a.index);
+      const links = text.includes("[") ? this.findRenderableLinks(text, { htmlEntities: true }) : [];
+      const protectedRegions = links.map((link) => ({ start: link.text.end, end: link.end }));
+      const codeMatches = findCodeSpans(text, protectedRegions);
+      codeMatches.sort((a, b) => b.start - a.start);
       codeMatches.forEach((codeInfo) => {
         const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
         sanctuaries.set(placeholder, {
           type: "code",
-          original: codeInfo.match,
+          original: codeInfo.raw,
           openTicks: codeInfo.openTicks,
           content: codeInfo.content,
           closeTicks: codeInfo.closeTicks
         });
-        protectedText = protectedText.substring(0, codeInfo.index) + placeholder + protectedText.substring(codeInfo.index + codeInfo.match.length);
+        protectedText = protectedText.substring(0, codeInfo.start) + placeholder + protectedText.substring(codeInfo.end);
       });
-      protectedText = protectedText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+      const codePlaceholders = [...sanctuaries.keys()];
+      const protectedLinks = (protectedText.includes("[") ? this.findLinks(protectedText, { htmlEntities: true }) : []).filter((link) => {
+        const tail = protectedText.slice(link.text.end, link.end);
+        return codePlaceholders.every((placeholder) => !tail.includes(placeholder));
+      });
+      protectedLinks.sort((a, b) => b.start - a.start).forEach((link) => {
+        var _a, _b;
         const placeholder = `\uE000${sanctuaryCounter++}\uE001`;
         sanctuaries.set(placeholder, {
           type: "link",
-          original: match,
-          linkText,
-          url
+          original: protectedText.slice(link.start, link.end),
+          linkText: protectedText.slice(link.text.start, link.text.end),
+          tail: protectedText.slice(link.text.end, link.end),
+          url: link.destination.value,
+          title: (_b = (_a = link.title) == null ? void 0 : _a.value) != null ? _b : null
         });
-        return placeholder;
+        protectedText = protectedText.slice(0, link.start) + placeholder + protectedText.slice(link.end);
       });
       return { protectedText, sanctuaries };
     }
@@ -340,7 +691,7 @@ var OverType = (() => {
             if (processedLinkText.includes(innerPlaceholder)) {
               if (innerSanctuary.type === "code") {
                 const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${innerSanctuary.content}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
-                processedLinkText = processedLinkText.replace(innerPlaceholder, codeHtml);
+                processedLinkText = processedLinkText.replace(innerPlaceholder, () => codeHtml);
               }
             }
           });
@@ -348,10 +699,11 @@ var OverType = (() => {
           processedLinkText = this.parseBold(processedLinkText);
           processedLinkText = this.parseItalic(processedLinkText);
           const anchorName = `--link-${this.linkIndex++}`;
-          const safeUrl = this.sanitizeUrl(sanctuary.url);
-          replacement = `<a href="${safeUrl}" style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">](${sanctuary.url})</span></a>`;
+          const safeUrl = this.escapeHtml(this.sanitizeUrl(sanctuary.url));
+          const title = sanctuary.title === null ? "" : ` title="${this.escapeHtml(sanctuary.title)}"`;
+          replacement = `<a href="${safeUrl}"${title} style="anchor-name: ${anchorName}"><span class="syntax-marker">[</span>${processedLinkText}<span class="syntax-marker url-part">${sanctuary.tail}</span></a>`;
         }
-        html = html.replace(placeholder, replacement);
+        html = html.replace(placeholder, () => replacement);
       });
       return html;
     }
@@ -4577,6 +4929,8 @@ ${blockSuffix}` : suffix;
       this.hideTimeout = null;
       this.visibilityChangeHandler = null;
       this.isTooltipHovered = false;
+      this.linkCacheText = null;
+      this.linkCache = [];
       this.init();
     }
     init() {
@@ -4651,22 +5005,25 @@ ${blockSuffix}` : suffix;
       }
     }
     findLinkAtPosition(text, position) {
-      const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-      let match;
-      let linkIndex = 0;
-      while ((match = linkRegex.exec(text)) !== null) {
-        const start = match.index;
-        const end = match.index + match[0].length;
+      if (this.editor.options.showActiveLineRaw)
+        return null;
+      if (this.linkCacheText !== text) {
+        this.linkCacheText = text;
+        this.linkCache = MarkdownParser.findRenderableLinks(text);
+      }
+      const links = this.linkCache;
+      for (const [linkIndex, link] of links.entries()) {
+        const start = link.start;
+        const end = link.end;
         if (position >= start && position <= end) {
           return {
-            text: match[1],
-            url: this.transformUrl(match[2]),
+            text: link.text.raw,
+            url: this.transformUrl(link.destination.value),
             index: linkIndex,
             start,
             end
           };
         }
-        linkIndex++;
       }
       return null;
     }
@@ -5499,12 +5856,7 @@ ${blockSuffix}` : suffix;
      * @private
      */
     _extractMarkdownUrls(text) {
-      const urls = [];
-      const re = /!?\[[^\]]*\]\(([^)\s]+)/g;
-      let m;
-      while ((m = re.exec(text)) !== null)
-        urls.push(m[1]);
-      return urls;
+      return MarkdownParser.findLinks(text, { allowEmptyText: true }).map((link) => link.destination.value);
     }
     /**
      * Track URLs that were just inserted, pairing each with the source File.
@@ -5515,8 +5867,13 @@ ${blockSuffix}` : suffix;
     _trackInsertedUrls(insertedText, file) {
       if (!this._uploadedFiles || !file || !insertedText)
         return;
-      for (const url of this._extractMarkdownUrls(insertedText)) {
-        this._uploadedFiles.set(url, { filename: file.name, file });
+      const links = MarkdownParser.findLinks(insertedText, { allowEmptyText: true });
+      for (const link of links) {
+        this._uploadedFiles.set(link.destination.value, {
+          filename: file.name,
+          file,
+          markdownDestination: link.destination.raw
+        });
       }
     }
     /**
@@ -5530,10 +5887,13 @@ ${blockSuffix}` : suffix;
         return;
       const cb = (_a = this.options.fileUpload) == null ? void 0 : _a.onRemoveFile;
       const value = this.textarea.value;
+      const currentUrls = new Set(this._extractMarkdownUrls(this.textarea.value));
       const removed = [];
       for (const [url, info] of this._uploadedFiles) {
-        if (!value.includes(url))
+        const rawDestination = info.markdownDestination || url;
+        if (!currentUrls.has(url) && !value.includes(rawDestination)) {
           removed.push({ url, info });
+        }
       }
       for (const { url, info } of removed) {
         this._uploadedFiles.delete(url);

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.4.1] - 2026-09-04
+
+### Changed
+- Inline links now follow the CommonMark destination and title grammar. Malformed forms with unescaped spaces, unbalanced parentheses, or unterminated titles remain visible as source text instead of rendering as links.
+
+### Fixed
+- Parse link titles containing parentheses without truncating the link or mixing the title into its destination (#122)
+- Use one link scanner for parser rendering, link tooltips, and upload URL tracking
+
 ## [2.4.0] - 2026-06-18
 
 ### Added

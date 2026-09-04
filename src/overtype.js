@@ -680,11 +680,8 @@ class OverType {
      * @private
      */
     _extractMarkdownUrls(text) {
-      const urls = [];
-      const re = /!?\[[^\]]*\]\(([^)\s]+)/g;
-      let m;
-      while ((m = re.exec(text)) !== null) urls.push(m[1]);
-      return urls;
+      return MarkdownParser.findLinks(text, { allowEmptyText: true })
+        .map(link => link.destination.value);
     }
 
     /**
@@ -695,8 +692,13 @@ class OverType {
      */
     _trackInsertedUrls(insertedText, file) {
       if (!this._uploadedFiles || !file || !insertedText) return;
-      for (const url of this._extractMarkdownUrls(insertedText)) {
-        this._uploadedFiles.set(url, { filename: file.name, file });
+      const links = MarkdownParser.findLinks(insertedText, { allowEmptyText: true });
+      for (const link of links) {
+        this._uploadedFiles.set(link.destination.value, {
+          filename: file.name,
+          file,
+          markdownDestination: link.destination.raw
+        });
       }
     }
 
@@ -709,9 +711,13 @@ class OverType {
       if (!this._uploadedFiles || this._uploadedFiles.size === 0) return;
       const cb = this.options.fileUpload?.onRemoveFile;
       const value = this.textarea.value;
+      const currentUrls = new Set(this._extractMarkdownUrls(this.textarea.value));
       const removed = [];
       for (const [url, info] of this._uploadedFiles) {
-        if (!value.includes(url)) removed.push({ url, info });
+        const rawDestination = info.markdownDestination || url;
+        if (!currentUrls.has(url) && !value.includes(rawDestination)) {
+          removed.push({ url, info });
+        }
       }
       for (const { url, info } of removed) {
         this._uploadedFiles.delete(url);
