@@ -1,39 +1,18 @@
 import assert from 'node:assert/strict';
-import { JSDOM } from 'jsdom';
 import { tests as commonmarkTests } from 'commonmark-spec';
 import { MarkdownParser } from '../src/parser.js';
-
-const supported = new Set([
-  482, 483, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498,
-  499, 500, 501, 502, 504, 505, 507, 508, 509, 511, 512, 513, 514,
-  515, 516, 518, 519, 521, 522, 523, 525
-]);
-
-const intentionalDeviations = new Map([
-  [484, 'OverType requires visible link text'],
-  [485, 'OverType requires a nonempty destination'],
-  [486, 'OverType requires a nonempty destination'],
-  [487, 'OverType requires visible link text and a nonempty destination'],
-  [503, 'OverType preserves character references instead of resolving them'],
-  [506, 'OverType preserves character references instead of resolving them'],
-  [510, 'OverType parses inline markup one source line at a time'],
-  [517, 'OverType does not render Markdown image syntax as images'],
-  [520, 'OverType does not render Markdown image syntax as images'],
-  [524, 'OverType does not implement CommonMark raw HTML precedence'],
-  [526, 'OverType does not implement CommonMark autolinks']
-]);
+import { rootFromHtml } from './helpers/dom.js';
+import { classify } from './helpers/commonmark-harness.js';
+import { linksAdapter } from './commonmark/sections/links.js';
 
 const linkExamples = commonmarkTests.filter(test => test.number >= 482 && test.number <= 526);
 
-assert.equal(linkExamples.length, supported.size + intentionalDeviations.size);
-assert.ok(linkExamples.every(example => example.section === 'Links'));
+const matching = linkExamples.filter(example => classify(linksAdapter, example).outcome === 'conform');
+const intentionalDeviations = linkExamples.filter(example => classify(linksAdapter, example).outcome !== 'conform');
 
-for (const example of linkExamples) {
-  assert.ok(
-    supported.has(example.number) || intentionalDeviations.has(example.number),
-    `CommonMark example ${example.number} is not classified`
-  );
-}
+assert.equal(matching.length, 34);
+assert.equal(intentionalDeviations.length, 11);
+assert.ok(linkExamples.every(example => example.section === 'Links'));
 
 function decodeDestination(destination) {
   try {
@@ -44,21 +23,20 @@ function decodeDestination(destination) {
 }
 
 function linksFromHtml(html) {
-  const dom = new JSDOM(html);
-  return [...dom.window.document.querySelectorAll('a')].map(anchor => ({
+  return [...rootFromHtml(html).querySelectorAll('a')].map(anchor => ({
     destination: decodeDestination(anchor.getAttribute('href')),
     title: anchor.getAttribute('title')
   }));
 }
 
-for (const example of linkExamples.filter(test => supported.has(test.number))) {
+for (const example of matching) {
   const expected = linksFromHtml(example.html);
   const recognized = MarkdownParser.findRenderableLinks(example.markdown.replace(/\n$/, '')).map(link => ({
     destination: link.destination.value,
     title: link.title?.value ?? null
   }));
-  const actualDom = new JSDOM(MarkdownParser.parse(example.markdown.replace(/\n$/, '')));
-  const actual = [...actualDom.window.document.querySelectorAll('a')].map(anchor => ({
+  const actualRoot = rootFromHtml(MarkdownParser.parse(example.markdown.replace(/\n$/, '')));
+  const actual = [...actualRoot.querySelectorAll('a')].map(anchor => ({
     destination: anchor.getAttribute('href'),
     title: anchor.getAttribute('title')
   }));
@@ -71,11 +49,10 @@ for (const example of linkExamples.filter(test => supported.has(test.number))) {
   assert.deepEqual(actual, renderedExpected, `CommonMark rendering example ${example.number}`);
 
   for (const line of example.markdown.replace(/\n$/, '').split('\n')) {
-    const lineDom = new JSDOM(MarkdownParser.parseLine(line));
-    const visibleText = lineDom.window.document.body.textContent;
+    const visibleText = rootFromHtml(MarkdownParser.parseLine(line)).textContent;
     assert.equal(visibleText === '\u00a0' ? '' : visibleText, line, `CommonMark source text example ${example.number}`);
   }
 }
 
-console.log(`✓ ${supported.size} CommonMark link examples match`);
-console.log(`✓ ${intentionalDeviations.size} CommonMark link examples have explicit deviations`);
+console.log(`✓ ${matching.length} CommonMark link examples match`);
+console.log(`✓ ${intentionalDeviations.length} CommonMark link examples have rule based deviations`);

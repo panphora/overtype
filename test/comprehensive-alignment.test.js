@@ -4,70 +4,7 @@
  */
 
 import { MarkdownParser } from '../src/parser.js';
-import { JSDOM } from 'jsdom';
-
-// Helper to extract text respecting block elements
-function extractVisualText(html) {
-  const dom = new JSDOM(`<body>${html}</body>`);
-  const body = dom.window.document.body;
-  
-  const lines = [];
-  const blockTags = ['DIV', 'P', 'H1', 'H2', 'H3', 'UL', 'OL', 'LI'];
-  
-  function processNode(node) {
-    if (node.nodeType === 3) { // Text node
-      if (lines.length === 0) lines.push('');
-      lines[lines.length - 1] += node.textContent;
-    } else if (node.nodeType === 1) { // Element node
-      // Special handling for PRE - its content should be treated as-is
-      if (node.tagName === 'PRE') {
-        // PRE content may have newlines that should be preserved
-        const preText = node.textContent;
-        const preLines = preText.split('\n');
-        
-        // Add a new line before PRE if needed
-        if (lines.length > 0 && lines[lines.length - 1] !== '') {
-          lines.push('');
-        }
-        
-        // Add all lines from PRE content
-        for (let i = 0; i < preLines.length; i++) {
-          if (i === 0 && lines.length > 0) {
-            lines[lines.length - 1] += preLines[i];
-          } else {
-            lines.push(preLines[i]);
-          }
-        }
-        
-        // Add a new line after PRE
-        lines.push('');
-        return; // Don't process children, we already got the text
-      }
-      
-      const isBlock = blockTags.includes(node.tagName);
-      if (isBlock && lines.length > 0 && lines[lines.length - 1] !== '') {
-        lines.push('');
-      }
-      
-      for (const child of node.childNodes) {
-        processNode(child);
-      }
-      
-      if (isBlock && lines[lines.length - 1] !== '') {
-        lines.push('');
-      }
-    }
-  }
-  
-  processNode(body);
-  
-  // Remove trailing empty lines but keep internal ones
-  while (lines.length > 0 && lines[lines.length - 1] === '') {
-    lines.pop();
-  }
-  
-  return lines;
-}
+import { extractVisualLines } from './helpers/dom.js';
 
 console.log('🧪 Comprehensive Alignment Test Suite\n');
 console.log('=' .repeat(70) + '\n');
@@ -155,7 +92,7 @@ testCases.forEach((test, index) => {
   
   const inputLines = test.input.split('\n');
   const parsed = MarkdownParser.parse(test.input);
-  const visualLines = extractVisualText(parsed);
+  const visualLines = extractVisualLines(parsed);
   
   // Check line count
   const lineCountMatch = inputLines.length === visualLines.length;

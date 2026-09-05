@@ -1,5 +1,5 @@
 /**
- * OverType v2.4.1
+ * OverType v2.4.2
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -38,6 +38,128 @@ __export(overtype_exports, {
   toolbarButtons: () => toolbarButtons
 });
 module.exports = __toCommonJS(overtype_exports);
+
+// src/block-scanner.js
+function scanAtxHeading(line) {
+  var _a, _b;
+  const match = /^( {0,3})(#{1,6})(?:([\t ]+)(.*)|$)/.exec(line);
+  if (!match || match[2].length > 3)
+    return null;
+  const indent = match[1];
+  const marker = match[2];
+  const separator = (_a = match[3]) != null ? _a : "";
+  const body = (_b = match[4]) != null ? _b : "";
+  const onlyClosingMarker = /^(#+)[\t ]*$/.exec(body);
+  const closingMatch = /([\t ]+)(#+)([\t ]*)$/.exec(body);
+  const hasClosingMarker = onlyClosingMarker || closingMatch;
+  return {
+    type: "heading",
+    level: marker.length,
+    indent,
+    marker,
+    separator,
+    content: onlyClosingMarker ? "" : hasClosingMarker ? body.slice(0, closingMatch.index) : body,
+    closing: onlyClosingMarker ? body : hasClosingMarker ? closingMatch[0] : ""
+  };
+}
+function scanThematicBreak(line) {
+  const match = /^( {0,3})([*_-])([\t *_-]*)$/.exec(line);
+  if (!match)
+    return null;
+  const marker = match[2];
+  const rest = match[3];
+  if ([...rest].some((character) => character !== marker && character !== " " && character !== "	")) {
+    return null;
+  }
+  const markerCount = 1 + [...rest].filter((character) => character === marker).length;
+  if (markerCount < 3)
+    return null;
+  return { type: "thematic-break", marker, source: line };
+}
+function scanBlockquote(line) {
+  const match = /^( {0,3})>([\t ]?)(.*)$/.exec(line);
+  if (!match || match[2] === "" && match[3].startsWith(">"))
+    return null;
+  return {
+    type: "blockquote",
+    indent: match[1],
+    marker: ">",
+    separator: match[2],
+    content: match[3]
+  };
+}
+function scanListItem(line) {
+  const bullet = /^( *)([-*+])([\t ]+)(.*)$/.exec(line);
+  if (bullet) {
+    return {
+      type: "list-item",
+      listType: "bullet",
+      indent: bullet[1],
+      marker: bullet[2],
+      separator: bullet[3],
+      content: bullet[4]
+    };
+  }
+  const emptyBullet = /^( *)([-*+])$/.exec(line);
+  if (emptyBullet) {
+    return {
+      type: "list-item",
+      listType: "bullet",
+      indent: emptyBullet[1],
+      marker: emptyBullet[2],
+      separator: "",
+      content: ""
+    };
+  }
+  const ordered = /^( *)(\d{1,9}\.)([\t ]+)(.*)$/.exec(line);
+  if (ordered) {
+    return {
+      type: "list-item",
+      listType: "ordered",
+      indent: ordered[1],
+      marker: ordered[2],
+      separator: ordered[3],
+      content: ordered[4]
+    };
+  }
+  const emptyOrdered = /^( *)(\d{1,9}\.)$/.exec(line);
+  if (emptyOrdered) {
+    return {
+      type: "list-item",
+      listType: "ordered",
+      indent: emptyOrdered[1],
+      marker: emptyOrdered[2],
+      separator: "",
+      content: ""
+    };
+  }
+  return null;
+}
+function scanFenceOpen(line) {
+  const match = /^( {0,3})(`{3,})([^`]*)$/.exec(line);
+  if (!match)
+    return null;
+  return {
+    type: "fence-open",
+    indent: match[1],
+    marker: match[2],
+    length: match[2].length,
+    info: match[3].trim(),
+    source: line
+  };
+}
+function scanFenceClose(line, opening) {
+  const match = /^( {0,3})(`{3,})[\t ]*$/.exec(line);
+  if (!match || match[2].length < opening.length)
+    return null;
+  return {
+    type: "fence-close",
+    indent: match[1],
+    marker: match[2],
+    length: match[2].length,
+    source: line
+  };
+}
 
 // src/link-scanner.js
 var ESCAPABLE = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/;
@@ -367,20 +489,258 @@ function findRenderableLineLinks(text, options) {
 function findRenderableLinks(text, options = {}) {
   const links = [];
   const lines = text.split("\n");
-  let inCodeBlock = false;
+  let opening = null;
   let offset3 = 0;
   for (const line of lines) {
-    if (/^```[^`]*$/.test(line)) {
-      inCodeBlock = !inCodeBlock;
-    } else if (!inCodeBlock) {
-      links.push(...findRenderableLineLinks(line, options).map((link) => shiftLink(link, offset3)));
+    if (opening) {
+      if (scanFenceClose(line, opening))
+        opening = null;
+    } else {
+      const candidate = scanFenceOpen(line);
+      if (candidate)
+        opening = candidate;
+      else {
+        links.push(...findRenderableLineLinks(line, options).map((link) => shiftLink(link, offset3)));
+      }
     }
     offset3 += line.length + 1;
   }
   return links;
 }
 
+// src/emphasis-scanner.js
+var DECODED_ENTITY2 = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'"
+};
+var ENTITY2 = /^&(amp|lt|gt|quot|#39);/;
+var ASCII_PUNCTUATION = /^[!"#$%&'()*+,\-./:;<=>?@[\]\\^_`{|}~]$/;
+var BMP_PUNCTUATION = /^[\u00a1-\u00a9\u00ab-\u00ac\u00ae-\u00b1\u00b4\u00b6-\u00b8\u00bb\u00bf\u00d7\u00f7\u02c2-\u02c5\u02d2-\u02df\u02e5-\u02eb\u02ed\u02ef-\u02ff\u0375\u037e\u0384-\u0385\u0387\u03f6\u0482\u055a-\u055f\u0589-\u058a\u058d-\u058f\u05be\u05c0\u05c3\u05c6\u05f3-\u05f4\u0606-\u060f\u061b\u061d-\u061f\u066a-\u066d\u06d4\u06de\u06e9\u06fd-\u06fe\u0700-\u070d\u07f6-\u07f9\u07fe-\u07ff\u0830-\u083e\u085e\u0888\u0964-\u0965\u0970\u09f2-\u09f3\u09fa-\u09fb\u09fd\u0a76\u0af0-\u0af1\u0b70\u0bf3-\u0bfa\u0c77\u0c7f\u0c84\u0d4f\u0d79\u0df4\u0e3f\u0e4f\u0e5a-\u0e5b\u0f01-\u0f17\u0f1a-\u0f1f\u0f34\u0f36\u0f38\u0f3a-\u0f3d\u0f85\u0fbe-\u0fc5\u0fc7-\u0fcc\u0fce-\u0fda\u104a-\u104f\u109e-\u109f\u10fb\u1360-\u1368\u1390-\u1399\u1400\u166d-\u166e\u169b-\u169c\u16eb-\u16ed\u1735-\u1736\u17d4-\u17d6\u17d8-\u17db\u1800-\u180a\u1940\u1944-\u1945\u19de-\u19ff\u1a1e-\u1a1f\u1aa0-\u1aa6\u1aa8-\u1aad\u1b4e-\u1b4f\u1b5a-\u1b6a\u1b74-\u1b7f\u1bfc-\u1bff\u1c3b-\u1c3f\u1c7e-\u1c7f\u1cc0-\u1cc7\u1cd3\u1fbd\u1fbf-\u1fc1\u1fcd-\u1fcf\u1fdd-\u1fdf\u1fed-\u1fef\u1ffd-\u1ffe\u2010-\u2027\u2030-\u205e\u207a-\u207e\u208a-\u208e\u20a0-\u20c0\u2100-\u2101\u2103-\u2106\u2108-\u2109\u2114\u2116-\u2118\u211e-\u2123\u2125\u2127\u2129\u212e\u213a-\u213b\u2140-\u2144\u214a-\u214d\u214f\u218a-\u218b\u2190-\u2429\u2440-\u244a\u249c-\u24e9\u2500-\u2775\u2794-\u2b73\u2b76-\u2b95\u2b97-\u2bff\u2ce5-\u2cea\u2cf9-\u2cfc\u2cfe-\u2cff\u2d70\u2e00-\u2e2e\u2e30-\u2e5d\u2e80-\u2e99\u2e9b-\u2ef3\u2f00-\u2fd5\u2ff0-\u2fff\u3001-\u3004\u3008-\u3020\u3030\u3036-\u3037\u303d-\u303f\u309b-\u309c\u30a0\u30fb\u3190-\u3191\u3196-\u319f\u31c0-\u31e5\u31ef\u3200-\u321e\u322a-\u3247\u3250\u3260-\u327f\u328a-\u32b0\u32c0-\u33ff\u4dc0-\u4dff\ua490-\ua4c6\ua4fe-\ua4ff\ua60d-\ua60f\ua673\ua67e\ua6f2-\ua6f7\ua700-\ua716\ua720-\ua721\ua789-\ua78a\ua828-\ua82b\ua836-\ua839\ua874-\ua877\ua8ce-\ua8cf\ua8f8-\ua8fa\ua8fc\ua92e-\ua92f\ua95f\ua9c1-\ua9cd\ua9de-\ua9df\uaa5c-\uaa5f\uaa77-\uaa79\uaade-\uaadf\uaaf0-\uaaf1\uab5b\uab6a-\uab6b\uabeb\ufb29\ufbb2-\ufbc2\ufd3e-\ufd4f\ufdcf\ufdfc-\ufdff\ufe10-\ufe19\ufe30-\ufe52\ufe54-\ufe66\ufe68-\ufe6b\uff01-\uff0f\uff1a-\uff20\uff3b-\uff40\uff5b-\uff65\uffe0-\uffe6\uffe8-\uffee\ufffc-\ufffd]$/;
+var PLACEHOLDER = /^\uE000\d+\uE001/;
+function createUnicodePunctuationPattern() {
+  try {
+    return new RegExp("^[\\p{P}\\p{S}]$", "u");
+  } catch (e) {
+    return BMP_PUNCTUATION;
+  }
+}
+var UNICODE_PUNCTUATION = createUnicodePunctuationPattern();
+function isPunctuation(character) {
+  return character !== null && (ASCII_PUNCTUATION.test(character) || UNICODE_PUNCTUATION.test(character));
+}
+function characterAt(text, index, htmlEntities) {
+  if (index >= text.length)
+    return [null, 0];
+  if (text[index] === "\uE000") {
+    const placeholder = PLACEHOLDER.exec(text.slice(index));
+    if (placeholder)
+      return ["`", placeholder[0].length];
+  }
+  if (htmlEntities && text[index] === "&") {
+    const match = ENTITY2.exec(text.slice(index, index + 6));
+    if (match)
+      return [DECODED_ENTITY2[match[0]], match[0].length];
+  }
+  const character = String.fromCodePoint(text.codePointAt(index));
+  return [character, character.length];
+}
+function isEscaped2(text, index) {
+  let slashes = 0;
+  while (index > 0 && text[--index] === "\\")
+    slashes++;
+  return slashes % 2 === 1;
+}
+function skipHtmlTag(text, index) {
+  if (text[index] !== "<")
+    return index;
+  const end = text.indexOf(">", index + 1);
+  return end === -1 ? index : end + 1;
+}
+function nextVisibleCharacter(text, index, htmlEntities) {
+  let position = index;
+  while (position < text.length) {
+    const afterTag = skipHtmlTag(text, position);
+    if (afterTag !== position) {
+      position = afterTag;
+      continue;
+    }
+    return characterAt(text, position, htmlEntities)[0];
+  }
+  return "\n";
+}
+function delimiterFlags(marker, before, after) {
+  const beforeWhitespace = /\s/u.test(before);
+  const afterWhitespace = /\s/u.test(after);
+  const beforePunctuation = isPunctuation(before);
+  const afterPunctuation = isPunctuation(after);
+  const leftFlanking = !afterWhitespace && (!afterPunctuation || beforeWhitespace || beforePunctuation);
+  const rightFlanking = !beforeWhitespace && (!beforePunctuation || afterWhitespace || afterPunctuation);
+  if (marker === "_") {
+    return {
+      canOpen: leftFlanking && (!rightFlanking || beforePunctuation),
+      canClose: rightFlanking && (!leftFlanking || afterPunctuation)
+    };
+  }
+  return { canOpen: leftFlanking, canClose: rightFlanking };
+}
+function scanDelimiters(text, htmlEntities) {
+  const delimiters = [];
+  let previousCharacter = "\n";
+  let index = 0;
+  while (index < text.length) {
+    const afterTag = skipHtmlTag(text, index);
+    if (afterTag !== index) {
+      index = afterTag;
+      continue;
+    }
+    const [character, length] = characterAt(text, index, htmlEntities);
+    if ((character === "*" || character === "_") && !isEscaped2(text, index)) {
+      const start = index;
+      let count = 0;
+      while (text[index] === character && !isEscaped2(text, index)) {
+        count++;
+        index++;
+      }
+      const flags = delimiterFlags(
+        character,
+        previousCharacter,
+        nextVisibleCharacter(text, index, htmlEntities)
+      );
+      const delimiter = {
+        marker: character,
+        start,
+        original: count,
+        remaining: count,
+        usedAsOpener: 0,
+        usedAsCloser: 0,
+        ...flags,
+        previous: delimiters.length > 0 ? delimiters[delimiters.length - 1] : null,
+        next: null
+      };
+      if (delimiter.previous)
+        delimiter.previous.next = delimiter;
+      delimiters.push(delimiter);
+      previousCharacter = character;
+      continue;
+    }
+    previousCharacter = character;
+    index += length;
+  }
+  return delimiters;
+}
+function removeDelimiter(state, delimiter) {
+  if (delimiter.previous)
+    delimiter.previous.next = delimiter.next;
+  else
+    state.head = delimiter.next;
+  if (delimiter.next)
+    delimiter.next.previous = delimiter.previous;
+  delimiter.previous = null;
+  delimiter.next = null;
+}
+function removeBetween(opener, closer) {
+  let delimiter = opener.next;
+  while (delimiter && delimiter !== closer) {
+    const next = delimiter.next;
+    delimiter.previous = null;
+    delimiter.next = null;
+    delimiter = next;
+  }
+  opener.next = closer;
+  closer.previous = opener;
+}
+function findEmphasis(text, { htmlEntities = false } = {}) {
+  var _a;
+  const delimiters = scanDelimiters(text, htmlEntities);
+  const state = { head: (_a = delimiters[0]) != null ? _a : null };
+  const matches = [];
+  let closer = state.head;
+  while (closer) {
+    if (!closer.canClose) {
+      closer = closer.next;
+      continue;
+    }
+    let opener = closer.previous;
+    while (opener) {
+      const oddMatch = (closer.canOpen || opener.canClose) && (opener.original % 3 !== 0 || closer.original % 3 !== 0) && (opener.original + closer.original) % 3 === 0;
+      if (opener.marker === closer.marker && opener.canOpen && !oddMatch)
+        break;
+      opener = opener.previous;
+    }
+    if (!opener) {
+      const next2 = closer.next;
+      if (!closer.canOpen)
+        removeDelimiter(state, closer);
+      closer = next2;
+      continue;
+    }
+    const use = opener.remaining >= 2 && closer.remaining >= 2 ? 2 : 1;
+    const openStart = opener.start + opener.original - opener.usedAsOpener - use;
+    const closeStart = closer.start + closer.usedAsCloser;
+    matches.push({
+      type: use === 2 ? "strong" : "em",
+      openStart,
+      openEnd: openStart + use,
+      closeStart,
+      closeEnd: closeStart + use
+    });
+    opener.remaining -= use;
+    closer.remaining -= use;
+    opener.usedAsOpener += use;
+    closer.usedAsCloser += use;
+    removeBetween(opener, closer);
+    const next = closer.next;
+    if (opener.remaining === 0)
+      removeDelimiter(state, opener);
+    if (closer.remaining === 0) {
+      removeDelimiter(state, closer);
+      closer = next;
+    }
+  }
+  return matches.sort((a, b) => a.openStart - b.openStart || b.closeEnd - a.closeEnd);
+}
+function renderEmphasis(text, options = {}) {
+  const { includeEm = true, includeStrong = true } = options;
+  const matches = findEmphasis(text, options).filter(
+    (match) => match.type === "em" ? includeEm : includeStrong
+  );
+  if (matches.length === 0)
+    return text;
+  const boundaries = /* @__PURE__ */ new Map();
+  const at = (position) => {
+    if (!boundaries.has(position)) {
+      boundaries.set(position, { openEnd: [], closeEnd: [], openStart: [], closeStart: [] });
+    }
+    return boundaries.get(position);
+  };
+  for (const match of matches) {
+    const tag = match.type;
+    at(match.openStart).openStart.push(`<${tag}><span class="syntax-marker">`);
+    at(match.openEnd).openEnd.push("</span>");
+    at(match.closeStart).closeStart.push('<span class="syntax-marker">');
+    at(match.closeEnd).closeEnd.push(`</span></${tag}>`);
+  }
+  let result = "";
+  let previous = 0;
+  for (const position of [...boundaries.keys()].sort((a, b) => a - b)) {
+    result += text.slice(previous, position);
+    const events = boundaries.get(position);
+    result += events.openEnd.join("");
+    result += events.closeEnd.join("");
+    result += events.openStart.join("");
+    result += events.closeStart.join("");
+    previous = position;
+  }
+  return result + text.slice(previous);
+}
+
 // src/parser.js
+function decodeEscapedLine(html) {
+  return html.replace(/&nbsp;/g, " ").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+}
 var MarkdownParser = class {
   /**
    * Reset link index (call before parsing a new document)
@@ -445,11 +805,14 @@ var MarkdownParser = class {
    * @returns {string} Parsed HTML with header styling
    */
   static parseHeader(html) {
-    return html.replace(/^(#{1,3})\s(.+)$/, (match, hashes, content) => {
-      const level = hashes.length;
-      content = this.parseInlineElements(content);
-      return `<h${level}><span class="syntax-marker">${hashes} </span>${content}</h${level}>`;
-    });
+    const heading = scanAtxHeading(decodeEscapedLine(html));
+    if (!heading)
+      return html;
+    const indent = heading.indent.replace(/ /g, "&nbsp;");
+    const opening = this.escapeHtml(heading.marker + heading.separator);
+    const content = this.parseInlineElements(this.escapeHtml(heading.content));
+    const closing = heading.closing ? `<span class="syntax-marker">${this.escapeHtml(heading.closing)}</span>` : "";
+    return `<h${heading.level}>${indent}<span class="syntax-marker">${opening}</span>${content}${closing}</h${heading.level}>`;
   }
   /**
    * Parse horizontal rules
@@ -457,10 +820,11 @@ var MarkdownParser = class {
    * @returns {string|null} Parsed horizontal rule or null
    */
   static parseHorizontalRule(html) {
-    if (html.match(/^(-{3,}|\*{3,}|_{3,})$/)) {
-      return `<div><span class="hr-marker">${html}</span></div>`;
-    }
-    return null;
+    const source = decodeEscapedLine(html);
+    if (!scanThematicBreak(source))
+      return null;
+    const rendered = this.preserveIndentation(this.escapeHtml(source), source);
+    return `<div><span class="hr-marker">${rendered}</span></div>`;
   }
   /**
    * Parse blockquotes
@@ -468,9 +832,14 @@ var MarkdownParser = class {
    * @returns {string} Parsed blockquote
    */
   static parseBlockquote(html) {
-    return html.replace(/^&gt; (.+)$/, (match, content) => {
-      return `<span class="blockquote"><span class="syntax-marker">&gt;</span> ${content}</span>`;
-    });
+    const blockquote = scanBlockquote(decodeEscapedLine(html));
+    if (!blockquote)
+      return html;
+    const indent = blockquote.indent.replace(/ /g, "&nbsp;");
+    const marker = this.escapeHtml(blockquote.marker);
+    const separator = this.escapeHtml(blockquote.separator);
+    const content = this.parseInlineElements(this.escapeHtml(blockquote.content));
+    return `${indent}<span class="blockquote"><span class="syntax-marker">${marker}</span>${separator}${content}</span>`;
   }
   /**
    * Parse bullet lists
@@ -478,10 +847,16 @@ var MarkdownParser = class {
    * @returns {string} Parsed bullet list item
    */
   static parseBulletList(html) {
-    return html.replace(/^((?:&nbsp;)*)([-*+])\s(.+)$/, (match, indent, marker, content) => {
-      content = this.parseInlineElements(content);
-      return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
-    });
+    const source = decodeEscapedLine(html);
+    if (scanThematicBreak(source))
+      return html;
+    const listItem = scanListItem(source);
+    if (!listItem || listItem.listType !== "bullet")
+      return html;
+    const indent = listItem.indent.replace(/ /g, "&nbsp;");
+    const marker = this.escapeHtml(listItem.marker + listItem.separator);
+    const content = this.parseInlineElements(this.escapeHtml(listItem.content));
+    return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker}</span>${content}</li>`;
   }
   /**
    * Parse task lists (GitHub Flavored Markdown checkboxes)
@@ -508,10 +883,13 @@ var MarkdownParser = class {
    * @returns {string} Parsed numbered list item
    */
   static parseNumberedList(html) {
-    return html.replace(/^((?:&nbsp;)*)(\d+\.)\s(.+)$/, (match, indent, marker, content) => {
-      content = this.parseInlineElements(content);
-      return `${indent}<li class="ordered-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
-    });
+    const listItem = scanListItem(decodeEscapedLine(html));
+    if (!listItem || listItem.listType !== "ordered")
+      return html;
+    const indent = listItem.indent.replace(/ /g, "&nbsp;");
+    const marker = this.escapeHtml(listItem.marker + listItem.separator);
+    const content = this.parseInlineElements(this.escapeHtml(listItem.content));
+    return `${indent}<li class="ordered-list"><span class="syntax-marker">${marker}</span>${content}</li>`;
   }
   /**
    * Parse code blocks (markers only)
@@ -519,11 +897,61 @@ var MarkdownParser = class {
    * @returns {string|null} Parsed code fence or null
    */
   static parseCodeBlock(html) {
-    const codeFenceRegex = /^`{3}[^`]*$/;
-    if (codeFenceRegex.test(html)) {
-      return `<div><span class="code-fence">${html}</span></div>`;
+    const descriptor = scanFenceOpen(decodeEscapedLine(html));
+    return descriptor ? this.renderFence(descriptor) : null;
+  }
+  static renderFence(descriptor, raw = false) {
+    const source = this.preserveIndentation(this.escapeHtml(descriptor.source), descriptor.source);
+    const className = raw ? ' class="raw-line"' : "";
+    return `<div${className}><span class="code-fence">${source}</span></div>`;
+  }
+  static renderCodeContent(lines, info, instanceHighlighter, indentation = 0, rawLineIndex = -1) {
+    const semanticLines = lines.map((line) => {
+      let width = 0;
+      while (width < indentation && line[width] === " ")
+        width++;
+      return { source: line, prefix: line.slice(0, width), content: line.slice(width) };
+    });
+    const semanticContent = semanticLines.map((line) => line.content).join("\n");
+    const renderPrefix = (prefix) => prefix ? `<span class="syntax-marker">${this.escapeHtml(prefix)}</span>` : "";
+    const displayContent = semanticLines.map((line, index) => {
+      if (index === rawLineIndex) {
+        return `<span class="raw-line">${this.escapeHtml(line.source) || "&nbsp;"}</span>`;
+      }
+      if (line.prefix === "" && line.content === "")
+        return '<span class="syntax-marker">&nbsp;</span>';
+      return renderPrefix(line.prefix) + this.escapeHtml(line.content);
+    }).join("\n");
+    const language = info.split(/[\t ]/, 1)[0];
+    const languageClass = language ? ` class="language-${this.escapeHtml(language)}"` : "";
+    const highlighter = instanceHighlighter || this.codeHighlighter;
+    let content = displayContent;
+    if (highlighter) {
+      try {
+        const result = highlighter(semanticContent, language);
+        if (result && typeof result.then === "function") {
+          console.warn("Async highlighters are not supported in parse() because it returns an HTML string. Use synchronous highlighters only.");
+        } else if (result && typeof result === "string" && result.trim()) {
+          const highlightedLines = result.split("\n");
+          if (highlightedLines.length === semanticLines.length + 1 && highlightedLines[highlightedLines.length - 1] === "") {
+            highlightedLines.pop();
+          }
+          if (highlightedLines.length === semanticLines.length) {
+            content = highlightedLines.map((line, index) => {
+              if (index === rawLineIndex) {
+                return `<span class="raw-line">${this.escapeHtml(semanticLines[index].source) || "&nbsp;"}</span>`;
+              }
+              return renderPrefix(semanticLines[index].prefix) + line;
+            }).join("\n");
+          } else {
+            console.warn("Code highlighter output line count does not match the source. Using unhighlighted code to preserve alignment.");
+          }
+        }
+      } catch (error) {
+        console.warn("Code highlighting failed:", error);
+      }
     }
-    return null;
+    return `<pre class="code-block"><code${languageClass}>${content}</code></pre>`;
   }
   /**
    * Parse bold text
@@ -531,20 +959,18 @@ var MarkdownParser = class {
    * @returns {string} HTML with bold styling
    */
   static parseBold(html) {
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong><span class="syntax-marker">**</span>$1<span class="syntax-marker">**</span></strong>');
-    html = html.replace(/__(.+?)__/g, '<strong><span class="syntax-marker">__</span>$1<span class="syntax-marker">__</span></strong>');
-    return html;
+    return renderEmphasis(html, { htmlEntities: true, includeEm: false });
   }
   /**
    * Parse italic text
-   * Note: Uses lookbehind assertions - requires modern browsers
    * @param {string} html - HTML with potential italic markdown
    * @returns {string} HTML with italic styling
    */
   static parseItalic(html) {
-    html = html.replace(new RegExp("(?<![\\*>])\\*(?!\\*)(.+?)(?<!\\*)\\*(?!\\*)", "g"), '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
-    html = html.replace(new RegExp("(?<=^|\\s)_(?!_)(.+?)(?<!_)_(?!_)(?=\\s|$)", "g"), '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
-    return html;
+    return renderEmphasis(html, { htmlEntities: true, includeStrong: false });
+  }
+  static parseEmphasis(html) {
+    return renderEmphasis(html, { htmlEntities: true });
   }
   /**
    * Parse strikethrough text
@@ -687,17 +1113,14 @@ var MarkdownParser = class {
         replacement = `<code><span class="syntax-marker">${sanctuary.openTicks}</span>${sanctuary.content}<span class="syntax-marker">${sanctuary.closeTicks}</span></code>`;
       } else if (sanctuary.type === "link") {
         let processedLinkText = sanctuary.linkText;
+        processedLinkText = this.parseStrikethrough(processedLinkText);
+        processedLinkText = this.parseEmphasis(processedLinkText);
         sanctuaries.forEach((innerSanctuary, innerPlaceholder) => {
-          if (processedLinkText.includes(innerPlaceholder)) {
-            if (innerSanctuary.type === "code") {
-              const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${innerSanctuary.content}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
-              processedLinkText = processedLinkText.replace(innerPlaceholder, () => codeHtml);
-            }
+          if (processedLinkText.includes(innerPlaceholder) && innerSanctuary.type === "code") {
+            const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${innerSanctuary.content}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
+            processedLinkText = processedLinkText.replace(innerPlaceholder, () => codeHtml);
           }
         });
-        processedLinkText = this.parseStrikethrough(processedLinkText);
-        processedLinkText = this.parseBold(processedLinkText);
-        processedLinkText = this.parseItalic(processedLinkText);
         const anchorName = `--link-${this.linkIndex++}`;
         const safeUrl = this.escapeHtml(this.sanitizeUrl(sanctuary.url));
         const title = sanctuary.title === null ? "" : ` title="${this.escapeHtml(sanctuary.title)}"`;
@@ -716,8 +1139,7 @@ var MarkdownParser = class {
     const { protectedText, sanctuaries } = this.identifyAndProtectSanctuaries(text);
     let html = protectedText;
     html = this.parseStrikethrough(html);
-    html = this.parseBold(html);
-    html = this.parseItalic(html);
+    html = this.parseEmphasis(html);
     html = this.restoreAndTransformSanctuaries(html, sanctuaries);
     return html;
   }
@@ -727,25 +1149,47 @@ var MarkdownParser = class {
    * @returns {string} Parsed HTML line
    */
   static parseLine(line, isPreviewMode = false) {
-    let html = this.escapeHtml(line);
-    html = this.preserveIndentation(html, line);
-    const horizontalRule = this.parseHorizontalRule(html);
-    if (horizontalRule)
-      return horizontalRule;
-    const codeBlock = this.parseCodeBlock(html);
-    if (codeBlock)
-      return codeBlock;
-    html = this.parseHeader(html);
-    html = this.parseBlockquote(html);
-    html = this.parseTaskList(html, isPreviewMode);
-    html = this.parseBulletList(html);
-    html = this.parseNumberedList(html);
-    if (!html.includes("<li") && !html.includes("<h")) {
-      html = this.parseInlineElements(html);
-    }
-    if (html.trim() === "") {
+    if (line === "")
       return "<div>&nbsp;</div>";
+    const thematicBreak = scanThematicBreak(line);
+    if (thematicBreak) {
+      const source = this.preserveIndentation(this.escapeHtml(line), line);
+      return `<div><span class="hr-marker">${source}</span></div>`;
     }
+    const fence = scanFenceOpen(line);
+    if (fence)
+      return this.renderFence(fence);
+    const heading = scanAtxHeading(line);
+    if (heading) {
+      const indent = heading.indent.replace(/ /g, "&nbsp;");
+      const opening = this.escapeHtml(heading.marker + heading.separator);
+      const content = this.parseInlineElements(this.escapeHtml(heading.content));
+      const closing = heading.closing ? `<span class="syntax-marker">${this.escapeHtml(heading.closing)}</span>` : "";
+      return `<div><h${heading.level}>${indent}<span class="syntax-marker">${opening}</span>${content}${closing}</h${heading.level}></div>`;
+    }
+    const blockquote = scanBlockquote(line);
+    if (blockquote) {
+      const indent = blockquote.indent.replace(/ /g, "&nbsp;");
+      const marker = this.escapeHtml(blockquote.marker);
+      const separator = this.escapeHtml(blockquote.separator);
+      const content = this.parseInlineElements(this.escapeHtml(blockquote.content));
+      return `<div>${indent}<span class="blockquote"><span class="syntax-marker">${marker}</span>${separator}${content}</span></div>`;
+    }
+    let html = this.preserveIndentation(this.escapeHtml(line), line);
+    const taskList = this.parseTaskList(html, isPreviewMode);
+    if (taskList !== html)
+      return `<div>${taskList}</div>`;
+    const listItem = scanListItem(line);
+    if (listItem) {
+      const indent = listItem.indent.replace(/ /g, "&nbsp;");
+      const marker = this.escapeHtml(listItem.marker + listItem.separator);
+      const content = this.parseInlineElements(this.escapeHtml(listItem.content));
+      const className = listItem.listType === "bullet" ? "bullet-list" : "ordered-list";
+      return `<div>${indent}<li class="${className}"><span class="syntax-marker">${marker}</span>${content}</li></div>`;
+    }
+    const leadingWhitespace = /^[\t ]*/.exec(line)[0];
+    const indentation = leadingWhitespace.replace(/ /g, "&nbsp;");
+    html = indentation + this.parseInlineElements(this.escapeHtml(line.slice(leadingWhitespace.length)));
     return `<div>${html}</div>`;
   }
   /**
@@ -759,26 +1203,48 @@ var MarkdownParser = class {
   static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false) {
     this.resetLinkIndex();
     const lines = text.split("\n");
-    let inCodeBlock = false;
-    const parsedLines = lines.map((line, index) => {
-      if (showActiveLineRaw && index === activeLine) {
+    const parsedLines = [];
+    let opening = null;
+    let codeLines = [];
+    let rawCodeLine = -1;
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+      const isRaw = showActiveLineRaw && index === activeLine;
+      if (opening) {
+        const closing = scanFenceClose(line, opening);
+        if (closing) {
+          parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
+          const renderedFence = this.renderFence(closing, isRaw);
+          parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+          opening = null;
+          codeLines = [];
+          rawCodeLine = -1;
+        } else {
+          if (isRaw)
+            rawCodeLine = codeLines.length;
+          codeLines.push(line);
+        }
+        continue;
+      }
+      const candidate = scanFenceOpen(line);
+      if (candidate) {
+        opening = candidate;
+        const renderedFence = this.renderFence(candidate, isRaw);
+        parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+        continue;
+      }
+      if (isRaw) {
         const content = this.escapeHtml(line) || "&nbsp;";
-        return `<div class="raw-line">${content}</div>`;
+        parsedLines.push(`<div class="raw-line">${content}</div>`);
+        continue;
       }
-      const codeFenceRegex = /^```[^`]*$/;
-      if (codeFenceRegex.test(line)) {
-        inCodeBlock = !inCodeBlock;
-        return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
-      }
-      if (inCodeBlock) {
-        const escaped = this.escapeHtml(line);
-        const indented = this.preserveIndentation(escaped, line);
-        return `<div>${indented || "&nbsp;"}</div>`;
-      }
-      return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
-    });
+      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode)));
+    }
+    if (opening && codeLines.length > 0) {
+      parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
+    }
     const html = parsedLines.join("");
-    return this.postProcessHTML(html, instanceHighlighter);
+    return this.postProcessHTML(html, instanceHighlighter, false);
   }
   /**
    * Post-process HTML to consolidate lists and code blocks
@@ -786,116 +1252,8 @@ var MarkdownParser = class {
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML with consolidated lists and code blocks
    */
-  static postProcessHTML(html, instanceHighlighter) {
-    if (typeof document === "undefined" || !document) {
-      return this.postProcessHTMLManual(html, instanceHighlighter);
-    }
-    const container = document.createElement("div");
-    container.innerHTML = html;
-    let currentList = null;
-    let listType = null;
-    let currentCodeBlock = null;
-    let inCodeBlock = false;
-    const children = Array.from(container.children);
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-      if (!child.parentNode)
-        continue;
-      const codeFence = child.querySelector(".code-fence");
-      if (codeFence) {
-        const fenceText = codeFence.textContent;
-        if (fenceText.startsWith("```")) {
-          if (!inCodeBlock) {
-            inCodeBlock = true;
-            currentCodeBlock = document.createElement("pre");
-            const codeElement = document.createElement("code");
-            currentCodeBlock.appendChild(codeElement);
-            currentCodeBlock.className = "code-block";
-            const lang = fenceText.slice(3).trim();
-            if (lang) {
-              codeElement.className = `language-${lang}`;
-            }
-            container.insertBefore(currentCodeBlock, child.nextSibling);
-            currentCodeBlock._codeElement = codeElement;
-            currentCodeBlock._language = lang;
-            currentCodeBlock._codeContent = "";
-            continue;
-          } else {
-            const highlighter = instanceHighlighter || this.codeHighlighter;
-            if (currentCodeBlock && highlighter && currentCodeBlock._codeContent) {
-              try {
-                const result = highlighter(
-                  currentCodeBlock._codeContent,
-                  currentCodeBlock._language || ""
-                );
-                if (result && typeof result.then === "function") {
-                  console.warn("Async highlighters are not supported in parse() because it returns an HTML string. The caller creates new DOM elements from that string, breaking references to the elements we would update. Use synchronous highlighters only.");
-                } else {
-                  if (result && typeof result === "string" && result.trim()) {
-                    currentCodeBlock._codeElement.innerHTML = result;
-                  }
-                }
-              } catch (error) {
-                console.warn("Code highlighting failed:", error);
-              }
-            }
-            inCodeBlock = false;
-            currentCodeBlock = null;
-            continue;
-          }
-        }
-      }
-      if (inCodeBlock && currentCodeBlock && child.tagName === "DIV" && !child.querySelector(".code-fence")) {
-        const codeElement = currentCodeBlock._codeElement || currentCodeBlock.querySelector("code");
-        if (currentCodeBlock._codeContent.length > 0) {
-          currentCodeBlock._codeContent += "\n";
-        }
-        const lineText = child.textContent.replace(/\u00A0/g, " ");
-        currentCodeBlock._codeContent += lineText;
-        if (codeElement.textContent.length > 0) {
-          codeElement.textContent += "\n";
-        }
-        codeElement.textContent += lineText;
-        child.remove();
-        continue;
-      }
-      let listItem = null;
-      if (child.tagName === "DIV") {
-        listItem = child.querySelector("li");
-      }
-      if (listItem) {
-        const isBullet = listItem.classList.contains("bullet-list");
-        const isOrdered = listItem.classList.contains("ordered-list");
-        if (!isBullet && !isOrdered) {
-          currentList = null;
-          listType = null;
-          continue;
-        }
-        const newType = isBullet ? "ul" : "ol";
-        if (!currentList || listType !== newType) {
-          currentList = document.createElement(newType);
-          container.insertBefore(currentList, child);
-          listType = newType;
-        }
-        const indentationNodes = [];
-        for (const node of child.childNodes) {
-          if (node.nodeType === 3 && node.textContent.match(/^\u00A0+$/)) {
-            indentationNodes.push(node.cloneNode(true));
-          } else if (node === listItem) {
-            break;
-          }
-        }
-        indentationNodes.forEach((node) => {
-          listItem.insertBefore(node, listItem.firstChild);
-        });
-        currentList.appendChild(listItem);
-        child.remove();
-      } else {
-        currentList = null;
-        listType = null;
-      }
-    }
-    return container.innerHTML;
+  static postProcessHTML(html, instanceHighlighter, processCodeBlocks = true) {
+    return this.postProcessHTMLManual(html, instanceHighlighter, processCodeBlocks);
   }
   /**
    * Manual post-processing for Node.js environments (without DOM)
@@ -903,13 +1261,13 @@ var MarkdownParser = class {
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML
    */
-  static postProcessHTMLManual(html, instanceHighlighter) {
+  static postProcessHTMLManual(html, instanceHighlighter, processCodeBlocks = true) {
     let processed = html;
-    processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const divs = match.match(/<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
+    processed = processed.replace(/((?:<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
+      const divs = match.match(/<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
       if (divs.length > 0) {
         const items = divs.map((div) => {
-          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const indentMatch = div.match(/<div(?:\s[^>]*)?>((?:&nbsp;)*)<li/);
           const listItemMatch = div.match(/<li class="bullet-list">.*?<\/li>/);
           if (indentMatch && listItemMatch) {
             const indentation = indentMatch[1];
@@ -922,11 +1280,11 @@ var MarkdownParser = class {
       }
       return match;
     });
-    processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const divs = match.match(/<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>/gs) || [];
+    processed = processed.replace(/((?:<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
+      const divs = match.match(/<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>/gs) || [];
       if (divs.length > 0) {
         const items = divs.map((div) => {
-          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const indentMatch = div.match(/<div(?:\s[^>]*)?>((?:&nbsp;)*)<li/);
           const listItemMatch = div.match(/<li class="ordered-list">.*?<\/li>/);
           if (indentMatch && listItemMatch) {
             const indentation = indentMatch[1];
@@ -935,41 +1293,48 @@ var MarkdownParser = class {
           }
           return listItemMatch ? listItemMatch[0] : "";
         }).filter(Boolean);
-        return "<ol>" + items.join("") + "</ol>";
+        const firstMarker = divs[0].match(/<span class="syntax-marker">(\d+)\./);
+        const start = firstMarker ? Number.parseInt(firstMarker[1], 10) : 1;
+        const startAttribute = start === 1 ? "" : ` start="${start}"`;
+        return `<ol${startAttribute}>` + items.join("") + "</ol>";
       }
       return match;
     });
     const codeBlockRegex = /<div><span class="code-fence">(```[^<]*)<\/span><\/div>(.*?)<div><span class="code-fence">(```)<\/span><\/div>/gs;
-    processed = processed.replace(codeBlockRegex, (match, openFence, content, closeFence) => {
-      const lines = content.match(/<div>(.*?)<\/div>/gs) || [];
-      const codeContent = lines.map((line) => {
-        const text = line.replace(/<div>(.*?)<\/div>/s, "$1").replace(/&nbsp;/g, " ");
-        return text;
-      }).join("\n");
-      const lang = openFence.slice(3).trim();
-      const langClass = lang ? ` class="language-${lang}"` : "";
-      let highlightedContent = codeContent;
-      const highlighter = instanceHighlighter || this.codeHighlighter;
-      if (highlighter) {
-        try {
-          const decodedCode = codeContent.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-          const result2 = highlighter(decodedCode, lang);
-          if (result2 && typeof result2.then === "function") {
-            console.warn("Async highlighters are not supported in Node.js (non-DOM) context. Use synchronous highlighters for server-side rendering.");
-          } else {
-            if (result2 && typeof result2 === "string" && result2.trim()) {
-              highlightedContent = result2;
+    if (processCodeBlocks)
+      processed = processed.replace(codeBlockRegex, (match, openFence, content, closeFence) => {
+        if (content.includes('<pre class="code-block">'))
+          return match;
+        const lines = content.match(/<div>(.*?)<\/div>/gs) || [];
+        const encodedLines = lines.map((line) => line.replace(/<div>(.*?)<\/div>/s, "$1"));
+        const codeContent = encodedLines.map(
+          (line) => line === "&nbsp;" ? "" : line.replace(/&nbsp;/g, " ")
+        ).join("\n");
+        const displayContent = encodedLines.join("\n");
+        const lang = openFence.slice(3).trim();
+        const langClass = lang ? ` class="language-${lang}"` : "";
+        let highlightedContent = displayContent;
+        const highlighter = instanceHighlighter || this.codeHighlighter;
+        if (highlighter) {
+          try {
+            const decodedCode = codeContent.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+            const result2 = highlighter(decodedCode, lang);
+            if (result2 && typeof result2.then === "function") {
+              console.warn("Async highlighters are not supported in Node.js (non-DOM) context. Use synchronous highlighters for server-side rendering.");
+            } else {
+              if (result2 && typeof result2 === "string" && result2.trim()) {
+                highlightedContent = result2;
+              }
             }
+          } catch (error) {
+            console.warn("Code highlighting failed:", error);
           }
-        } catch (error) {
-          console.warn("Code highlighting failed:", error);
         }
-      }
-      let result = `<div><span class="code-fence">${openFence}</span></div>`;
-      result += `<pre class="code-block"><code${langClass}>${highlightedContent}</code></pre>`;
-      result += `<div><span class="code-fence">${closeFence}</span></div>`;
-      return result;
-    });
+        let result = `<div><span class="code-fence">${openFence}</span></div>`;
+        result += `<pre class="code-block"><code${langClass}>${highlightedContent}</code></pre>`;
+        result += `<div><span class="code-fence">${closeFence}</span></div>`;
+        return result;
+      });
     return processed;
   }
   /**
@@ -994,50 +1359,7 @@ var MarkdownParser = class {
     }
     const currentLine = lines[lineIndex];
     const lineEnd = lineStart + currentLine.length;
-    const checkboxMatch = currentLine.match(this.LIST_PATTERNS.checkbox);
-    if (checkboxMatch) {
-      return {
-        inList: true,
-        listType: "checkbox",
-        indent: checkboxMatch[1],
-        marker: "-",
-        checked: checkboxMatch[2] === "x",
-        content: checkboxMatch[3],
-        lineStart,
-        lineEnd,
-        markerEndPos: lineStart + checkboxMatch[1].length + checkboxMatch[2].length + 5
-        // indent + "- [ ] "
-      };
-    }
-    const bulletMatch = currentLine.match(this.LIST_PATTERNS.bullet);
-    if (bulletMatch) {
-      return {
-        inList: true,
-        listType: "bullet",
-        indent: bulletMatch[1],
-        marker: bulletMatch[2],
-        content: bulletMatch[3],
-        lineStart,
-        lineEnd,
-        markerEndPos: lineStart + bulletMatch[1].length + bulletMatch[2].length + 1
-        // indent + marker + space
-      };
-    }
-    const numberedMatch = currentLine.match(this.LIST_PATTERNS.numbered);
-    if (numberedMatch) {
-      return {
-        inList: true,
-        listType: "numbered",
-        indent: numberedMatch[1],
-        marker: parseInt(numberedMatch[2]),
-        content: numberedMatch[3],
-        lineStart,
-        lineEnd,
-        markerEndPos: lineStart + numberedMatch[1].length + numberedMatch[2].length + 2
-        // indent + number + ". "
-      };
-    }
-    return {
+    const plainContext = {
       inList: false,
       listType: null,
       indent: "",
@@ -1046,6 +1368,47 @@ var MarkdownParser = class {
       lineStart,
       lineEnd,
       markerEndPos: lineStart
+    };
+    if (scanThematicBreak(currentLine))
+      return plainContext;
+    const listItem = scanListItem(currentLine);
+    if (!listItem)
+      return plainContext;
+    const checkboxMatch = listItem.listType === "bullet" && listItem.marker === "-" ? /^\[([ xX])\]([\t ]*)(.*)$/.exec(listItem.content) : null;
+    if (checkboxMatch && (checkboxMatch[2] !== "" || checkboxMatch[3] === "")) {
+      return {
+        inList: true,
+        listType: "checkbox",
+        indent: listItem.indent,
+        marker: "-",
+        checked: checkboxMatch[1].toLowerCase() === "x",
+        content: checkboxMatch[3],
+        lineStart,
+        lineEnd,
+        markerEndPos: lineStart + listItem.indent.length + listItem.marker.length + listItem.separator.length + 3 + checkboxMatch[2].length
+      };
+    }
+    if (listItem.listType === "bullet") {
+      return {
+        inList: true,
+        listType: "bullet",
+        indent: listItem.indent,
+        marker: listItem.marker,
+        content: listItem.content,
+        lineStart,
+        lineEnd,
+        markerEndPos: lineStart + listItem.indent.length + listItem.marker.length + listItem.separator.length
+      };
+    }
+    return {
+      inList: true,
+      listType: "numbered",
+      indent: listItem.indent,
+      marker: Number.parseInt(listItem.marker, 10),
+      content: listItem.content,
+      lineStart,
+      lineEnd,
+      markerEndPos: lineStart + listItem.indent.length + listItem.marker.length + listItem.separator.length
     };
   }
   /**
@@ -1113,9 +1476,9 @@ __publicField(MarkdownParser, "customSyntax", null);
  * List pattern definitions
  */
 __publicField(MarkdownParser, "LIST_PATTERNS", {
-  bullet: /^(\s*)([-*+])\s+(.*)$/,
-  numbered: /^(\s*)(\d+)\.\s+(.*)$/,
-  checkbox: /^(\s*)-\s+\[([ x])\]\s+(.*)$/
+  bullet: /^( *)([-*+])[\t ]+(.*)$/,
+  numbered: /^( *)(\d{1,9})\.[\t ]+(.*)$/,
+  checkbox: /^( *)-[\t ]+\[([ xX])\][\t ]+(.*)$/
 });
 
 // src/shortcuts.js

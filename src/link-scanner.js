@@ -1,3 +1,5 @@
+import { scanFenceClose, scanFenceOpen } from './block-scanner.js';
+
 const ESCAPABLE = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/;
 const ENTITY = /^&(?:amp|lt|gt|quot|#39);/;
 const DECODED_ENTITY = {
@@ -363,14 +365,18 @@ function findRenderableLineLinks(text, options) {
 export function findRenderableLinks(text, options = {}) {
   const links = [];
   const lines = text.split('\n');
-  let inCodeBlock = false;
+  let opening = null;
   let offset = 0;
 
   for (const line of lines) {
-    if (/^```[^`]*$/.test(line)) {
-      inCodeBlock = !inCodeBlock;
-    } else if (!inCodeBlock) {
-      links.push(...findRenderableLineLinks(line, options).map(link => shiftLink(link, offset)));
+    if (opening) {
+      if (scanFenceClose(line, opening)) opening = null;
+    } else {
+      const candidate = scanFenceOpen(line);
+      if (candidate) opening = candidate;
+      else {
+        links.push(...findRenderableLineLinks(line, options).map(link => shiftLink(link, offset)));
+      }
     }
 
     offset += line.length + 1;

@@ -3,6 +3,25 @@ import {
   findLinks as scanLinks,
   findRenderableLinks as scanRenderableLinks
 } from './link-scanner.js';
+import { renderEmphasis } from './emphasis-scanner.js';
+import {
+  scanAtxHeading,
+  scanBlockquote,
+  scanFenceClose,
+  scanFenceOpen,
+  scanListItem,
+  scanThematicBreak
+} from './block-scanner.js';
+
+function decodeEscapedLine(html) {
+  return html
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
 
 /**
  * MarkdownParser - Parses markdown into HTML while preserving character alignment
@@ -91,11 +110,16 @@ export class MarkdownParser {
    * @returns {string} Parsed HTML with header styling
    */
   static parseHeader(html) {
-    return html.replace(/^(#{1,3})\s(.+)$/, (match, hashes, content) => {
-      const level = hashes.length;
-      content = this.parseInlineElements(content);
-      return `<h${level}><span class="syntax-marker">${hashes} </span>${content}</h${level}>`;
-    });
+    const heading = scanAtxHeading(decodeEscapedLine(html));
+    if (!heading) return html;
+
+    const indent = heading.indent.replace(/ /g, '&nbsp;');
+    const opening = this.escapeHtml(heading.marker + heading.separator);
+    const content = this.parseInlineElements(this.escapeHtml(heading.content));
+    const closing = heading.closing
+      ? `<span class="syntax-marker">${this.escapeHtml(heading.closing)}</span>`
+      : '';
+    return `<h${heading.level}>${indent}<span class="syntax-marker">${opening}</span>${content}${closing}</h${heading.level}>`;
   }
 
   /**
@@ -104,10 +128,11 @@ export class MarkdownParser {
    * @returns {string|null} Parsed horizontal rule or null
    */
   static parseHorizontalRule(html) {
-    if (html.match(/^(-{3,}|\*{3,}|_{3,})$/)) {
-      return `<div><span class="hr-marker">${html}</span></div>`;
-    }
-    return null;
+    const source = decodeEscapedLine(html);
+    if (!scanThematicBreak(source)) return null;
+
+    const rendered = this.preserveIndentation(this.escapeHtml(source), source);
+    return `<div><span class="hr-marker">${rendered}</span></div>`;
   }
 
   /**
@@ -116,9 +141,14 @@ export class MarkdownParser {
    * @returns {string} Parsed blockquote
    */
   static parseBlockquote(html) {
-    return html.replace(/^&gt; (.+)$/, (match, content) => {
-      return `<span class="blockquote"><span class="syntax-marker">&gt;</span> ${content}</span>`;
-    });
+    const blockquote = scanBlockquote(decodeEscapedLine(html));
+    if (!blockquote) return html;
+
+    const indent = blockquote.indent.replace(/ /g, '&nbsp;');
+    const marker = this.escapeHtml(blockquote.marker);
+    const separator = this.escapeHtml(blockquote.separator);
+    const content = this.parseInlineElements(this.escapeHtml(blockquote.content));
+    return `${indent}<span class="blockquote"><span class="syntax-marker">${marker}</span>${separator}${content}</span>`;
   }
 
   /**
@@ -127,10 +157,16 @@ export class MarkdownParser {
    * @returns {string} Parsed bullet list item
    */
   static parseBulletList(html) {
-    return html.replace(/^((?:&nbsp;)*)([-*+])\s(.+)$/, (match, indent, marker, content) => {
-      content = this.parseInlineElements(content);
-      return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
-    });
+    const source = decodeEscapedLine(html);
+    if (scanThematicBreak(source)) return html;
+
+    const listItem = scanListItem(source);
+    if (!listItem || listItem.listType !== 'bullet') return html;
+
+    const indent = listItem.indent.replace(/ /g, '&nbsp;');
+    const marker = this.escapeHtml(listItem.marker + listItem.separator);
+    const content = this.parseInlineElements(this.escapeHtml(listItem.content));
+    return `${indent}<li class="bullet-list"><span class="syntax-marker">${marker}</span>${content}</li>`;
   }
 
   /**
@@ -160,10 +196,13 @@ export class MarkdownParser {
    * @returns {string} Parsed numbered list item
    */
   static parseNumberedList(html) {
-    return html.replace(/^((?:&nbsp;)*)(\d+\.)\s(.+)$/, (match, indent, marker, content) => {
-      content = this.parseInlineElements(content);
-      return `${indent}<li class="ordered-list"><span class="syntax-marker">${marker} </span>${content}</li>`;
-    });
+    const listItem = scanListItem(decodeEscapedLine(html));
+    if (!listItem || listItem.listType !== 'ordered') return html;
+
+    const indent = listItem.indent.replace(/ /g, '&nbsp;');
+    const marker = this.escapeHtml(listItem.marker + listItem.separator);
+    const content = this.parseInlineElements(this.escapeHtml(listItem.content));
+    return `${indent}<li class="ordered-list"><span class="syntax-marker">${marker}</span>${content}</li>`;
   }
 
   /**
@@ -172,12 +211,65 @@ export class MarkdownParser {
    * @returns {string|null} Parsed code fence or null
    */
   static parseCodeBlock(html) {
-    // The line must start with three backticks and have no backticks after subsequent text
-    const codeFenceRegex = /^`{3}[^`]*$/;
-    if (codeFenceRegex.test(html)) {
-      return `<div><span class="code-fence">${html}</span></div>`;
+    const descriptor = scanFenceOpen(decodeEscapedLine(html));
+    return descriptor ? this.renderFence(descriptor) : null;
+  }
+
+  static renderFence(descriptor, raw = false) {
+    const source = this.preserveIndentation(this.escapeHtml(descriptor.source), descriptor.source);
+    const className = raw ? ' class="raw-line"' : '';
+    return `<div${className}><span class="code-fence">${source}</span></div>`;
+  }
+
+  static renderCodeContent(lines, info, instanceHighlighter, indentation = 0, rawLineIndex = -1) {
+    const semanticLines = lines.map(line => {
+      let width = 0;
+      while (width < indentation && line[width] === ' ') width++;
+      return { source: line, prefix: line.slice(0, width), content: line.slice(width) };
+    });
+    const semanticContent = semanticLines.map(line => line.content).join('\n');
+    const renderPrefix = prefix => prefix
+      ? `<span class="syntax-marker">${this.escapeHtml(prefix)}</span>`
+      : '';
+    const displayContent = semanticLines.map((line, index) => {
+      if (index === rawLineIndex) {
+        return `<span class="raw-line">${this.escapeHtml(line.source) || '&nbsp;'}</span>`;
+      }
+      if (line.prefix === '' && line.content === '') return '<span class="syntax-marker">&nbsp;</span>';
+      return renderPrefix(line.prefix) + this.escapeHtml(line.content);
+    }).join('\n');
+    const language = info.split(/[\t ]/, 1)[0];
+    const languageClass = language ? ` class="language-${this.escapeHtml(language)}"` : '';
+    const highlighter = instanceHighlighter || this.codeHighlighter;
+    let content = displayContent;
+
+    if (highlighter) {
+      try {
+        const result = highlighter(semanticContent, language);
+        if (result && typeof result.then === 'function') {
+          console.warn('Async highlighters are not supported in parse() because it returns an HTML string. Use synchronous highlighters only.');
+        } else if (result && typeof result === 'string' && result.trim()) {
+          const highlightedLines = result.split('\n');
+          if (highlightedLines.length === semanticLines.length + 1 && highlightedLines[highlightedLines.length - 1] === '') {
+            highlightedLines.pop();
+          }
+          if (highlightedLines.length === semanticLines.length) {
+            content = highlightedLines.map((line, index) => {
+              if (index === rawLineIndex) {
+                return `<span class="raw-line">${this.escapeHtml(semanticLines[index].source) || '&nbsp;'}</span>`;
+              }
+              return renderPrefix(semanticLines[index].prefix) + line;
+            }).join('\n');
+          } else {
+            console.warn('Code highlighter output line count does not match the source. Using unhighlighted code to preserve alignment.');
+          }
+        }
+      } catch (error) {
+        console.warn('Code highlighting failed:', error);
+      }
     }
-    return null;
+
+    return `<pre class="code-block"><code${languageClass}>${content}</code></pre>`;
   }
 
   /**
@@ -186,27 +278,20 @@ export class MarkdownParser {
    * @returns {string} HTML with bold styling
    */
   static parseBold(html) {
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong><span class="syntax-marker">**</span>$1<span class="syntax-marker">**</span></strong>');
-    html = html.replace(/__(.+?)__/g, '<strong><span class="syntax-marker">__</span>$1<span class="syntax-marker">__</span></strong>');
-    return html;
+    return renderEmphasis(html, { htmlEntities: true, includeEm: false });
   }
 
   /**
    * Parse italic text
-   * Note: Uses lookbehind assertions - requires modern browsers
    * @param {string} html - HTML with potential italic markdown
    * @returns {string} HTML with italic styling
    */
   static parseItalic(html) {
-    // Single asterisk - must not be adjacent to other asterisks
-    // Must not be inside a syntax-marker span (avoid matching bullet list markers like ">* ")
-    html = html.replace(/(?<![\*>])\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em><span class="syntax-marker">*</span>$1<span class="syntax-marker">*</span></em>');
+    return renderEmphasis(html, { htmlEntities: true, includeStrong: false });
+  }
 
-    // Single underscore - must be at word boundaries to avoid matching inside words
-    // This prevents matching underscores in the middle of words like "bold_with_underscore"
-    html = html.replace(/(?<=^|\s)_(?!_)(.+?)(?<!_)_(?!_)(?=\s|$)/g, '<em><span class="syntax-marker">_</span>$1<span class="syntax-marker">_</span></em>');
-
-    return html;
+  static parseEmphasis(html) {
+    return renderEmphasis(html, { htmlEntities: true });
   }
 
   /**
@@ -397,21 +482,15 @@ export class MarkdownParser {
         // For links, we need to process the link text for markdown
         let processedLinkText = sanctuary.linkText;
         
-        // First restore any sanctuary placeholders that were already in the link text
-        // (e.g., inline code that was protected before the link)
+        processedLinkText = this.parseStrikethrough(processedLinkText);
+        processedLinkText = this.parseEmphasis(processedLinkText);
+
         sanctuaries.forEach((innerSanctuary, innerPlaceholder) => {
-          if (processedLinkText.includes(innerPlaceholder)) {
-            if (innerSanctuary.type === 'code') {
-              const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${innerSanctuary.content}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
-              processedLinkText = processedLinkText.replace(innerPlaceholder, () => codeHtml);
-            }
+          if (processedLinkText.includes(innerPlaceholder) && innerSanctuary.type === 'code') {
+            const codeHtml = `<code><span class="syntax-marker">${innerSanctuary.openTicks}</span>${innerSanctuary.content}<span class="syntax-marker">${innerSanctuary.closeTicks}</span></code>`;
+            processedLinkText = processedLinkText.replace(innerPlaceholder, () => codeHtml);
           }
         });
-        
-        // Now parse other markdown in the link text (bold, italic, etc)
-        processedLinkText = this.parseStrikethrough(processedLinkText);
-        processedLinkText = this.parseBold(processedLinkText);
-        processedLinkText = this.parseItalic(processedLinkText);
         
         // Transform link sanctuary to HTML
         // URL should NOT be processed for markdown - use it as-is
@@ -439,8 +518,7 @@ export class MarkdownParser {
     // Step 2: Parse other inline elements on protected text
     let html = protectedText;
     html = this.parseStrikethrough(html);
-    html = this.parseBold(html);
-    html = this.parseItalic(html);
+    html = this.parseEmphasis(html);
     
     // Step 3: Restore and transform sanctuaries
     html = this.restoreAndTransformSanctuaries(html, sanctuaries);
@@ -454,37 +532,53 @@ export class MarkdownParser {
    * @returns {string} Parsed HTML line
    */
   static parseLine(line, isPreviewMode = false) {
-    let html = this.escapeHtml(line);
+    if (line === '') return '<div>&nbsp;</div>';
 
-    // Preserve indentation
-    html = this.preserveIndentation(html, line);
-
-    // Check for block elements first
-    const horizontalRule = this.parseHorizontalRule(html);
-    if (horizontalRule) return horizontalRule;
-
-    const codeBlock = this.parseCodeBlock(html);
-    if (codeBlock) return codeBlock;
-
-    // Parse block elements
-    html = this.parseHeader(html);
-    html = this.parseBlockquote(html);
-    html = this.parseTaskList(html, isPreviewMode);  // Check task lists before regular bullet lists
-    html = this.parseBulletList(html);
-    html = this.parseNumberedList(html);
-
-    // Parse inline elements (skip for headers and list items — already parsed inside those functions)
-    if (!html.includes('<li') && !html.includes('<h')) {
-      html = this.parseInlineElements(html);
+    const thematicBreak = scanThematicBreak(line);
+    if (thematicBreak) {
+      const source = this.preserveIndentation(this.escapeHtml(line), line);
+      return `<div><span class="hr-marker">${source}</span></div>`;
     }
 
-    // Wrap in div to maintain line structure
-    if (html.trim() === '') {
-      // Intentionally use &nbsp; for empty lines to maintain vertical spacing
-      // This causes a 0->1 character count difference but preserves visual alignment
-      return '<div>&nbsp;</div>';
+    const fence = scanFenceOpen(line);
+    if (fence) return this.renderFence(fence);
+
+    const heading = scanAtxHeading(line);
+    if (heading) {
+      const indent = heading.indent.replace(/ /g, '&nbsp;');
+      const opening = this.escapeHtml(heading.marker + heading.separator);
+      const content = this.parseInlineElements(this.escapeHtml(heading.content));
+      const closing = heading.closing
+        ? `<span class="syntax-marker">${this.escapeHtml(heading.closing)}</span>`
+        : '';
+      return `<div><h${heading.level}>${indent}<span class="syntax-marker">${opening}</span>${content}${closing}</h${heading.level}></div>`;
     }
 
+    const blockquote = scanBlockquote(line);
+    if (blockquote) {
+      const indent = blockquote.indent.replace(/ /g, '&nbsp;');
+      const marker = this.escapeHtml(blockquote.marker);
+      const separator = this.escapeHtml(blockquote.separator);
+      const content = this.parseInlineElements(this.escapeHtml(blockquote.content));
+      return `<div>${indent}<span class="blockquote"><span class="syntax-marker">${marker}</span>${separator}${content}</span></div>`;
+    }
+
+    let html = this.preserveIndentation(this.escapeHtml(line), line);
+    const taskList = this.parseTaskList(html, isPreviewMode);
+    if (taskList !== html) return `<div>${taskList}</div>`;
+
+    const listItem = scanListItem(line);
+    if (listItem) {
+      const indent = listItem.indent.replace(/ /g, '&nbsp;');
+      const marker = this.escapeHtml(listItem.marker + listItem.separator);
+      const content = this.parseInlineElements(this.escapeHtml(listItem.content));
+      const className = listItem.listType === 'bullet' ? 'bullet-list' : 'ordered-list';
+      return `<div>${indent}<li class="${className}"><span class="syntax-marker">${marker}</span>${content}</li></div>`;
+    }
+
+    const leadingWhitespace = /^[\t ]*/.exec(line)[0];
+    const indentation = leadingWhitespace.replace(/ /g, '&nbsp;');
+    html = indentation + this.parseInlineElements(this.escapeHtml(line.slice(leadingWhitespace.length)));
     return `<div>${html}</div>`;
   }
 
@@ -501,39 +595,57 @@ export class MarkdownParser {
     this.resetLinkIndex();
 
     const lines = text.split('\n');
-    let inCodeBlock = false;
+    const parsedLines = [];
+    let opening = null;
+    let codeLines = [];
+    let rawCodeLine = -1;
 
-    const parsedLines = lines.map((line, index) => {
-      // Show raw markdown on active line if requested
-      if (showActiveLineRaw && index === activeLine) {
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+      const isRaw = showActiveLineRaw && index === activeLine;
+
+      if (opening) {
+        const closing = scanFenceClose(line, opening);
+        if (closing) {
+          parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
+          const renderedFence = this.renderFence(closing, isRaw);
+          parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+          opening = null;
+          codeLines = [];
+          rawCodeLine = -1;
+        } else {
+          if (isRaw) rawCodeLine = codeLines.length;
+          codeLines.push(line);
+        }
+        continue;
+      }
+
+      const candidate = scanFenceOpen(line);
+      if (candidate) {
+        opening = candidate;
+        const renderedFence = this.renderFence(candidate, isRaw);
+        parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+        continue;
+      }
+
+      if (isRaw) {
         const content = this.escapeHtml(line) || '&nbsp;';
-        return `<div class="raw-line">${content}</div>`;
+        parsedLines.push(`<div class="raw-line">${content}</div>`);
+        continue;
       }
 
-      // Check if this line is a code fence
-      const codeFenceRegex = /^```[^`]*$/;
-      if (codeFenceRegex.test(line)) {
-        inCodeBlock = !inCodeBlock;
-        // Parse fence markers normally to get styled output
-        return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
-      }
+      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode)));
+    }
 
-      // If we're inside a code block, don't parse as markdown
-      if (inCodeBlock) {
-        const escaped = this.escapeHtml(line);
-        const indented = this.preserveIndentation(escaped, line);
-        return `<div>${indented || '&nbsp;'}</div>`;
-      }
-
-      // Otherwise, parse the markdown normally
-      return this.applyCustomSyntax(this.parseLine(line, isPreviewMode));
-    });
+    if (opening && codeLines.length > 0) {
+      parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
+    }
 
     // Join without newlines to prevent extra spacing
     const html = parsedLines.join('');
 
     // Apply post-processing for list consolidation
-    return this.postProcessHTML(html, instanceHighlighter);
+    return this.postProcessHTML(html, instanceHighlighter, false);
   }
 
   /**
@@ -542,171 +654,8 @@ export class MarkdownParser {
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML with consolidated lists and code blocks
    */
-  static postProcessHTML(html, instanceHighlighter) {
-    // Check if we're in a browser environment
-    if (typeof document === 'undefined' || !document) {
-      // In Node.js environment - do manual post-processing
-      return this.postProcessHTMLManual(html, instanceHighlighter);
-    }
-
-    // Parse HTML string into DOM
-    const container = document.createElement('div');
-    container.innerHTML = html;
-
-    let currentList = null;
-    let listType = null;
-    let currentCodeBlock = null;
-    let inCodeBlock = false;
-
-    // Process all direct children - need to be careful with live NodeList
-    const children = Array.from(container.children);
-
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i];
-
-      // Skip if child was already processed/removed
-      if (!child.parentNode) continue;
-
-      // Check for code fence start/end
-      const codeFence = child.querySelector('.code-fence');
-      if (codeFence) {
-        const fenceText = codeFence.textContent;
-        if (fenceText.startsWith('```')) {
-          if (!inCodeBlock) {
-            // Start of code block - keep fence visible, then add pre/code
-            inCodeBlock = true;
-
-            // Create the code block that will follow the fence
-            currentCodeBlock = document.createElement('pre');
-            const codeElement = document.createElement('code');
-            currentCodeBlock.appendChild(codeElement);
-            currentCodeBlock.className = 'code-block';
-
-            // Extract language if present
-            const lang = fenceText.slice(3).trim();
-            if (lang) {
-              codeElement.className = `language-${lang}`;
-            }
-
-            // Insert code block after the fence div (don't remove the fence)
-            container.insertBefore(currentCodeBlock, child.nextSibling);
-
-            // Store reference to the code element for adding content
-            currentCodeBlock._codeElement = codeElement;
-            currentCodeBlock._language = lang;
-            currentCodeBlock._codeContent = '';
-            continue;
-          } else {
-            // End of code block - apply highlighting if needed
-            // Use instance highlighter if provided, otherwise fall back to global highlighter
-            const highlighter = instanceHighlighter || this.codeHighlighter;
-            if (currentCodeBlock && highlighter && currentCodeBlock._codeContent) {
-              try {
-                const result = highlighter(
-                  currentCodeBlock._codeContent,
-                  currentCodeBlock._language || ''
-                );
-
-                // Check if result is a Promise (async highlighter)
-                if (result && typeof result.then === 'function') {
-                  console.warn('Async highlighters are not supported in parse() because it returns an HTML string. The caller creates new DOM elements from that string, breaking references to the elements we would update. Use synchronous highlighters only.');
-                  // Keep the plain text fallback that was already set
-                } else {
-                  // Synchronous highlighter
-                  // Verify highlighter returned non-empty string
-                  if (result && typeof result === 'string' && result.trim()) {
-                    currentCodeBlock._codeElement.innerHTML = result;
-                  }
-                  // else: keep the plain text fallback that was already set
-                }
-              } catch (error) {
-                console.warn('Code highlighting failed:', error);
-                // Keep the plain text content as fallback
-              }
-            }
-
-            inCodeBlock = false;
-            currentCodeBlock = null;
-            continue;
-          }
-        }
-      }
-
-      // Check if we're in a code block - any div that's not a code fence
-      if (inCodeBlock && currentCodeBlock && child.tagName === 'DIV' && !child.querySelector('.code-fence')) {
-        const codeElement = currentCodeBlock._codeElement || currentCodeBlock.querySelector('code');
-        // Add the line content to the code block content (for highlighting)
-        if (currentCodeBlock._codeContent.length > 0) {
-          currentCodeBlock._codeContent += '\n';
-        }
-        // Get the actual text content, preserving spaces
-        const lineText = child.textContent.replace(/\u00A0/g, ' '); // \u00A0 is nbsp
-        currentCodeBlock._codeContent += lineText;
-
-        // Also add to the code element (fallback if no highlighter)
-        if (codeElement.textContent.length > 0) {
-          codeElement.textContent += '\n';
-        }
-        codeElement.textContent += lineText;
-        child.remove();
-        continue;
-      }
-
-      // Check if this div contains a list item
-      let listItem = null;
-      if (child.tagName === 'DIV') {
-        // Look for li inside the div
-        listItem = child.querySelector('li');
-      }
-
-      if (listItem) {
-        const isBullet = listItem.classList.contains('bullet-list');
-        const isOrdered = listItem.classList.contains('ordered-list');
-
-        if (!isBullet && !isOrdered) {
-          currentList = null;
-          listType = null;
-          continue;
-        }
-
-        const newType = isBullet ? 'ul' : 'ol';
-
-        // Start new list or continue current
-        if (!currentList || listType !== newType) {
-          currentList = document.createElement(newType);
-          container.insertBefore(currentList, child);
-          listType = newType;
-        }
-
-        // Extract and preserve indentation from the div before moving the list item
-        const indentationNodes = [];
-        for (const node of child.childNodes) {
-          if (node.nodeType === 3 && node.textContent.match(/^\u00A0+$/)) {
-            // This is a text node containing only non-breaking spaces (indentation)
-            indentationNodes.push(node.cloneNode(true));
-          } else if (node === listItem) {
-            break; // Stop when we reach the list item
-          }
-        }
-
-        // Add indentation to the list item
-        indentationNodes.forEach(node => {
-          listItem.insertBefore(node, listItem.firstChild);
-        });
-
-        // Move the list item to the current list
-        currentList.appendChild(listItem);
-
-        // Remove the now-empty div wrapper
-        child.remove();
-      } else {
-        // Non-list element ends current list
-        currentList = null;
-        listType = null;
-      }
-    }
-
-    return container.innerHTML;
+  static postProcessHTML(html, instanceHighlighter, processCodeBlocks = true) {
+    return this.postProcessHTMLManual(html, instanceHighlighter, processCodeBlocks);
   }
 
   /**
@@ -715,16 +664,16 @@ export class MarkdownParser {
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
    * @returns {string} Post-processed HTML
    */
-  static postProcessHTMLManual(html, instanceHighlighter) {
+  static postProcessHTMLManual(html, instanceHighlighter, processCodeBlocks = true) {
     let processed = html;
 
     // Process unordered lists
-    processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const divs = match.match(/<div>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
+    processed = processed.replace(/((?:<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
+      const divs = match.match(/<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="bullet-list">.*?<\/li><\/div>/gs) || [];
       if (divs.length > 0) {
         const items = divs.map(div => {
           // Extract indentation and list item
-          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const indentMatch = div.match(/<div(?:\s[^>]*)?>((?:&nbsp;)*)<li/);
           const listItemMatch = div.match(/<li class="bullet-list">.*?<\/li>/);
 
           if (indentMatch && listItemMatch) {
@@ -742,12 +691,12 @@ export class MarkdownParser {
     });
 
     // Process ordered lists
-    processed = processed.replace(/((?:<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
-      const divs = match.match(/<div>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>/gs) || [];
+    processed = processed.replace(/((?:<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>\s*)+)/gs, (match) => {
+      const divs = match.match(/<div(?:\s[^>]*)?>(?:&nbsp;)*<li class="ordered-list">.*?<\/li><\/div>/gs) || [];
       if (divs.length > 0) {
         const items = divs.map(div => {
           // Extract indentation and list item
-          const indentMatch = div.match(/<div>((?:&nbsp;)*)<li/);
+          const indentMatch = div.match(/<div(?:\s[^>]*)?>((?:&nbsp;)*)<li/);
           const listItemMatch = div.match(/<li class="ordered-list">.*?<\/li>/);
 
           if (indentMatch && listItemMatch) {
@@ -759,29 +708,33 @@ export class MarkdownParser {
           return listItemMatch ? listItemMatch[0] : '';
         }).filter(Boolean);
 
-        return '<ol>' + items.join('') + '</ol>';
+        const firstMarker = divs[0].match(/<span class="syntax-marker">(\d+)\./);
+        const start = firstMarker ? Number.parseInt(firstMarker[1], 10) : 1;
+        const startAttribute = start === 1 ? '' : ` start="${start}"`;
+        return `<ol${startAttribute}>` + items.join('') + '</ol>';
       }
       return match;
     });
 
     // Process code blocks - KEEP the fence markers for alignment AND use semantic pre/code
     const codeBlockRegex = /<div><span class="code-fence">(```[^<]*)<\/span><\/div>(.*?)<div><span class="code-fence">(```)<\/span><\/div>/gs;
-    processed = processed.replace(codeBlockRegex, (match, openFence, content, closeFence) => {
+    if (processCodeBlocks) processed = processed.replace(codeBlockRegex, (match, openFence, content, closeFence) => {
+      if (content.includes('<pre class="code-block">')) return match;
+
       // Extract the content between fences
       const lines = content.match(/<div>(.*?)<\/div>/gs) || [];
-      const codeContent = lines.map(line => {
-        // Extract text from each div - content is already escaped
-        const text = line.replace(/<div>(.*?)<\/div>/s, '$1')
-          .replace(/&nbsp;/g, ' ');
-        return text;
-      }).join('\n');
+      const encodedLines = lines.map(line => line.replace(/<div>(.*?)<\/div>/s, '$1'));
+      const codeContent = encodedLines.map(line =>
+        line === '&nbsp;' ? '' : line.replace(/&nbsp;/g, ' ')
+      ).join('\n');
+      const displayContent = encodedLines.join('\n');
 
       // Extract language from the opening fence
       const lang = openFence.slice(3).trim();
       const langClass = lang ? ` class="language-${lang}"` : '';
 
       // Apply code highlighting if available
-      let highlightedContent = codeContent;
+      let highlightedContent = displayContent;
       // Use instance highlighter if provided, otherwise fall back to global highlighter
       const highlighter = instanceHighlighter || this.codeHighlighter;
       if (highlighter) {
@@ -832,9 +785,9 @@ export class MarkdownParser {
    * List pattern definitions
    */
   static LIST_PATTERNS = {
-    bullet: /^(\s*)([-*+])\s+(.*)$/,
-    numbered: /^(\s*)(\d+)\.\s+(.*)$/,
-    checkbox: /^(\s*)-\s+\[([ x])\]\s+(.*)$/
+    bullet: /^( *)([-*+])[\t ]+(.*)$/,
+    numbered: /^( *)(\d{1,9})\.[\t ]+(.*)$/,
+    checkbox: /^( *)-[\t ]+\[([ xX])\][\t ]+(.*)$/
   };
 
   /**
@@ -862,55 +815,7 @@ export class MarkdownParser {
 
     const currentLine = lines[lineIndex];
     const lineEnd = lineStart + currentLine.length;
-
-    // Check for checkbox first (most specific)
-    const checkboxMatch = currentLine.match(this.LIST_PATTERNS.checkbox);
-    if (checkboxMatch) {
-      return {
-        inList: true,
-        listType: 'checkbox',
-        indent: checkboxMatch[1],
-        marker: '-',
-        checked: checkboxMatch[2] === 'x',
-        content: checkboxMatch[3],
-        lineStart,
-        lineEnd,
-        markerEndPos: lineStart + checkboxMatch[1].length + checkboxMatch[2].length + 5 // indent + "- [ ] "
-      };
-    }
-
-    // Check for bullet list
-    const bulletMatch = currentLine.match(this.LIST_PATTERNS.bullet);
-    if (bulletMatch) {
-      return {
-        inList: true,
-        listType: 'bullet',
-        indent: bulletMatch[1],
-        marker: bulletMatch[2],
-        content: bulletMatch[3],
-        lineStart,
-        lineEnd,
-        markerEndPos: lineStart + bulletMatch[1].length + bulletMatch[2].length + 1 // indent + marker + space
-      };
-    }
-
-    // Check for numbered list
-    const numberedMatch = currentLine.match(this.LIST_PATTERNS.numbered);
-    if (numberedMatch) {
-      return {
-        inList: true,
-        listType: 'numbered',
-        indent: numberedMatch[1],
-        marker: parseInt(numberedMatch[2]),
-        content: numberedMatch[3],
-        lineStart,
-        lineEnd,
-        markerEndPos: lineStart + numberedMatch[1].length + numberedMatch[2].length + 2 // indent + number + ". "
-      };
-    }
-
-    // Not in a list
-    return {
+    const plainContext = {
       inList: false,
       listType: null,
       indent: '',
@@ -919,6 +824,53 @@ export class MarkdownParser {
       lineStart,
       lineEnd,
       markerEndPos: lineStart
+    };
+
+    if (scanThematicBreak(currentLine)) return plainContext;
+
+    const listItem = scanListItem(currentLine);
+    if (!listItem) return plainContext;
+
+    const checkboxMatch = listItem.listType === 'bullet' && listItem.marker === '-'
+      ? /^\[([ xX])\]([\t ]*)(.*)$/.exec(listItem.content)
+      : null;
+    if (checkboxMatch && (checkboxMatch[2] !== '' || checkboxMatch[3] === '')) {
+      return {
+        inList: true,
+        listType: 'checkbox',
+        indent: listItem.indent,
+        marker: '-',
+        checked: checkboxMatch[1].toLowerCase() === 'x',
+        content: checkboxMatch[3],
+        lineStart,
+        lineEnd,
+        markerEndPos: lineStart + listItem.indent.length + listItem.marker.length +
+          listItem.separator.length + 3 + checkboxMatch[2].length
+      };
+    }
+
+    if (listItem.listType === 'bullet') {
+      return {
+        inList: true,
+        listType: 'bullet',
+        indent: listItem.indent,
+        marker: listItem.marker,
+        content: listItem.content,
+        lineStart,
+        lineEnd,
+        markerEndPos: lineStart + listItem.indent.length + listItem.marker.length + listItem.separator.length
+      };
+    }
+
+    return {
+      inList: true,
+      listType: 'numbered',
+      indent: listItem.indent,
+      marker: Number.parseInt(listItem.marker, 10),
+      content: listItem.content,
+      lineStart,
+      lineEnd,
+      markerEndPos: lineStart + listItem.indent.length + listItem.marker.length + listItem.separator.length
     };
   }
 

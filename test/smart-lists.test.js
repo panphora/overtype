@@ -116,6 +116,18 @@ console.log('📝 List Context Detection\n');
   );
 })();
 
+// Test: Renderer and continuation agree on list boundaries
+(() => {
+  for (const input of ['- - -', '\t- Item', '1234567890. Item']) {
+    const context = MarkdownParser.getListContext(input, input.length);
+    assert(
+      context.inList === false,
+      `Rejects non-rendered list: ${JSON.stringify(input)}`,
+      `Expected inList: false, got: ${context.inList}`
+    );
+  }
+})();
+
 // Test: Get line boundaries
 (() => {
   const text = 'Line 1\n- List item\nLine 3';

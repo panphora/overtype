@@ -312,6 +312,38 @@ runTest('Multiline content each line processed', () => {
   cleanup();
 });
 
+runTest('Opening and closing code fences are processed', () => {
+  cleanup();
+  let fenceCount = 0;
+  MarkdownParser.setCustomSyntax((html) => {
+    if (html.includes('class="code-fence"')) fenceCount++;
+    return html.replace('class="code-fence"', 'class="code-fence custom"');
+  });
+
+  const html = MarkdownParser.parse('```js\nx\n```');
+
+  if (fenceCount !== 2) throw new Error(`Expected 2 fence rows processed, got ${fenceCount}`);
+  if ((html.match(/code-fence custom/g) || []).length !== 2) {
+    throw new Error('Both code fence rows should receive custom syntax');
+  }
+
+  cleanup();
+});
+
+runTest('Decorated list rows still consolidate', () => {
+  cleanup();
+  MarkdownParser.setCustomSyntax(html => html.replace('<div>', '<div data-row="true">'));
+
+  const html = MarkdownParser.parse('- one\n- two');
+
+  if (!html.startsWith('<ul>')) throw new Error('Decorated list rows should form one list');
+  if ((html.match(/class="bullet-list"/g) || []).length !== 2) {
+    throw new Error('Both decorated list items should remain in the list');
+  }
+
+  cleanup();
+});
+
 // Summary
 console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 console.log('📊 Test Results Summary\n');

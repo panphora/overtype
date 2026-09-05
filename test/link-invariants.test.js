@@ -33,6 +33,21 @@ for (const [index, anchor] of rendered.entries()) {
   assert.match(anchor.getAttribute('style'), new RegExp(`anchor-name: --link-${index}(?:;|$)`));
 }
 
+for (const fenceSource of [
+  '````\n[hidden](bad)\n````\n[visible](four)',
+  '   ```js\n[hidden](bad)\n   `````\n[visible](indented)'
+]) {
+  const fenceLinks = MarkdownParser.findRenderableLinks(fenceSource);
+  const fenceDom = new JSDOM(MarkdownParser.parse(fenceSource));
+  const fenceAnchors = [...fenceDom.window.document.querySelectorAll('a')];
+
+  assert.deepEqual(fenceLinks.map(link => link.destination.value), fenceAnchors.map(anchor => anchor.getAttribute('href')));
+  assert.deepEqual(fenceLinks.map((link, index) => index), fenceAnchors.map(anchor => {
+    const match = /anchor-name: --link-(\d+)/.exec(anchor.getAttribute('style'));
+    return Number.parseInt(match[1], 10);
+  }));
+}
+
 const tooltip = Object.create(LinkTooltip.prototype);
 tooltip.editor = { options: { transformLinkUrl: null } };
 

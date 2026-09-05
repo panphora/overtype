@@ -4,6 +4,7 @@
  */
 
 import { MarkdownParser } from '../src/parser.js';
+import { rootFromHtml, textWithoutMarkers, visibleLineText } from './helpers/dom.js';
 
 // Test results storage
 const results = {
@@ -58,6 +59,51 @@ console.log('\n📝 Parser Tests\n');
     const actual = MarkdownParser.parseLine(test.input);
     assert(htmlEqual(actual, test.expected), `Header: ${test.input}`, `Expected: ${test.expected}, Got: ${actual}`);
   });
+})();
+
+// Test: Block marker separators
+(() => {
+  const inputs = ['#\tTitle', '-\tItem', '1.\tItem', '*\u00a0item\u00a0*'];
+  inputs.forEach(input => {
+    const actual = visibleLineText(MarkdownParser.parseLine(input), input);
+    assert(actual === input, `Separator preservation: ${JSON.stringify(input)}`, `Expected: ${JSON.stringify(input)}, Got: ${JSON.stringify(actual)}`);
+  });
+})();
+
+// Test: CommonMark block marker boundaries
+(() => {
+  const cases = [
+    { input: '  ## heading ##  ', element: '<h2>', description: 'Indented heading with closing marker' },
+    { input: '#', element: '<h1>', description: 'Empty heading' },
+    { input: ' - - - ', element: 'hr-marker', description: 'Spaced thematic break' },
+    { input: '>quote', element: 'blockquote', description: 'Blockquote without separator' },
+    { input: '-', element: 'bullet-list', description: 'Empty list item' }
+  ];
+
+  cases.forEach(test => {
+    const actual = MarkdownParser.parseLine(test.input);
+    assert(actual.includes(test.element), `CommonMark block: ${test.input}`, `${test.description}. Got: ${actual}`);
+    assert(visibleLineText(actual, test.input) === test.input, `CommonMark block source: ${test.input}`, `Source text changed in: ${actual}`);
+  });
+})();
+
+// Test: Public block parser helpers use the shared scanners
+(() => {
+  const cases = [
+    { input: '  ## heading ##  ', parse: html => MarkdownParser.parseHeader(html), marker: '<h2>' },
+    { input: ' - - - ', parse: html => MarkdownParser.parseHorizontalRule(html), marker: 'hr-marker' },
+    { input: '  >quote', parse: html => MarkdownParser.parseBlockquote(html), marker: 'blockquote' },
+    { input: '  - item', parse: html => MarkdownParser.parseBulletList(html), marker: 'bullet-list' },
+    { input: '003. item', parse: html => MarkdownParser.parseNumberedList(html), marker: 'ordered-list' },
+    { input: '   ````js', parse: html => MarkdownParser.parseCodeBlock(html), marker: 'code-fence' }
+  ];
+
+  for (const test of cases) {
+    const escaped = MarkdownParser.preserveIndentation(MarkdownParser.escapeHtml(test.input), test.input);
+    const actual = test.parse(escaped);
+    assert(actual?.includes(test.marker), `Shared block helper: ${test.input}`, `Expected ${test.marker}, got: ${actual}`);
+    assert(visibleLineText(actual, test.input) === test.input, `Shared block helper source: ${test.input}`, `Source text changed in: ${actual}`);
+  }
 })();
 
 // Test: Bold text
@@ -133,6 +179,33 @@ console.log('\n📝 Parser Tests\n');
     const actual = MarkdownParser.parseLine(test.input);
     assert(htmlEqual(actual, test.expected), `List: ${test.input}`, `Expected: ${test.expected}, Got: ${actual}`);
   });
+})();
+
+// Test: Ordered list start values
+(() => {
+  const tests = [
+    { input: '003. ok', start: '3' },
+    { input: '0. ok', start: '0' }
+  ];
+
+  tests.forEach(test => {
+    const list = rootFromHtml(MarkdownParser.parse(test.input)).querySelector('ol');
+    assert(
+      list?.getAttribute('start') === test.start,
+      `Ordered list start: ${test.input}`,
+      `Expected start ${test.start}, got ${list?.getAttribute('start')}`
+    );
+  });
+})();
+
+// Test: Indented fenced code semantics and display
+(() => {
+  const input = '  ```\n  alpha\n  ```';
+  const root = rootFromHtml(MarkdownParser.parse(input));
+  const code = root.querySelector('pre > code');
+
+  assert(textWithoutMarkers(code) === 'alpha', 'Indented fence semantic content', 'Fence indentation should not be semantic code');
+  assert(code.textContent === '  alpha', 'Indented fence source display', 'Fence indentation should remain visible');
 })();
 
 // Test: Mixed markdown in lists

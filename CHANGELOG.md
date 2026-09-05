@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.4.2] - 2026-09-05
+
+### Added
+- CommonMark 0.31.2 conformance tests covering source fidelity for all 652 examples and semantic policies for every advertised Markdown feature section
+
+### Changed
+- Emphasis and strong emphasis now use CommonMark delimiter run rules within each source line
+- H1 through H3 headings, thematic breaks, block quotes, flat lists, and backtick fences now recognize markers from raw source text before escaping
+
+### Fixed
+- Preserve tabs, nonbreaking spaces, and repeated whitespace after block markers
+- Keep browser and Node fence rendering identical, including unmatched fences and fences longer than three backticks
+- Preserve ordered list start values and CommonMark code indentation semantics without changing source-aligned rendering
+- Keep emphasis flanking correct around protected code, leading indentation, and Unicode symbols
+- Apply custom syntax processing to both fence rows while retaining list consolidation for decorated rows
+- Keep link tooltip indices synchronized across indented and variable-length code fences
+- Preserve code block state when the active line is raw, and accept highlighter output with one trailing newline
+- Keep smart list continuation and public block parser helpers aligned with rendered block recognition
+
 ## [2.4.1] - 2026-09-04
 
 ### Changed
@@ -190,8 +209,6 @@ All notable changes to OverType will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
 
 ## [2.0.6] - 2025-11-19
 

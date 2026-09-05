@@ -368,6 +368,24 @@ await runTest('Highlighter receives raw text with special characters', () => {
   }
 });
 
+await runTest('Indented fences pass CommonMark content to the highlighter', () => {
+  let receivedCode = null;
+  const captureHighlighter = (code) => {
+    receivedCode = code;
+    return `<span>${code}</span>`;
+  };
+
+  const html = MarkdownParser.parse('  ```js\n  alpha\n  ```', -1, false, captureHighlighter);
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const codeBlock = container.querySelector('code');
+
+  if (receivedCode !== 'alpha') throw new Error(`Expected stripped code, got: ${receivedCode}`);
+  if (codeBlock.textContent !== '  alpha') {
+    throw new Error(`Expected source aligned display, got: ${codeBlock.textContent}`);
+  }
+});
+
 await runTest('Highlighter output is properly rendered (no double-escaping)', () => {
   const markdown = '```js\nconst url = "a&b";\n```';
   const html = MarkdownParser.parse(markdown, -1, false, mockSyncHighlighter);
@@ -383,6 +401,41 @@ await runTest('Highlighter output is properly rendered (no double-escaping)', ()
   if (!rendered.includes('a&b')) {
     throw new Error(`Expected "a&b", got: ${rendered}`);
   }
+});
+
+await runTest('Highlighter output may include one trailing newline', () => {
+  const highlighter = code => `<span class="highlighted">${code}</span>\n`;
+  const html = MarkdownParser.parse('```js\nconst x = 1;\n```', -1, false, highlighter);
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const codeBlock = container.querySelector('code');
+
+  if (!codeBlock.querySelector('.highlighted')) throw new Error('Highlighter output was discarded');
+  if (codeBlock.textContent !== 'const x = 1;') throw new Error(`Unexpected code content: ${codeBlock.textContent}`);
+});
+
+await runTest('Active code lines stay raw while adjacent lines remain highlighted', () => {
+  const highlighter = code => code.split('\n').map(line => `<span class="highlighted">${line}</span>`).join('\n');
+  const html = MarkdownParser.parse('```js\nconst x = 1;\nconst y = 2;\n```', 1, true, highlighter);
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  const codeBlock = container.querySelector('code');
+
+  if (codeBlock.querySelectorAll('.raw-line').length !== 1) throw new Error('Active code line was not raw');
+  if (codeBlock.querySelectorAll('.highlighted').length !== 1) throw new Error('Adjacent code line was not highlighted');
+  if (codeBlock.textContent !== 'const x = 1;\nconst y = 2;') throw new Error(`Unexpected code content: ${codeBlock.textContent}`);
+});
+
+await runTest('Highlighter line count mismatches warn and preserve plain code', () => {
+  const originalWarn = console.warn;
+  let warningMessage = '';
+  console.warn = message => { warningMessage = message; };
+  const html = MarkdownParser.parse('```js\nconst x = 1;\n```', -1, false, code => `${code}\nextra`);
+  console.warn = originalWarn;
+
+  if (!warningMessage.includes('line count does not match')) throw new Error('Expected a line count warning');
+  if (!html.includes('const x = 1;')) throw new Error('Plain code fallback is missing');
+  if (html.includes('extra')) throw new Error('Mismatched highlighter output should not render');
 });
 
   console.log('\n📋 Test Suite: Multiple Code Blocks\n');
