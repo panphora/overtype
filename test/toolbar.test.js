@@ -121,6 +121,13 @@ console.log('━'.repeat(50));
     'Toolbar item semantics',
     'Expected toggle state only on toggle buttons and separators outside tab order'
   );
+  assert(
+    Array.from(toolbar.querySelectorAll('.overtype-toolbar-button svg')).every(icon =>
+      icon.getAttribute('aria-hidden') === 'true' && icon.getAttribute('focusable') === 'false'
+    ),
+    'Toolbar icons are decorative',
+    'Expected every toolbar SVG icon to be hidden from assistive technology and removed from SVG focus'
+  );
 
   editor.destroy();
 })();

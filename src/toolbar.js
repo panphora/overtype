@@ -286,7 +286,15 @@ export class Toolbar {
       .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
       .replace(/\son\w+\s*=\s*[^\s>]*/gi, '');
 
-    return cleaned;
+    const template = document.createElement('template');
+    template.innerHTML = cleaned;
+
+    template.content.querySelectorAll('svg').forEach(icon => {
+      icon.setAttribute('aria-hidden', 'true');
+      icon.setAttribute('focusable', 'false');
+    });
+
+    return template.innerHTML;
   }
 
   /**
