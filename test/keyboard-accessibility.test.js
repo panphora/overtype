@@ -171,6 +171,60 @@ console.log('\n⌘ Explicit indent shortcuts\n');
   assert(selectedText(editor) === '  one\n  two', 'Ctrl+] preserves selected lines', 'Indented selected lines should remain selected');
 })();
 
+console.log('\n⌘ GitHub markdown shortcuts\n');
+
+(() => {
+  const editor = createEditor();
+  let actionId = null;
+  editor.performAction = (id) => {
+    actionId = id;
+  };
+
+  const event = dispatchKey(editor, 'e', { ctrlKey: true, code: 'KeyE' });
+
+  assert(event.defaultPrevented, 'Ctrl+E is prevented', 'Ctrl+E should become a markdown command');
+  assert(actionId === 'toggleCode', 'Ctrl+E toggles inline code', 'Ctrl+E should dispatch toggleCode');
+})();
+
+(() => {
+  const editor = createEditor();
+  let actionId = null;
+  editor.performAction = (id) => {
+    actionId = id;
+  };
+
+  const event = dispatchKey(editor, '>', { ctrlKey: true, shiftKey: true, code: 'Period' });
+
+  assert(event.defaultPrevented, 'Ctrl+Shift+. is prevented', 'Ctrl+Shift+. should become a markdown command');
+  assert(actionId === 'toggleQuote', 'Ctrl+Shift+. toggles quote', 'Ctrl+Shift+. should dispatch toggleQuote');
+})();
+
+(() => {
+  const editor = createEditor();
+  let actionId = null;
+  editor.performAction = (id) => {
+    actionId = id;
+  };
+
+  const event = dispatchKey(editor, '&', { ctrlKey: true, shiftKey: true, code: 'Digit7' });
+
+  assert(event.defaultPrevented, 'Ctrl+Shift+7 is prevented with shifted key', 'Ctrl+Shift+7 should stay handled');
+  assert(actionId === 'toggleNumberedList', 'Ctrl+Shift+7 toggles numbered list', 'Ctrl+Shift+7 should dispatch toggleNumberedList');
+})();
+
+(() => {
+  const editor = createEditor();
+  let actionId = null;
+  editor.performAction = (id) => {
+    actionId = id;
+  };
+
+  const event = dispatchKey(editor, '*', { ctrlKey: true, shiftKey: true, code: 'Digit8' });
+
+  assert(event.defaultPrevented, 'Ctrl+Shift+8 is prevented with shifted key', 'Ctrl+Shift+8 should stay handled');
+  assert(actionId === 'toggleBulletList', 'Ctrl+Shift+8 toggles bullet list', 'Ctrl+Shift+8 should dispatch toggleBulletList');
+})();
+
 console.log('\n🔒 Readonly and disabled no-op behavior\n');
 
 (() => {
