@@ -71,6 +71,7 @@ export class LinkTooltip {
   createTooltip() {
     this.tooltip = document.createElement('div');
     this.tooltip.className = 'overtype-link-tooltip';
+    this.editor._markChrome(this.tooltip);
 
     // Add link icon and text container
     this.tooltip.innerHTML = `

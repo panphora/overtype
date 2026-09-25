@@ -5,6 +5,15 @@
 
 import { themeToCSSVars } from './themes.js';
 
+// The stylesheet's own fallbacks for the per-instance CSS vars
+export const styleDefaults = {
+  fontSize: '14px',
+  lineHeight: 1.6,
+  /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
+  fontFamily: '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
+  padding: '20px'
+};
+
 /**
  * Generate the complete CSS for the editor
  * @param {Object} options - Configuration options
@@ -12,11 +21,10 @@ import { themeToCSSVars } from './themes.js';
  */
 export function generateStyles(options = {}) {
   const {
-    fontSize = '14px',
-    lineHeight = 1.6,
-    /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
-    fontFamily = '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
-    padding = '20px',
+    fontSize = styleDefaults.fontSize,
+    lineHeight = styleDefaults.lineHeight,
+    fontFamily = styleDefaults.fontFamily,
+    padding = styleDefaults.padding,
     theme = null,
     mobile = {}
   } = options;

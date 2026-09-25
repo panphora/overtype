@@ -25,6 +25,7 @@ export class Toolbar {
   create() {
     this.container = document.createElement('div');
     this.container.className = 'overtype-toolbar';
+    this.editor._markChrome(this.container);
     this.container.id = this.getInstanceElementId('toolbar');
     this.container.setAttribute('role', 'toolbar');
     this.container.setAttribute('aria-label', 'Formatting toolbar');
@@ -372,6 +373,7 @@ export class Toolbar {
   createViewModeDropdown(button) {
     const dropdown = document.createElement('div');
     dropdown.className = 'overtype-dropdown-menu';
+    this.editor._markChrome(dropdown);
     dropdown.id = this.getInstanceElementId('toolbar-view-mode-menu');
     dropdown.setAttribute('role', 'menu');
     dropdown.setAttribute('aria-label', 'View mode');

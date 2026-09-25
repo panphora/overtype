@@ -221,6 +221,7 @@ export interface Options {
   toolbarButtons?: ToolbarButton[];  // Custom toolbar button configuration
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   spellcheck?: boolean;       // Browser spellcheck (default: false)
+  persist?: boolean;          // Save only container, wrapper and textarea in a ClayJS self-saving page (default: false)
   statsFormatter?: (stats: Stats) => string;
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
   transformLinkUrl?: ((url: string) => string) | null;  // Transform URLs shown/opened in the link tooltip

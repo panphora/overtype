@@ -770,18 +770,25 @@ See [examples/custom-toolbar.html](examples/custom-toolbar.html) for migration e
 
 ## DOM Persistence & Re-initialization
 
-OverType is designed to work with platforms that persist DOM across page loads (like HyperClay):
+OverType can resume from its own saved DOM, for pages that save themselves (like [ClayJS](https://clayjs.com) / Hyperclay). Calling `new OverType(el)` on an element that holds a saved editor keeps the text and rebuilds the toolbar, preview and other UI exactly once.
+
+In a ClayJS page, pass `persist: true`:
 
 ```javascript
-// Safe to call multiple times - will recover existing editors
-OverType.init('.editor');
-
-// The library will:
-// 1. Check for existing OverType DOM structure
-// 2. Recover content from existing textarea if found
-// 3. Re-establish event bindings
-// 4. Or create fresh editor if no existing DOM
+new OverType('#entry', { persist: true, toolbar: true });
 ```
+
+With `persist`, the saved file holds only the text:
+
+```html
+<div class="overtype-container" data-theme="solar">
+  <div class="overtype-wrapper">
+    <textarea class="overtype-input" persist>…your markdown…</textarea>
+  </div>
+</div>
+```
+
+The textarea gets ClayJS's `persist` attribute, and the style tag, toolbar, tooltip, stats bar, placeholder and preview are marked `clay="editor-ui"`, so they are never saved and never trigger an autosave. `destroy()` leaves the container, wrapper and textarea in place, so the editor can be resumed later.
 
 ## Examples
 

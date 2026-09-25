@@ -182,10 +182,10 @@ export class MarkdownParser {
       if (isPreviewMode) {
         // Preview mode: render actual checkbox
         const isChecked = checked.toLowerCase() === 'x';
-        return `${indent}<li class="task-list"><input type="checkbox" ${isChecked ? 'checked' : ''}> ${content}</li>`;
+        return `<li class="task-list">${indent}<input type="checkbox" ${isChecked ? 'checked' : ''}> ${content}</li>`;
       } else {
         // Normal mode: keep syntax (including user spacing) visible for alignment
-        return `${indent}<li class="task-list"><span class="syntax-marker">-${spacingBeforeBox}[${checked}]${spacingAfterBox}</span>${content}</li>`;
+        return `<li class="task-list">${indent}<span class="syntax-marker">-${spacingBeforeBox}[${checked}]${spacingAfterBox}</span>${content}</li>`;
       }
     });
   }

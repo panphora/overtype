@@ -172,7 +172,9 @@ console.log('\n📝 Parser Tests\n');
     { input: '1. First', expected: '<div><li class="ordered-list"><span class="syntax-marker">1. </span>First</li></div>' },
     { input: '- [ ] Task', expected: '<div><li class="task-list"><span class="syntax-marker">- [ ] </span>Task</li></div>' },
     { input: '-  [ ] ', expected: '<div><li class="task-list"><span class="syntax-marker">-  [ ] </span></li></div>' },
-    { input: '-  [ ] Task', expected: '<div><li class="task-list"><span class="syntax-marker">-  [ ] </span>Task</li></div>' }
+    { input: '-  [ ] Task', expected: '<div><li class="task-list"><span class="syntax-marker">-  [ ] </span>Task</li></div>' },
+    { input: '  - [x] Nested', expected: '<div><li class="task-list">&nbsp;&nbsp;<span class="syntax-marker">- [x] </span>Nested</li></div>' },
+    { input: '    - [ ] Deeper', expected: '<div><li class="task-list">&nbsp;&nbsp;&nbsp;&nbsp;<span class="syntax-marker">- [ ] </span>Deeper</li></div>' }
   ];
   
   tests.forEach(test => {

@@ -6,7 +6,7 @@
 
 import { MarkdownParser } from './parser.js';
 import { ShortcutsManager } from './shortcuts.js';
-import { generateStyles } from './styles.js';
+import { generateStyles, styleDefaults } from './styles.js';
 import { getTheme, mergeTheme, solar, themeToCSSVars, resolveAutoTheme } from './themes.js';
 import { Toolbar } from './toolbar.js';
 import { LinkTooltip } from './link-tooltip.js';
@@ -97,6 +97,7 @@ class OverType {
     // Static properties
     static instances = new WeakMap();
     static stylesInjected = false;
+    static stylesChrome = false;
     static globalListenersInitialized = false;
     static instanceCount = 0;
     static _autoMediaQuery = null;
@@ -152,6 +153,11 @@ class OverType {
       this.initialized = false;
       this._isSafari = isSafariBrowser();
       this._safariReflowRaf = null;
+
+      if (this.options.persist && !OverType.stylesChrome) {
+        OverType.stylesChrome = true;
+        document.querySelector('style.overtype-styles')?.setAttribute('clay', 'editor-ui');
+      }
 
       // Inject styles if needed
       OverType.injectStyles();
@@ -247,6 +253,7 @@ class OverType {
         smartLists: true,  // Enable smart list continuation
         codeHighlighter: null,  // Per-instance code highlighter
         spellcheck: false,  // Browser spellcheck (disabled by default)
+        persist: false,  // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
         transformLinkUrl: null  // Transform URLs shown/opened in the link tooltip
       };
       
@@ -264,6 +271,9 @@ class OverType {
      * @private
      */
     _recoverFromDOM(container, wrapper) {
+      // Read the text before anything is removed
+      const content = this._extractContent();
+
       // Handle old structure (wrapper only) or new structure (container + wrapper)
       if (container && container.classList.contains('overtype-container')) {
         this.container = container;
@@ -271,49 +281,55 @@ class OverType {
       } else if (wrapper) {
         // Old structure - just wrapper, no container
         this.wrapper = wrapper;
-        // Wrap it in a container for consistency
         this.container = document.createElement('div');
         this.container.className = 'overtype-container';
-        // Use instance theme if provided, otherwise use global theme
-        const themeToUse = this.instanceTheme || OverType.currentTheme || solar;
-        const themeName = typeof themeToUse === 'string' ? themeToUse : themeToUse.name;
-        if (themeName) {
-          this.container.setAttribute('data-theme', themeName);
-        }
-        
-        // If using instance theme, apply CSS variables to container
         if (this.instanceTheme) {
           const themeObj = typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme;
           if (themeObj && themeObj.colors) {
-            const cssVars = themeToCSSVars(themeObj.colors);
-            this.container.style.cssText += cssVars;
+            this.container.style.cssText += themeToCSSVars(themeObj.colors);
           }
         }
         wrapper.parentNode.insertBefore(this.container, wrapper);
         this.container.appendChild(wrapper);
       }
-      
-      if (!this.wrapper) {
-        // No valid structure found
+
+      this.textarea = this.wrapper ? this.wrapper.querySelector('.overtype-input') : null;
+
+      if (!this.textarea) {
+        // Nothing resumable: rebuild, keeping the text read above
         if (container) container.remove();
         if (wrapper) wrapper.remove();
-        this._buildFromScratch();
+        this._buildFromScratch(content);
         return;
       }
-      
-      this.textarea = this.wrapper.querySelector('.overtype-input');
-      this.preview = this.wrapper.querySelector('.overtype-preview');
 
-      if (!this.textarea || !this.preview) {
-        // Partial DOM - clear and rebuild
-        this.container.remove();
-        this._buildFromScratch();
-        return;
+      // The saved theme name may be stale
+      const themeToUse = this.instanceTheme || OverType.currentTheme || solar;
+      const themeName = typeof themeToUse === 'string' ? themeToUse : themeToUse.name;
+      if (themeName) {
+        this.container.setAttribute('data-theme', themeName);
+      }
+
+      // Everything except the textarea is rebuilt, so remove what was saved
+      this.container
+        .querySelectorAll('.overtype-toolbar, .overtype-link-tooltip, .overtype-stats, .overtype-placeholder, .overtype-preview')
+        .forEach(el => el.remove());
+
+      // Saved auto-resize state would stop _applyOptions from attaching listeners
+      this.container.classList.remove('overtype-auto-resize');
+      [this.wrapper, this.textarea].forEach(el => {
+        el.style.removeProperty('height');
+        el.style.removeProperty('overflow-y');
+      });
+
+      this._createOverlay();
+      if (this.options.showStats) {
+        this._createStatsBar();
       }
 
       // Store reference on wrapper
       this.wrapper._instance = this;
-      
+
       this._applyInstanceCSSVars();
 
       // Disable autofill, spellcheck, and extensions
@@ -322,7 +338,7 @@ class OverType {
 
       this._syncPreviewInteractivity();
 
-      // Apply any new options
+      // Apply any new options (builds the toolbar, renders the preview)
       this._applyOptions();
     }
 
@@ -330,10 +346,7 @@ class OverType {
      * Build editor from scratch
      * @private
      */
-    _buildFromScratch() {
-      // Extract any existing content
-      const content = this._extractContent();
-
+    _buildFromScratch(content = this._extractContent()) {
       // Clear element
       this.element.innerHTML = '';
 
@@ -417,33 +430,16 @@ class OverType {
 
       this._ensureTextareaId();
 
-      // Create preview div
-      this.preview = document.createElement('div');
-      this.preview.className = 'overtype-preview';
-      this.preview.setAttribute('aria-hidden', 'true');
-
-      // Create placeholder shim
-      this.placeholderEl = document.createElement('div');
-      this.placeholderEl.className = 'overtype-placeholder';
-      this.placeholderEl.setAttribute('aria-hidden', 'true');
-      this.placeholderEl.textContent = this.options.placeholder;
-
       // Assemble DOM
       this.wrapper.appendChild(this.textarea);
-      this.wrapper.appendChild(this.preview);
-      this.wrapper.appendChild(this.placeholderEl);
-      
-      // No need to prevent link clicks - pointer-events handles this
-      
+      this._createOverlay();
+
       // Add wrapper to container first
       this.container.appendChild(this.wrapper);
-      
+
       // Add stats bar at the end (bottom) if enabled
       if (this.options.showStats) {
-        this.statsBar = document.createElement('div');
-        this.statsBar.className = 'overtype-stats';
-        this.container.appendChild(this.statsBar);
-        this._updateStats();
+        this._createStatsBar();
       }
       
       // Add container to element
@@ -461,6 +457,49 @@ class OverType {
     }
 
     /**
+     * Create the preview and placeholder layers inside the wrapper
+     * @private
+     */
+    _createOverlay() {
+      this.preview = document.createElement('div');
+      this.preview.className = 'overtype-preview';
+      this.preview.setAttribute('aria-hidden', 'true');
+
+      this.placeholderEl = document.createElement('div');
+      this.placeholderEl.className = 'overtype-placeholder';
+      this.placeholderEl.setAttribute('aria-hidden', 'true');
+      this.placeholderEl.textContent = this.options.placeholder;
+
+      this.wrapper.appendChild(this.preview);
+      this.wrapper.appendChild(this.placeholderEl);
+
+      this._markChrome(this.preview);
+      this._markChrome(this.placeholderEl);
+    }
+
+    /**
+     * Create the stats bar at the bottom of the container
+     * @private
+     */
+    _createStatsBar() {
+      this.statsBar = document.createElement('div');
+      this.statsBar.className = 'overtype-stats';
+      this._markChrome(this.statsBar);
+      this.container.appendChild(this.statsBar);
+      this._updateStats();
+    }
+
+    /**
+     * Mark a UI node so a ClayJS self-saving page leaves it out of the saved file
+     * @private
+     */
+    _markChrome(el) {
+      if (this.options.persist && el) {
+        el.setAttribute('clay', 'editor-ui');
+      }
+    }
+
+    /**
      * Configure textarea attributes
      * @private
      */
@@ -472,6 +511,10 @@ class OverType {
       this.textarea.setAttribute('data-gramm', 'false');
       this.textarea.setAttribute('data-gramm_editor', 'false');
       this.textarea.setAttribute('data-enable-grammarly', 'false');
+
+      if (this.options.persist) {
+        this.textarea.setAttribute('persist', '');
+      }
     }
 
     /**
@@ -479,9 +522,13 @@ class OverType {
      * @private
      */
     _ensureTextareaId() {
-      if (!this.textarea.id) {
-        this.textarea.id = `overtype-${this.instanceId}-input`;
-      }
+      const id = this.textarea.id;
+      const isGenerated = /^overtype-\d+-input$/.test(id);
+      if (id && !(isGenerated && document.querySelectorAll(`[id="${id}"]`).length > 1)) return;
+
+      let n = this.instanceId;
+      while (document.getElementById(`overtype-${n}-input`)) n++;
+      this.textarea.id = `overtype-${n}-input`;
     }
 
     /**
@@ -584,17 +631,18 @@ class OverType {
      */
     _applyInstanceCSSVars() {
       if (!this.wrapper) return;
-      if (this.options.fontSize) {
-        this.wrapper.style.setProperty('--instance-font-size', this.options.fontSize);
-      }
-      if (this.options.lineHeight) {
-        this.wrapper.style.setProperty('--instance-line-height', String(this.options.lineHeight));
-      }
-      if (this.options.padding) {
-        this.wrapper.style.setProperty('--instance-padding', this.options.padding);
-      }
-      if (this.options.fontFamily) {
-        this.wrapper.style.setProperty('--instance-font-family', this.options.fontFamily);
+      const vars = [
+        ['--instance-font-size', this.options.fontSize, styleDefaults.fontSize],
+        ['--instance-line-height', this.options.lineHeight, styleDefaults.lineHeight],
+        ['--instance-padding', this.options.padding, styleDefaults.padding],
+        ['--instance-font-family', this.options.fontFamily, styleDefaults.fontFamily]
+      ];
+      for (const [name, value, fallback] of vars) {
+        if (value && String(value) !== String(fallback)) {
+          this.wrapper.style.setProperty(name, String(value));
+        } else {
+          this.wrapper.style.removeProperty(name);
+        }
       }
     }
 
@@ -1490,10 +1538,11 @@ class OverType {
       this._updateAutoHeight();
       
       // Listen for input events
-      this.textarea.addEventListener('input', () => this._updateAutoHeight());
-      
-      // Listen for window resize
-      window.addEventListener('resize', () => this._updateAutoHeight());
+      if (!this._autoResizeHandler) {
+        this._autoResizeHandler = () => this._updateAutoHeight();
+        this.textarea.addEventListener('input', this._autoResizeHandler);
+        window.addEventListener('resize', this._autoResizeHandler);
+      }
     }
     
     /**
@@ -1573,11 +1622,7 @@ class OverType {
       this.options.showStats = show;
 
       if (show && !this.statsBar) {
-        // Create stats bar (add to container, not wrapper)
-        this.statsBar = document.createElement('div');
-        this.statsBar.className = 'overtype-stats';
-        this.container.appendChild(this.statsBar);
-        this._updateStats();
+        this._createStatsBar();
       } else if (show && this.statsBar) {
         // Already visible - refresh stats (useful after changing statsFormatter)
         this._updateStats();
@@ -1666,13 +1711,37 @@ class OverType {
         this._safariReflowRaf = null;
       }
 
+      if (this.linkTooltip) {
+        this.linkTooltip.destroy();
+        this.linkTooltip = null;
+      }
+
+      if (this.toolbar) {
+        this._cleanupToolbarListeners();
+        this.toolbar.destroy();
+        this.toolbar = null;
+      }
+
+      if (this._autoResizeHandler) {
+        this.textarea.removeEventListener('input', this._autoResizeHandler);
+        window.removeEventListener('resize', this._autoResizeHandler);
+        this._autoResizeHandler = null;
+      }
+
       // Remove DOM if created by us
       if (this.wrapper) {
-        const content = this.getValue();
-        this.wrapper.remove();
+        if (this.options.persist) {
+          // Leave container, wrapper and textarea so the element can be resumed
+          [this.preview, this.placeholderEl, this.statsBar].forEach(el => el?.remove());
+          this.statsBar = null;
+          this.wrapper._instance = null;
+        } else {
+          const content = this.getValue();
+          this.wrapper.remove();
 
-        // Restore original content
-        this.element.textContent = content;
+          // Restore original content
+          this.element.textContent = content;
+        }
       }
 
       this.initialized = false;
@@ -1824,6 +1893,9 @@ class OverType {
       const styles = generateStyles({ theme });
       const styleEl = document.createElement('style');
       styleEl.className = 'overtype-styles';
+      if (OverType.stylesChrome) {
+        styleEl.setAttribute('clay', 'editor-ui');
+      }
       styleEl.textContent = styles;
       document.head.appendChild(styleEl);
 
@@ -1864,7 +1936,8 @@ class OverType {
       const themeName = typeof themeObj === 'string' ? themeObj : themeObj.name;
 
       document.querySelectorAll('.overtype-container').forEach(container => {
-        if (themeName) {
+        const wrapper = container.querySelector('.overtype-wrapper');
+        if (themeName && wrapper && wrapper._instance) {
           container.setAttribute('data-theme', themeName);
         }
       });
