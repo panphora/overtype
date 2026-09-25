@@ -1,5 +1,5 @@
 /**
- * OverType v2.4.2
+ * OverType v2.5.0
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
@@ -867,9 +867,9 @@ var OverTypeEditor = (() => {
         content = this.parseInlineElements(content);
         if (isPreviewMode) {
           const isChecked = checked.toLowerCase() === "x";
-          return `${indent}<li class="task-list"><input type="checkbox" ${isChecked ? "checked" : ""}> ${content}</li>`;
+          return `<li class="task-list">${indent}<input type="checkbox" ${isChecked ? "checked" : ""}> ${content}</li>`;
         } else {
-          return `${indent}<li class="task-list"><span class="syntax-marker">-${spacingBeforeBox}[${checked}]${spacingAfterBox}</span>${content}</li>`;
+          return `<li class="task-list">${indent}<span class="syntax-marker">-${spacingBeforeBox}[${checked}]${spacingAfterBox}</span>${content}</li>`;
         }
       });
     }
@@ -1750,13 +1750,19 @@ var OverTypeEditor = (() => {
   }
 
   // src/styles.js
+  var styleDefaults = {
+    fontSize: "14px",
+    lineHeight: 1.6,
+    /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
+    fontFamily: '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
+    padding: "20px"
+  };
   function generateStyles(options = {}) {
     const {
-      fontSize = "14px",
-      lineHeight = 1.6,
-      /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
-      fontFamily = '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
-      padding = "20px",
+      fontSize = styleDefaults.fontSize,
+      lineHeight = styleDefaults.lineHeight,
+      fontFamily = styleDefaults.fontFamily,
+      padding = styleDefaults.padding,
       theme = null,
       mobile = {}
     } = options;
@@ -3626,6 +3632,7 @@ ${blockSuffix}` : suffix;
     create() {
       this.container = document.createElement("div");
       this.container.className = "overtype-toolbar";
+      this.editor._markChrome(this.container);
       this.container.id = this.getInstanceElementId("toolbar");
       this.container.setAttribute("role", "toolbar");
       this.container.setAttribute("aria-label", "Formatting toolbar");
@@ -3904,6 +3911,7 @@ ${blockSuffix}` : suffix;
     createViewModeDropdown(button) {
       const dropdown = document.createElement("div");
       dropdown.className = "overtype-dropdown-menu";
+      this.editor._markChrome(dropdown);
       dropdown.id = this.getInstanceElementId("toolbar-view-mode-menu");
       dropdown.setAttribute("role", "menu");
       dropdown.setAttribute("aria-label", "View mode");
@@ -5329,6 +5337,7 @@ ${blockSuffix}` : suffix;
     createTooltip() {
       this.tooltip = document.createElement("div");
       this.tooltip.className = "overtype-link-tooltip";
+      this.editor._markChrome(this.tooltip);
       this.tooltip.innerHTML = `
       <span style="display: flex; align-items: center; gap: 6px;">
         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" style="flex-shrink: 0;">
@@ -5806,6 +5815,7 @@ ${blockSuffix}` : suffix;
      * @private
      */
     _init(element, options = {}) {
+      var _a;
       this.element = element;
       this.instanceTheme = options.theme || null;
       this.options = this._mergeOptions(options);
@@ -5813,6 +5823,10 @@ ${blockSuffix}` : suffix;
       this.initialized = false;
       this._isSafari = isSafariBrowser();
       this._safariReflowRaf = null;
+      if (this.options.persist && !_OverType.stylesChrome) {
+        _OverType.stylesChrome = true;
+        (_a = document.querySelector("style.overtype-styles")) == null ? void 0 : _a.setAttribute("clay", "editor-ui");
+      }
       _OverType.injectStyles();
       _OverType.initGlobalListeners();
       const container = element.querySelector(".overtype-container");
@@ -5889,6 +5903,8 @@ ${blockSuffix}` : suffix;
         // Per-instance code highlighter
         spellcheck: false,
         // Browser spellcheck (disabled by default)
+        persist: false,
+        // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
         transformLinkUrl: null
         // Transform URLs shown/opened in the link tooltip
       };
@@ -5903,6 +5919,7 @@ ${blockSuffix}` : suffix;
      * @private
      */
     _recoverFromDOM(container, wrapper) {
+      const content = this._extractContent();
       if (container && container.classList.contains("overtype-container")) {
         this.container = container;
         this.wrapper = container.querySelector(".overtype-wrapper");
@@ -5910,35 +5927,38 @@ ${blockSuffix}` : suffix;
         this.wrapper = wrapper;
         this.container = document.createElement("div");
         this.container.className = "overtype-container";
-        const themeToUse = this.instanceTheme || _OverType.currentTheme || solar;
-        const themeName = typeof themeToUse === "string" ? themeToUse : themeToUse.name;
-        if (themeName) {
-          this.container.setAttribute("data-theme", themeName);
-        }
         if (this.instanceTheme) {
           const themeObj = typeof this.instanceTheme === "string" ? getTheme(this.instanceTheme) : this.instanceTheme;
           if (themeObj && themeObj.colors) {
-            const cssVars = themeToCSSVars(themeObj.colors);
-            this.container.style.cssText += cssVars;
+            this.container.style.cssText += themeToCSSVars(themeObj.colors);
           }
         }
         wrapper.parentNode.insertBefore(this.container, wrapper);
         this.container.appendChild(wrapper);
       }
-      if (!this.wrapper) {
+      this.textarea = this.wrapper ? this.wrapper.querySelector(".overtype-input") : null;
+      if (!this.textarea) {
         if (container)
           container.remove();
         if (wrapper)
           wrapper.remove();
-        this._buildFromScratch();
+        this._buildFromScratch(content);
         return;
       }
-      this.textarea = this.wrapper.querySelector(".overtype-input");
-      this.preview = this.wrapper.querySelector(".overtype-preview");
-      if (!this.textarea || !this.preview) {
-        this.container.remove();
-        this._buildFromScratch();
-        return;
+      const themeToUse = this.instanceTheme || _OverType.currentTheme || solar;
+      const themeName = typeof themeToUse === "string" ? themeToUse : themeToUse.name;
+      if (themeName) {
+        this.container.setAttribute("data-theme", themeName);
+      }
+      this.container.querySelectorAll(".overtype-toolbar, .overtype-link-tooltip, .overtype-stats, .overtype-placeholder, .overtype-preview").forEach((el) => el.remove());
+      this.container.classList.remove("overtype-auto-resize");
+      [this.wrapper, this.textarea].forEach((el) => {
+        el.style.removeProperty("height");
+        el.style.removeProperty("overflow-y");
+      });
+      this._createOverlay();
+      if (this.options.showStats) {
+        this._createStatsBar();
       }
       this.wrapper._instance = this;
       this._applyInstanceCSSVars();
@@ -5951,8 +5971,7 @@ ${blockSuffix}` : suffix;
      * Build editor from scratch
      * @private
      */
-    _buildFromScratch() {
-      const content = this._extractContent();
+    _buildFromScratch(content = this._extractContent()) {
       this.element.innerHTML = "";
       this._createDOM();
       if (content || this.options.value) {
@@ -6009,22 +6028,11 @@ ${blockSuffix}` : suffix;
         });
       }
       this._ensureTextareaId();
-      this.preview = document.createElement("div");
-      this.preview.className = "overtype-preview";
-      this.preview.setAttribute("aria-hidden", "true");
-      this.placeholderEl = document.createElement("div");
-      this.placeholderEl.className = "overtype-placeholder";
-      this.placeholderEl.setAttribute("aria-hidden", "true");
-      this.placeholderEl.textContent = this.options.placeholder;
       this.wrapper.appendChild(this.textarea);
-      this.wrapper.appendChild(this.preview);
-      this.wrapper.appendChild(this.placeholderEl);
+      this._createOverlay();
       this.container.appendChild(this.wrapper);
       if (this.options.showStats) {
-        this.statsBar = document.createElement("div");
-        this.statsBar.className = "overtype-stats";
-        this.container.appendChild(this.statsBar);
-        this._updateStats();
+        this._createStatsBar();
       }
       this.element.appendChild(this.container);
       if (this.options.autoResize) {
@@ -6033,6 +6041,43 @@ ${blockSuffix}` : suffix;
         this.container.classList.remove("overtype-auto-resize");
       }
       this._syncPreviewInteractivity();
+    }
+    /**
+     * Create the preview and placeholder layers inside the wrapper
+     * @private
+     */
+    _createOverlay() {
+      this.preview = document.createElement("div");
+      this.preview.className = "overtype-preview";
+      this.preview.setAttribute("aria-hidden", "true");
+      this.placeholderEl = document.createElement("div");
+      this.placeholderEl.className = "overtype-placeholder";
+      this.placeholderEl.setAttribute("aria-hidden", "true");
+      this.placeholderEl.textContent = this.options.placeholder;
+      this.wrapper.appendChild(this.preview);
+      this.wrapper.appendChild(this.placeholderEl);
+      this._markChrome(this.preview);
+      this._markChrome(this.placeholderEl);
+    }
+    /**
+     * Create the stats bar at the bottom of the container
+     * @private
+     */
+    _createStatsBar() {
+      this.statsBar = document.createElement("div");
+      this.statsBar.className = "overtype-stats";
+      this._markChrome(this.statsBar);
+      this.container.appendChild(this.statsBar);
+      this._updateStats();
+    }
+    /**
+     * Mark a UI node so a ClayJS self-saving page leaves it out of the saved file
+     * @private
+     */
+    _markChrome(el) {
+      if (this.options.persist && el) {
+        el.setAttribute("clay", "editor-ui");
+      }
     }
     /**
      * Configure textarea attributes
@@ -6046,15 +6091,23 @@ ${blockSuffix}` : suffix;
       this.textarea.setAttribute("data-gramm", "false");
       this.textarea.setAttribute("data-gramm_editor", "false");
       this.textarea.setAttribute("data-enable-grammarly", "false");
+      if (this.options.persist) {
+        this.textarea.setAttribute("persist", "");
+      }
     }
     /**
      * Ensure the textarea can be referenced by aria-controls
      * @private
      */
     _ensureTextareaId() {
-      if (!this.textarea.id) {
-        this.textarea.id = `overtype-${this.instanceId}-input`;
-      }
+      const id = this.textarea.id;
+      const isGenerated = /^overtype-\d+-input$/.test(id);
+      if (id && !(isGenerated && document.querySelectorAll(`[id="${id}"]`).length > 1))
+        return;
+      let n = this.instanceId;
+      while (document.getElementById(`overtype-${n}-input`))
+        n++;
+      this.textarea.id = `overtype-${n}-input`;
     }
     /**
      * Keep rendered preview content out of keyboard navigation until Preview mode.
@@ -6141,17 +6194,18 @@ ${blockSuffix}` : suffix;
     _applyInstanceCSSVars() {
       if (!this.wrapper)
         return;
-      if (this.options.fontSize) {
-        this.wrapper.style.setProperty("--instance-font-size", this.options.fontSize);
-      }
-      if (this.options.lineHeight) {
-        this.wrapper.style.setProperty("--instance-line-height", String(this.options.lineHeight));
-      }
-      if (this.options.padding) {
-        this.wrapper.style.setProperty("--instance-padding", this.options.padding);
-      }
-      if (this.options.fontFamily) {
-        this.wrapper.style.setProperty("--instance-font-family", this.options.fontFamily);
+      const vars = [
+        ["--instance-font-size", this.options.fontSize, styleDefaults.fontSize],
+        ["--instance-line-height", this.options.lineHeight, styleDefaults.lineHeight],
+        ["--instance-padding", this.options.padding, styleDefaults.padding],
+        ["--instance-font-family", this.options.fontFamily, styleDefaults.fontFamily]
+      ];
+      for (const [name, value, fallback] of vars) {
+        if (value && String(value) !== String(fallback)) {
+          this.wrapper.style.setProperty(name, String(value));
+        } else {
+          this.wrapper.style.removeProperty(name);
+        }
       }
     }
     /**
@@ -6871,8 +6925,11 @@ ${blockSuffix}` : suffix;
       this.container.classList.add("overtype-auto-resize");
       this.previousHeight = null;
       this._updateAutoHeight();
-      this.textarea.addEventListener("input", () => this._updateAutoHeight());
-      window.addEventListener("resize", () => this._updateAutoHeight());
+      if (!this._autoResizeHandler) {
+        this._autoResizeHandler = () => this._updateAutoHeight();
+        this.textarea.addEventListener("input", this._autoResizeHandler);
+        window.addEventListener("resize", this._autoResizeHandler);
+      }
     }
     /**
      * Update height based on scrollHeight
@@ -6928,10 +6985,7 @@ ${blockSuffix}` : suffix;
     showStats(show) {
       this.options.showStats = show;
       if (show && !this.statsBar) {
-        this.statsBar = document.createElement("div");
-        this.statsBar.className = "overtype-stats";
-        this.container.appendChild(this.statsBar);
-        this._updateStats();
+        this._createStatsBar();
       } else if (show && this.statsBar) {
         this._updateStats();
       } else if (!show && this.statsBar) {
@@ -7000,10 +7054,30 @@ ${blockSuffix}` : suffix;
         cancelAnimationFrame(this._safariReflowRaf);
         this._safariReflowRaf = null;
       }
+      if (this.linkTooltip) {
+        this.linkTooltip.destroy();
+        this.linkTooltip = null;
+      }
+      if (this.toolbar) {
+        this._cleanupToolbarListeners();
+        this.toolbar.destroy();
+        this.toolbar = null;
+      }
+      if (this._autoResizeHandler) {
+        this.textarea.removeEventListener("input", this._autoResizeHandler);
+        window.removeEventListener("resize", this._autoResizeHandler);
+        this._autoResizeHandler = null;
+      }
       if (this.wrapper) {
-        const content = this.getValue();
-        this.wrapper.remove();
-        this.element.textContent = content;
+        if (this.options.persist) {
+          [this.preview, this.placeholderEl, this.statsBar].forEach((el) => el == null ? void 0 : el.remove());
+          this.statsBar = null;
+          this.wrapper._instance = null;
+        } else {
+          const content = this.getValue();
+          this.wrapper.remove();
+          this.element.textContent = content;
+        }
       }
       this.initialized = false;
     }
@@ -7141,6 +7215,9 @@ ${blockSuffix}` : suffix;
       const styles = generateStyles({ theme });
       const styleEl = document.createElement("style");
       styleEl.className = "overtype-styles";
+      if (_OverType.stylesChrome) {
+        styleEl.setAttribute("clay", "editor-ui");
+      }
       styleEl.textContent = styles;
       document.head.appendChild(styleEl);
       _OverType.stylesInjected = true;
@@ -7172,7 +7249,8 @@ ${blockSuffix}` : suffix;
       _OverType.injectStyles(true);
       const themeName = typeof themeObj === "string" ? themeObj : themeObj.name;
       document.querySelectorAll(".overtype-container").forEach((container) => {
-        if (themeName) {
+        const wrapper = container.querySelector(".overtype-wrapper");
+        if (themeName && wrapper && wrapper._instance) {
           container.setAttribute("data-theme", themeName);
         }
       });
@@ -7340,6 +7418,7 @@ ${blockSuffix}` : suffix;
   // Static properties
   __publicField(_OverType, "instances", /* @__PURE__ */ new WeakMap());
   __publicField(_OverType, "stylesInjected", false);
+  __publicField(_OverType, "stylesChrome", false);
   __publicField(_OverType, "globalListenersInitialized", false);
   __publicField(_OverType, "instanceCount", 0);
   __publicField(_OverType, "_autoMediaQuery", null);
