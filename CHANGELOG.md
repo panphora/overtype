@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.5.0] - 2026-09-25
+
+### Added
+- `persist: true` option for self-saving pages (ClayJS / Hyperclay): the textarea gets the `persist` attribute and every UI node (style tag, toolbar, view-mode dropdown, link tooltip, stats bar, placeholder, preview) is marked `clay="editor-ui"`, so a saved editor is only its container, wrapper and textarea. `destroy()` then leaves that shell in place so the editor can be resumed
+
+### Fixed
+- Resuming from saved DOM no longer duplicates the toolbar and link tooltip on every reload, keeps the stats bar and placeholder live, and keeps the text when the saved DOM has a textarea but no preview
+- Generated textarea ids no longer collide with ids saved by an earlier page load
+- autoResize keeps working after resuming from saved DOM
+- `destroy()` releases the toolbar, link tooltip and autoResize listeners
+- A global theme change no longer rewrites editors that have no live instance
+- Indented task list items render on one row, keeping the preview aligned with the textarea
+
+### Changed
+- Instance CSS variables are written only when they differ from the stylesheet default, so a default editor carries far less inline style
+
 ## [2.4.2] - 2026-09-05
 
 ### Added
