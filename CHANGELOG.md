@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- `destroy()` removes the link tooltip's textarea listeners, so typing in a `persist` editor after destroying and reopening it no longer throws
+
 ## [2.5.0] - 2026-09-25
 
 ### Added

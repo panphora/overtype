@@ -258,6 +258,14 @@ console.log('🧪 Running DOM Persistence Tests...\n');
   assert(textarea && textarea.value === MD, 'persist destroy keeps container, wrapper and textarea', article.innerHTML.slice(0, 200));
   assert(!article.querySelector('.overtype-toolbar, .overtype-link-tooltip, .overtype-stats, .overtype-placeholder, .overtype-preview'),
     'persist destroy removes the UI nodes', article.innerHTML.slice(0, 200));
+  const errors = [];
+  const onError = e => errors.push(e.message || String(e.error));
+  window.addEventListener('error', onError);
+  for (const type of ['input', 'blur', 'keyup', 'scroll', 'selectionchange']) {
+    textarea.dispatchEvent(new window.Event(type));
+  }
+  window.removeEventListener('error', onError);
+  assert(errors.length === 0, 'persist destroy leaves no link tooltip listeners on the textarea', errors.join('; '));
   const again = open(options);
   assert(again.getValue() === MD && count('.overtype-toolbar') === 1, 'reopening after destroy resumes cleanly',
     `${JSON.stringify(again.getValue())} toolbars ${count('.overtype-toolbar')}`);
