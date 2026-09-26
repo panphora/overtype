@@ -229,6 +229,10 @@ export function generateStyles(options = {}) {
       background-color: var(--selection, rgba(244, 211, 94, 0.4));
     }
 
+    .overtype-wrapper .overtype-input::placeholder {
+      color: transparent !important;
+    }
+
     /* Placeholder shim - visible when textarea is empty */
     .overtype-wrapper .overtype-placeholder {
       position: absolute !important;

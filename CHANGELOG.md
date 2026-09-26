@@ -4,6 +4,7 @@
 
 ### Fixed
 - `destroy()` removes the link tooltip's textarea listeners, so typing in a `persist` editor after destroying and reopening it no longer throws
+- The textarea's native placeholder is hidden, so it no longer shows under the placeholder shim (visible as doubled text when the shim is styled differently)
 
 ## [2.5.0] - 2026-09-25
 

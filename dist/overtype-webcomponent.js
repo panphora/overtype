@@ -1960,6 +1960,10 @@ var OverTypeEditor = (() => {
       background-color: var(--selection, rgba(244, 211, 94, 0.4));
     }
 
+    .overtype-wrapper .overtype-input::placeholder {
+      color: transparent !important;
+    }
+
     /* Placeholder shim - visible when textarea is empty */
     .overtype-wrapper .overtype-placeholder {
       position: absolute !important;
@@ -5302,23 +5306,32 @@ ${blockSuffix}` : suffix;
     }
     init() {
       this.createTooltip();
-      this.editor.textarea.addEventListener("selectionchange", () => this.checkCursorPosition());
-      this.editor.textarea.addEventListener("keyup", (e) => {
-        if (e.key.includes("Arrow") || e.key === "Home" || e.key === "End") {
-          this.checkCursorPosition();
+      this.textareaListeners = {
+        // Listen for cursor position changes
+        selectionchange: () => this.checkCursorPosition(),
+        keyup: (e) => {
+          if (e.key.includes("Arrow") || e.key === "Home" || e.key === "End") {
+            this.checkCursorPosition();
+          }
+        },
+        // Hide tooltip when typing
+        input: () => this.hide(),
+        // Reposition tooltip when scrolling
+        scroll: () => {
+          if (this.currentLink) {
+            this.positionTooltip(this.currentLink);
+          }
+        },
+        // Hide tooltip when textarea loses focus (unless hovering tooltip)
+        blur: () => {
+          if (!this.isTooltipHovered) {
+            this.hide();
+          }
         }
-      });
-      this.editor.textarea.addEventListener("input", () => this.hide());
-      this.editor.textarea.addEventListener("scroll", () => {
-        if (this.currentLink) {
-          this.positionTooltip(this.currentLink);
-        }
-      });
-      this.editor.textarea.addEventListener("blur", () => {
-        if (!this.isTooltipHovered) {
-          this.hide();
-        }
-      });
+      };
+      for (const [type, handler] of Object.entries(this.textareaListeners)) {
+        this.editor.textarea.addEventListener(type, handler);
+      }
       this.visibilityChangeHandler = () => {
         if (document.hidden) {
           this.hide();
@@ -5470,6 +5483,12 @@ ${blockSuffix}` : suffix;
     }
     destroy() {
       this.cancelHide();
+      if (this.textareaListeners) {
+        for (const [type, handler] of Object.entries(this.textareaListeners)) {
+          this.editor.textarea.removeEventListener(type, handler);
+        }
+        this.textareaListeners = null;
+      }
       if (this.visibilityChangeHandler) {
         document.removeEventListener("visibilitychange", this.visibilityChangeHandler);
         this.visibilityChangeHandler = null;
