@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1] - 2026-10-05
+
+### Changed
+- Task toggle click targets now cover the full checkbox marker
+
+
+
 ## [2.6.0] - 2026-10-05
 
 ### Added
