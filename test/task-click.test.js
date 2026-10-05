@@ -59,8 +59,13 @@ function rectFor(container, offset) {
 
 w.Range.prototype.getClientRects = function () {
   rangeQueries.push({ container: this.startContainer, start: this.startOffset, end: this.endOffset });
-  const rect = rectFor(this.startContainer, this.startOffset);
-  return rect ? [rect] : [];
+  return (layoutRows.get(this.startContainer) || []).flatMap(row => {
+    const start = Math.max(this.startOffset, row.start);
+    const end = Math.min(this.endOffset, row.end);
+    if (start >= end) return [];
+    const left = row.left + (start - row.start) * CHAR_WIDTH;
+    return [{ left, right: left + (end - start) * CHAR_WIDTH, top: row.top, bottom: row.top + LINE_HEIGHT }];
+  });
 };
 
 const { OverType } = await import('../src/overtype.js');
@@ -153,7 +158,7 @@ test('an enabled click toggles unchecked, checked and uppercase states', () => {
   assert.equal(editor.getValue(), '- [x] open\n- [ ] done\n- [ ] loud');
 });
 
-test('the hit region is exactly the single character inside the brackets', () => {
+test('the hit region covers the complete task marker', () => {
   const editor = createEditor({ clickToToggleTasks: true });
   editor.setValue('- [ ] exact');
   editor.textarea.setSelectionRange(0, 0);
@@ -166,24 +171,30 @@ test('the hit region is exactly the single character inside the brackets', () =>
   assert.equal(rangeQueries.length, 1);
   const [query] = rangeQueries;
   assert.equal(query.container, node);
-  assert.equal(query.end - query.start, 1);
-  assert.equal(query.start, node.textContent.indexOf('[') + 1);
-  assert.equal(node.textContent.slice(query.start, query.end), ' ');
+  assert.equal(query.end - query.start, 3);
+  assert.equal(query.start, node.textContent.indexOf('['));
+  assert.equal(node.textContent.slice(query.start, query.end), '[ ]');
 
   assert.equal(editor.getValue(), '- [x] exact');
   assert.equal(editor.textarea.selectionStart, 0);
   assert.equal(editor.textarea.selectionEnd, 0);
 });
 
-test('clicks outside the inner character do not toggle', () => {
+test('clicks outside the task marker do not toggle', () => {
   const editor = createEditor({ clickToToggleTasks: true });
   editor.setValue('- [ ] outside');
 
-  clickTask(editor, 0, { shiftChars: -1 });
-  assert.equal(editor.getValue(), '- [ ] outside', 'the opening bracket is outside the hit region');
+  clickTask(editor, 0, { shiftChars: -2 });
+  assert.equal(editor.getValue(), '- [ ] outside', 'the separator space before the box is outside the hit region');
 
-  clickTask(editor, 0, { shiftChars: 1 });
-  assert.equal(editor.getValue(), '- [ ] outside', 'the closing bracket is outside the hit region');
+  clickTask(editor, 0, { shiftChars: 2 });
+  assert.equal(editor.getValue(), '- [ ] outside', 'the separator space after the box is outside the hit region');
+
+  clickTask(editor, 0, { shiftChars: -3 });
+  assert.equal(editor.getValue(), '- [ ] outside', 'the dash is outside the hit region');
+
+  clickPoint(editor, 6 * CHAR_WIDTH + CHAR_WIDTH / 2, LINE_HEIGHT / 2);
+  assert.equal(editor.getValue(), '- [ ] outside', 'the task label is outside the hit region');
 
   clickTask(editor, 0, { shiftY: -LINE_HEIGHT });
   assert.equal(editor.getValue(), '- [ ] outside', 'a point above the character is outside the hit region');
@@ -195,6 +206,68 @@ test('clicks outside the inner character do not toggle', () => {
   layoutLine(node);
   clickPoint(editor, 900, 10);
   assert.equal(editor.getValue(), '- [ ] outside', 'a point far to the right is outside the hit region');
+});
+
+test('either bracket toggles exactly once in both marker states', () => {
+  const unchecked = '- [ ] brackets';
+  const checked = '- [x] brackets';
+
+  const run = (start, afterOpening) => {
+    const editor = createEditor({ clickToToggleTasks: true });
+    editor.setValue(start);
+    editor.textarea.setSelectionRange(6, 11, 'backward');
+
+    clickTask(editor, 0, { shiftChars: -1 });
+    assert.equal(editor.getValue(), afterOpening, 'the opening bracket toggles once');
+    assert.deepEqual(changedIndexes(start, editor.getValue()), [3]);
+    assert.equal(editor.textarea.selectionStart, 6);
+    assert.equal(editor.textarea.selectionEnd, 11);
+    assert.equal(editor.textarea.selectionDirection, 'backward');
+
+    clickTask(editor, 0, { shiftChars: 1 });
+    assert.equal(editor.getValue(), start, 'the closing bracket toggles back once');
+    assert.deepEqual(changedIndexes(afterOpening, editor.getValue()), [3]);
+    assert.equal(editor.textarea.selectionStart, 6);
+    assert.equal(editor.textarea.selectionEnd, 11);
+    assert.equal(editor.textarea.selectionDirection, 'backward');
+  };
+
+  run(unchecked, checked);
+  run(checked, unchecked);
+});
+
+test('coordinates at the bracket cell edges toggle and just outside misses', () => {
+  const unchecked = '- [ ] edge cells';
+  const checked = '- [x] edge cells';
+  const editor = createEditor({ clickToToggleTasks: true });
+  editor.setValue(unchecked);
+
+  const relayout = () => layoutLine(taskMarker(editor, 0));
+  relayout();
+  const y = LINE_HEIGHT / 2;
+
+  clickPoint(editor, 2 * CHAR_WIDTH - 0.25, y);
+  assert.equal(editor.getValue(), unchecked, 'a point just before the marker is outside the hit region');
+
+  clickPoint(editor, 5 * CHAR_WIDTH + 0.25, y);
+  assert.equal(editor.getValue(), unchecked, 'a point just after the marker is outside the hit region');
+
+  clickPoint(editor, 2 * CHAR_WIDTH + 0.25, y);
+  assert.equal(editor.getValue(), checked, 'the left edge of the opening bracket cell toggles');
+  assert.deepEqual(changedIndexes(unchecked, editor.getValue()), [3]);
+
+  relayout();
+  clickPoint(editor, 3 * CHAR_WIDTH - 0.25, y);
+  assert.equal(editor.getValue(), unchecked, 'the right edge of the opening bracket cell toggles back');
+
+  relayout();
+  clickPoint(editor, 4 * CHAR_WIDTH + 0.25, y);
+  assert.equal(editor.getValue(), checked, 'the left edge of the closing bracket cell toggles');
+  assert.deepEqual(changedIndexes(unchecked, editor.getValue()), [3]);
+
+  relayout();
+  clickPoint(editor, 5 * CHAR_WIDTH - 0.25, y);
+  assert.equal(editor.getValue(), unchecked, 'the right edge of the closing bracket cell toggles back');
 });
 
 test('a non-primary button does not toggle', () => {
@@ -222,8 +295,8 @@ test('indented tasks toggle at their own layout position', () => {
   clickPoint(editor, 0, LINE_HEIGHT / 2);
   assert.equal(editor.getValue(), '  - [ ] indented', 'the unindented position is outside the hit region');
 
-  clickTask(editor, 0);
-  assert.equal(editor.getValue(), '  - [x] indented');
+  clickTask(editor, 0, { shiftChars: -1 });
+  assert.equal(editor.getValue(), '  - [x] indented', 'the opening bracket toggles at the indented position');
 });
 
 test('extra spacing after the box toggles the same character', () => {
@@ -280,26 +353,46 @@ test('an active raw task line toggles through the raw line node', () => {
   assert.equal(editor.preview.querySelectorAll('div.raw-line').length, 1);
   assert.equal(editor.preview.querySelectorAll('li.task-list').length, 1);
 
-  clickNode(editor, rawLineText(editor, 0));
+  clickNode(editor, rawLineText(editor, 0), { shiftChars: -1 });
 
   assert.equal(editor.getValue(), '- [x] raw\n- [x] other');
+
+  clickNode(editor, rawLineText(editor, 0), { shiftChars: 1 });
+
+  assert.equal(editor.getValue(), '- [ ] raw\n- [x] other');
 });
 
-test('wrapped layout uses the rect of the row holding the character', () => {
+test('wrapped layout spreads the hit region across both rows', () => {
+  const unchecked = '- [ ] wrapped';
+  const checked = '- [x] wrapped';
   const editor = createEditor({ clickToToggleTasks: true });
-  editor.setValue('- [ ] wrapped');
+  editor.setValue(unchecked);
 
-  const node = taskMarker(editor, 0);
-  layout(node, [
-    { start: 0, end: 3, left: 40, top: 12 },
-    { start: 3, end: node.textContent.length, left: 8, top: 32 }
-  ]);
+  const relayout = () => {
+    const node = taskMarker(editor, 0);
+    layout(node, [
+      { start: 0, end: 3, left: 40, top: 12 },
+      { start: 3, end: node.textContent.length, left: 8, top: 32 }
+    ]);
+  };
+
+  relayout();
 
   clickPoint(editor, 40 + 3 * CHAR_WIDTH + CHAR_WIDTH / 2, 12 + LINE_HEIGHT / 2);
-  assert.equal(editor.getValue(), '- [ ] wrapped', 'the first row does not hold the inner character');
+  assert.equal(editor.getValue(), unchecked, 'the first row beyond the marker is outside the hit region');
 
-  clickPoint(editor, 8 + CHAR_WIDTH / 2, 32 + LINE_HEIGHT / 2);
-  assert.equal(editor.getValue(), '- [x] wrapped');
+  clickPoint(editor, 40 + 2 * CHAR_WIDTH + CHAR_WIDTH / 2, 12 + LINE_HEIGHT / 2);
+  assert.equal(editor.getValue(), checked, 'the opening bracket on the first row toggles');
+  assert.deepEqual(changedIndexes(unchecked, editor.getValue()), [3]);
+
+  relayout();
+
+  clickPoint(editor, 8 + 6 * CHAR_WIDTH + CHAR_WIDTH / 2, 32 + LINE_HEIGHT / 2);
+  assert.equal(editor.getValue(), checked, 'the task label on the second row does not toggle');
+
+  clickPoint(editor, 8 + CHAR_WIDTH + CHAR_WIDTH / 2, 32 + LINE_HEIGHT / 2);
+  assert.equal(editor.getValue(), unchecked, 'the closing bracket on the second row toggles the same task');
+  assert.deepEqual(changedIndexes(checked, editor.getValue()), [3]);
 });
 
 test('scrolled layout is driven by the preview client rects', () => {
@@ -374,7 +467,7 @@ test('onChange fires once per toggle and not for a miss', () => {
   clickTask(editor, 0);
   assert.deepEqual(seen, ['- [x] notify']);
 
-  clickTask(editor, 0, { shiftChars: -1 });
+  clickTask(editor, 0, { shiftChars: -2 });
   assert.deepEqual(seen, ['- [x] notify']);
 });
 
@@ -428,11 +521,11 @@ test('the web component toggles tasks from clicks inside its shadow DOM', () => 
   const changes = [];
   component.addEventListener('change', e => changes.push(e.detail.value));
 
-  clickTask(editor, 0, { composed: true });
+  clickTask(editor, 0, { composed: true, shiftChars: -1 });
   assert.equal(editor.getValue(), '- [x] shadow');
   assert.deepEqual(changes, ['- [x] shadow'], 'exactly one change event per toggle');
 
-  clickTask(editor, 0, { composed: true });
+  clickTask(editor, 0, { composed: true, shiftChars: 1 });
   assert.equal(editor.getValue(), '- [ ] shadow');
   assert.deepEqual(changes, ['- [x] shadow', '- [ ] shadow']);
 
@@ -554,6 +647,86 @@ test('execCommand throwing falls back and reports one change', () => {
   assert.deepEqual(changedIndexes('- [ ] throwing', editor.getValue()), [3]);
   assert.deepEqual(seen, ['- [x] throwing']);
   assert.equal(inputs(), 1, 'exactly one synthesized input event');
+});
+
+function errorRecorder() {
+  const errors = [];
+  const onError = event => errors.push(event);
+  window.addEventListener('error', onError);
+  return {
+    errors,
+    stop: () => window.removeEventListener('error', onError)
+  };
+}
+
+function assertSplitMarkerIsInert() {
+  const before = '- [ ] above\n- [x] split\n- [ ] below';
+  const seen = [];
+  const editor = createEditor({ clickToToggleTasks: true, onChange: value => seen.push(value) });
+  editor.setValue(before);
+  const inputs = inputCounter(editor);
+  seen.length = 0;
+
+  assert.equal(taskMarker(editor, 1).textContent, '- [x', 'the checkbox marker is split after x');
+
+  clickTask(editor, 1);
+  assert.equal(editor.getValue(), before, 'the split marker itself does not toggle');
+  assert.deepEqual(seen, []);
+
+  const node = taskMarker(editor, 2);
+  assert.equal(node.textContent, '- [ ] ', 'the later task keeps its own intact marker');
+  layoutLine(node);
+  clickPoint(editor, 2 * CHAR_WIDTH + CHAR_WIDTH / 4, LINE_HEIGHT / 2);
+
+  assert.equal(editor.getValue(), '- [ ] above\n- [x] split\n- [x] below');
+  assert.deepEqual(changedIndexes(before, editor.getValue()), [27]);
+  assert.deepEqual(seen, ['- [ ] above\n- [x] split\n- [x] below']);
+  assert.equal(inputs(), 1, 'exactly one input event per toggle');
+}
+
+test('a custom syntax processor that wraps the checkbox does not break later task clicks', () => {
+  const recorder = errorRecorder();
+  OverType.setCustomSyntax(html => html.replace(/\[x\]/g, '<span class="done">[x]</span>'));
+  try {
+    const before = '- [ ] above\n- [x] split\n- [ ] below';
+    const seen = [];
+    const editor = createEditor({ clickToToggleTasks: true, onChange: value => seen.push(value) });
+    editor.setValue(before);
+    const inputs = inputCounter(editor);
+    seen.length = 0;
+
+    assert.equal(taskMarker(editor, 1).textContent, '- ', 'the checkbox marker is split before the bracket');
+
+    const node = taskMarker(editor, 2);
+    assert.equal(node.textContent, '- [ ] ', 'the later task keeps its own intact marker');
+    layoutLine(node);
+    clickPoint(editor, 2 * CHAR_WIDTH + CHAR_WIDTH / 4, LINE_HEIGHT / 2);
+
+    assert.equal(editor.getValue(), '- [ ] above\n- [x] split\n- [x] below');
+    assert.deepEqual(changedIndexes(before, editor.getValue()), [27]);
+    assert.deepEqual(seen, ['- [ ] above\n- [x] split\n- [x] below']);
+    assert.equal(inputs(), 1, 'exactly one input event per toggle');
+    assert.equal(recorder.errors.length, 0, 'no window error event');
+  } finally {
+    OverType.setCustomSyntax(null);
+    recorder.stop();
+  }
+});
+
+test('a custom syntax processor that splits the marker after x does not overrun the range', () => {
+  const recorder = errorRecorder();
+  try {
+    OverType.setCustomSyntax(html => html.replace(/x\]/g, 'x<span class="done"></span>]'));
+    assertSplitMarkerIsInert();
+
+    OverType.setCustomSyntax(html => html.replace(/x\]/g, 'x<span class="done">[x]</span>]'));
+    assertSplitMarkerIsInert();
+
+    assert.equal(recorder.errors.length, 0, 'no window error event');
+  } finally {
+    OverType.setCustomSyntax(null);
+    recorder.stop();
+  }
 });
 
 let failed = 0;

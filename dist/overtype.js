@@ -6437,9 +6437,13 @@ ${blockSuffix}` : suffix;
         const textNode = marker == null ? void 0 : marker.firstChild;
         if ((textNode == null ? void 0 : textNode.nodeType) === 3) {
           const inside = textNode.textContent.indexOf("[") + 1;
+          if (!/^\[[ xX]\]$/.test(textNode.textContent.slice(inside - 1, inside + 2))) {
+            offset3 += line.length + 1;
+            continue;
+          }
           const range = document.createRange();
-          range.setStart(textNode, inside);
-          range.setEnd(textNode, inside + 1);
+          range.setStart(textNode, inside - 1);
+          range.setEnd(textNode, inside + 2);
           const hit = [...range.getClientRects()].some((rect) => event.clientX >= rect.left && event.clientX < rect.right && event.clientY >= rect.top && event.clientY < rect.bottom);
           if (hit) {
             const textarea = this.textarea;

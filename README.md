@@ -562,7 +562,7 @@ new OverType(target, options)
   smartLists: true,       // Enable GitHub-style list continuation on Enter
 
   // Task toggling
-  clickToToggleTasks: false,  // Click inside task brackets to toggle their state
+  clickToToggleTasks: false,  // Click a task checkbox marker to toggle its state
 
   // Spellcheck
   spellcheck: false,      // Enable browser spellcheck (disabled by default)
