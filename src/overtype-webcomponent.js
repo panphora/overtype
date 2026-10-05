@@ -163,6 +163,12 @@ class OverTypeEditor extends HTMLElement {
           }
         });
 
+        this._editor.textarea.addEventListener('click', (e) => {
+          if (this._editor) {
+            this._editor._handleTaskClick(e);
+          }
+        });
+
         // Selection change event for link tooltip and stats updates
         // selectionchange only fires on document, so we need to check if the active element is inside our shadow root
         this._selectionChangeHandler = () => {

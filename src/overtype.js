@@ -11,6 +11,7 @@ import { getTheme, mergeTheme, solar, themeToCSSVars, resolveAutoTheme } from '.
 import { Toolbar } from './toolbar.js';
 import { LinkTooltip } from './link-tooltip.js';
 import { defaultToolbarButtons, toolbarButtons as builtinToolbarButtons } from './toolbar-buttons.js';
+import { scanFenceOpen, scanFenceClose } from './block-scanner.js';
 
 let _isSafariCache;
 /**
@@ -251,6 +252,7 @@ class OverType {
         toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
+        clickToToggleTasks: false,
         codeHighlighter: null,  // Per-instance code highlighter
         spellcheck: false,  // Browser spellcheck (disabled by default)
         persist: false,  // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
@@ -844,6 +846,78 @@ class OverType {
       this._boundHandleDragOver = null;
       this._uploadedFiles = null;
       this.fileUploadInitialized = false;
+    }
+
+    _handleTaskClick(event) {
+      if (!this.options.clickToToggleTasks || event.button !== 0 ||
+          !this._canEditTextarea() || this.container.dataset.mode === 'preview') return;
+
+      const taskNodes = [...this.preview.querySelectorAll('li.task-list, div.raw-line')]
+        .filter(node => node.matches('li.task-list') || /^ *-\s+\[[ xX]\](?:\s|$)/.test(node.textContent));
+      let nodeIndex = 0;
+      let offset = 0;
+      let opening = null;
+
+      for (const line of this.textarea.value.split('\n')) {
+        if (opening) {
+          if (scanFenceClose(line, opening)) opening = null;
+          offset += line.length + 1;
+          continue;
+        }
+        opening = scanFenceOpen(line);
+        if (opening) {
+          offset += line.length + 1;
+          continue;
+        }
+
+        const match = /^( *-\s+\[)([ xX])\](?:\s|$)/.exec(line);
+        if (!match || !MarkdownParser.parseLine(line).includes('<li class="task-list">')) {
+          offset += line.length + 1;
+          continue;
+        }
+
+        const node = taskNodes[nodeIndex++];
+        const marker = node?.matches('li.task-list') ? node.querySelector(':scope > .syntax-marker') : node;
+        const textNode = marker?.firstChild;
+        if (textNode?.nodeType === 3) {
+          const inside = textNode.textContent.indexOf('[') + 1;
+          const range = document.createRange();
+          range.setStart(textNode, inside);
+          range.setEnd(textNode, inside + 1);
+          const hit = [...range.getClientRects()].some(rect =>
+            event.clientX >= rect.left && event.clientX < rect.right &&
+            event.clientY >= rect.top && event.clientY < rect.bottom);
+          if (hit) {
+            const textarea = this.textarea;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const direction = textarea.selectionDirection;
+            const position = offset + match[1].length;
+            textarea.focus();
+            textarea.setSelectionRange(position, position + 1);
+            const replacement = match[2] === ' ' ? 'x' : ' ';
+            let inputFired = false;
+            const trackInput = () => { inputFired = true; };
+            textarea.addEventListener('input', trackInput);
+            let inserted = false;
+            try {
+              inserted = document.execCommand('insertText', false, replacement);
+            } catch (_) {
+            } finally {
+              textarea.removeEventListener('input', trackInput);
+            }
+            if (!inserted) {
+              textarea.setRangeText(replacement, position, position + 1, 'preserve');
+            }
+            if (!inputFired) {
+              textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            textarea.setSelectionRange(start, end, direction);
+            return;
+          }
+        }
+        offset += line.length + 1;
+      }
     }
 
     insertAtCursor(text) {
@@ -2077,6 +2151,15 @@ class OverType {
           const wrapper = e.target.closest('.overtype-wrapper');
           const instance = wrapper?._instance;
           if (instance) instance.handleKeydown(e);
+        }
+      });
+
+      // Click event
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('overtype-input')) {
+          const wrapper = e.target.closest('.overtype-wrapper');
+          const instance = wrapper?._instance;
+          if (instance) instance._handleTaskClick(e);
         }
       });
 
