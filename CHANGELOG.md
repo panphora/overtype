@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.6.0] - 2026-10-05
+
+### Added
+- Opt-in task toggling by clicking inside a task's brackets
+
+### Fixed
+- The native textarea placeholder is now hidden behind the placeholder shim
+- The link tooltip's textarea listeners are now removed on destroy
+
+
+
 ## [Unreleased]
 
 ### Fixed
