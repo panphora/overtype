@@ -288,6 +288,141 @@ console.log('🧪 Running DOM Persistence Tests...\n');
   assert(style.getPropertyValue('--instance-font-size') === '', 'going back to the default removes the var', editor.wrapper.getAttribute('style'));
 })();
 
+const syncApplied = () => document.dispatchEvent(new window.CustomEvent('clay:sync-applied', { detail: { source: 'disk' } }));
+
+// A ClayJS live-sync merge sets a persisted textarea's value with no input event
+(() => {
+  reload(EMPTY_PAGE);
+  const editor = open({ persist: true });
+  editor.setValue('# Before\n');
+  editor.textarea.value = '# After a merge\n';
+  syncApplied();
+  assert(editor.preview.textContent.includes('After a merge'), 'persist: clay:sync-applied redraws the preview from the textarea', editor.preview.textContent.slice(0, 80));
+  assert(!editor.preview.textContent.includes('Before'), 'persist: the old text is gone from the preview', editor.preview.textContent.slice(0, 80));
+})();
+
+(() => {
+  reload(EMPTY_PAGE);
+  let changes = 0;
+  const editor = open({ persist: true, onChange: () => { changes++; } });
+  editor.setValue('one\n');
+  const before = changes;
+  editor.textarea.value = 'two\n';
+  syncApplied();
+  assert(changes === before, 'persist: a merge redraw does not call onChange', `onChange ran ${changes - before} time(s)`);
+})();
+
+(() => {
+  reload(EMPTY_PAGE);
+  const editor = open({});
+  editor.setValue('# Before\n');
+  editor.textarea.value = '# After a merge\n';
+  syncApplied();
+  assert(editor.preview.textContent.includes('Before'), 'without persist: clay:sync-applied is ignored', editor.preview.textContent.slice(0, 80));
+})();
+
+const TWO_PAGE = '<!DOCTYPE html><html><head></head><body><article id="a"></article><article id="b"></article></body></html>';
+const fakeHeight = (editor) => Object.defineProperty(editor.textarea, 'scrollHeight', {
+  configurable: true,
+  get: () => editor.textarea.value.split('\n').length * 20
+});
+const takeSnapshot = (hooks) => {
+  const clone = document.documentElement.cloneNode(true);
+  hooks.forEach(hook => hook(clone, {}));
+  return clone;
+};
+
+// autoResize: a merge redraw recomputes the height
+(() => {
+  reload(EMPTY_PAGE);
+  const editor = open({ persist: true, autoResize: true });
+  fakeHeight(editor);
+  editor.setValue('one\n');
+  editor.textarea.value = 'a\nb\nc\nd\ne\nf\ng\nh\ni\n';
+  syncApplied();
+  assert(editor.wrapper.style.height === '200px', 'persist + autoResize: a merge redraw recomputes the height', editor.wrapper.style.height);
+})();
+
+// The snapshot hook keeps autoResize heights out of the saved copy, and the live page keeps them
+(() => {
+  reload(EMPTY_PAGE);
+  const hooks = [];
+  window.clay = { onSnapshot: fn => hooks.push(fn) };
+  const editor = open({ persist: true, autoResize: true });
+  fakeHeight(editor);
+  editor.setValue('a\nb\nc\n');
+  assert(hooks.length === 1, 'persist: registers one ClayJS snapshot hook', `registered ${hooks.length}`);
+  assert(editor.wrapper.style.height !== '', 'live wrapper keeps its height', JSON.stringify(editor.wrapper.getAttribute('style')));
+  const clone = takeSnapshot(hooks);
+  const savedTextarea = clone.querySelector('textarea.overtype-input');
+  const savedWrapper = clone.querySelector('.overtype-wrapper');
+  assert(!savedTextarea.style.height && !savedTextarea.style.overflowY, 'snapshot: textarea has no inline height', JSON.stringify(savedTextarea.getAttribute('style')));
+  assert(!savedWrapper.style.height, 'snapshot: wrapper has no inline height', JSON.stringify(savedWrapper.getAttribute('style')));
+  assert(editor.wrapper.style.height !== '', 'snapshot does not touch the live wrapper', JSON.stringify(editor.wrapper.getAttribute('style')));
+})();
+
+// The hook strips only heights, not other inline styles on the wrapper
+(() => {
+  reload(EMPTY_PAGE);
+  const hooks = [];
+  window.clay = { onSnapshot: fn => hooks.push(fn) };
+  const editor = open({ persist: true, autoResize: true, fontSize: '18px' });
+  fakeHeight(editor);
+  editor.setValue('a\nb\n');
+  const savedWrapper = takeSnapshot(hooks).querySelector('.overtype-wrapper');
+  assert(savedWrapper.style.getPropertyValue('--instance-font-size') === '18px', 'snapshot keeps the wrapper\'s other inline styles', JSON.stringify(savedWrapper.getAttribute('style')));
+})();
+
+// ClayJS loading after OverType: the hook registers on clay:ready, once for several editors
+(() => {
+  reload(TWO_PAGE);
+  const hooks = [];
+  window.clay = {};
+  new OverType(document.getElementById('a'), { persist: true });
+  new OverType(document.getElementById('b'), { persist: true });
+  window.clay.onSnapshot = fn => hooks.push(fn);
+  document.dispatchEvent(new window.CustomEvent('clay:ready'));
+  document.dispatchEvent(new window.CustomEvent('clay:ready'));
+  assert(hooks.length === 1, 'late ClayJS: one hook registered on clay:ready', `registered ${hooks.length}`);
+})();
+
+// Without persist, no hook is registered
+(() => {
+  reload(EMPTY_PAGE);
+  const hooks = [];
+  window.clay = { onSnapshot: fn => hooks.push(fn) };
+  open({ autoResize: true });
+  assert(hooks.length === 0, 'without persist: no snapshot hook', `registered ${hooks.length}`);
+})();
+
+// One editor that throws does not stop the redraw of the next
+(() => {
+  reload(TWO_PAGE);
+  let explode = false;
+  const originalError = console.error;
+  console.error = () => {};
+  const [a] = new OverType(document.getElementById('a'), { persist: true, onRender: () => { if (explode) throw new Error('boom'); } });
+  const [b] = new OverType(document.getElementById('b'), { persist: true });
+  a.setValue('a before\n');
+  b.setValue('b before\n');
+  explode = true;
+  a.textarea.value = 'a after\n';
+  b.textarea.value = 'b after\n';
+  syncApplied();
+  console.error = originalError;
+  assert(b.preview.textContent.includes('b after'), 'a throwing editor does not stop the next one redrawing', b.preview.textContent.slice(0, 80));
+})();
+
+// A merged data-mode="preview" makes the preview interactive
+(() => {
+  reload(EMPTY_PAGE);
+  const editor = open({ persist: true });
+  editor.setValue('# Title\n');
+  editor.container.dataset.mode = 'preview';
+  syncApplied();
+  assert(!editor.preview.hasAttribute('inert') && !editor.preview.hasAttribute('aria-hidden'), 'merged preview mode: preview is interactive', `inert=${editor.preview.hasAttribute('inert')} aria-hidden=${editor.preview.getAttribute('aria-hidden')}`);
+})();
+
 console.log(`\n✅ Passed: ${results.passed}`);
 console.log(`❌ Failed: ${results.failed}`);
 

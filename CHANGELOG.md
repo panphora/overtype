@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- A `persist` editor redraws when ClayJS live sync merges a change into its textarea (`clay:sync-applied`), instead of showing the old text
+- With `persist` and `autoResize`, the editor's inline heights stay out of ClayJS saves, so a resize no longer makes the page read as unsaved
+
 ## [2.6.1] - 2026-10-05
 
 ### Changed

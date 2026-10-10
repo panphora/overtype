@@ -791,7 +791,7 @@ With `persist`, the saved file holds only the text:
 </div>
 ```
 
-The textarea gets ClayJS's `persist` attribute, and the style tag, toolbar, tooltip, stats bar, placeholder and preview are marked `clay="editor-ui"`, so they are never saved and never trigger an autosave. `destroy()` leaves the container, wrapper and textarea in place, so the editor can be resumed later.
+The textarea gets ClayJS's `persist` attribute, and the style tag, toolbar, tooltip, stats bar, placeholder and preview are marked `clay="editor-ui"`, so they are never saved and never trigger an autosave. `destroy()` leaves the container, wrapper and textarea in place, so the editor can be resumed later. When ClayJS live sync merges a change into the textarea, OverType redraws on `clay:sync-applied`, so collaborators' and agents' edits show without a reload. With `autoResize`, OverType registers a ClayJS snapshot hook that keeps the editor's inline heights out of the saved file.
 
 ## Examples
 

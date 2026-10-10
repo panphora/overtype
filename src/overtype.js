@@ -160,6 +160,8 @@ class OverType {
         document.querySelector('style.overtype-styles')?.setAttribute('clay', 'editor-ui');
       }
 
+      if (this.options.persist) OverType._registerClaySnapshotHook();
+
       // Inject styles if needed
       OverType.injectStyles();
 
@@ -1292,6 +1294,17 @@ class OverType {
     }
 
     /**
+     * Redraw from the textarea after something other than typing changed it
+     * @private
+     */
+    _refreshFromTextarea() {
+      this._syncPreviewInteractivity();
+      this.updatePreview();
+      if (this.options.autoResize) this._updateAutoHeight();
+      this._scheduleSafariReflow();
+    }
+
+    /**
      * Execute an action by ID
      * Central dispatcher used by toolbar clicks, keyboard shortcuts, and programmatic calls
      * @param {string} actionId - The action identifier (e.g., 'toggleBold', 'insertLink')
@@ -2127,6 +2140,34 @@ class OverType {
     }
 
     /**
+     * Keep autoResize heights out of every ClayJS snapshot, once per window
+     * @private
+     */
+    static _registerClaySnapshotHook() {
+      const globalScope = typeof window !== 'undefined' ? window : globalThis;
+      if (globalScope.__overtypeClaySnapshotHook) return;
+      globalScope.__overtypeClaySnapshotHook = true;
+      const register = () => globalScope.clay?.onSnapshot?.(OverType._stripLayoutFromSnapshot);
+      if (typeof globalScope.clay?.onSnapshot === 'function') register();
+      else document.addEventListener('clay:ready', register, { once: true });
+    }
+
+    /**
+     * Remove the inline heights autoResize writes, from a cloned document
+     * @private
+     */
+    static _stripLayoutFromSnapshot(clone) {
+      clone.querySelectorAll('textarea.overtype-input[persist]').forEach(textarea => {
+        [textarea, textarea.closest('.overtype-wrapper')].forEach(el => {
+          if (!el) return;
+          el.style.removeProperty('height');
+          el.style.removeProperty('overflow-y');
+          if (!el.getAttribute('style')) el.removeAttribute('style');
+        });
+      });
+    }
+
+    /**
      * Initialize global event listeners
      */
     static initGlobalListeners() {
@@ -2165,6 +2206,19 @@ class OverType {
           const instance = wrapper?._instance;
           if (instance) instance._handleTaskClick(e);
         }
+      });
+
+      // A ClayJS live-sync merge sets a persisted textarea's value without an input event
+      document.addEventListener('clay:sync-applied', () => {
+        document.querySelectorAll('.overtype-wrapper').forEach(wrapper => {
+          const instance = wrapper._instance;
+          if (!instance || !instance.options.persist) return;
+          try {
+            instance._refreshFromTextarea();
+          } catch (err) {
+            console.error('OverType: redraw after clay:sync-applied failed', err);
+          }
+        });
       });
 
       // Focus event (capture: true because focus does not bubble)
