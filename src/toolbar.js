@@ -251,13 +251,13 @@ export class Toolbar {
     if (actionIdOrConfig && typeof actionIdOrConfig === 'object' && typeof actionIdOrConfig.action === 'function') {
       this.editor.textarea.focus();
       try {
-        await actionIdOrConfig.action({
+        const result = await actionIdOrConfig.action({
           editor: this.editor,
           getValue: () => this.editor.getValue(),
           setValue: (value) => this.editor.setValue(value),
           event: null
         });
-        return true;
+        return result !== false;
       } catch (error) {
         console.error(`Action "${actionIdOrConfig.name}" error:`, error);
         this.editor.wrapper.dispatchEvent(new CustomEvent('button-error', {

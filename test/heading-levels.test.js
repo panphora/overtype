@@ -37,6 +37,11 @@ function headingLevels(html) {
     heading => Number(heading.tagName[1]));
 }
 
+function toolbarLayout(editor) {
+  return Array.from(editor.toolbar.container.children, element =>
+    element.getAttribute('role') === 'separator' ? 'separator' : element.dataset.button);
+}
+
 test('omitting allowedHeadingLevels preserves parser and editor defaults', () => {
   assert.deepEqual(headingLevels(MarkdownParser.parse(source)), [1, 2, 3]);
   assert.deepEqual(headingLevels(MarkdownParser.parseLine('# One')), [1]);
@@ -139,8 +144,59 @@ test('toolbar filtering preserves custom buttons and caller configuration', asyn
   assert.ok(defaultToolbarButtons.includes(toolbarButtons.h1));
   assert.equal(await editor.performAction('custom'), true);
   assert.equal(customCalls, 1);
-  await editor.performAction('renamed');
+  assert.equal(await editor.performAction('renamed'), false);
+  assert.equal(await editor.toolbar.handleAction(renamedHeading), false);
   assert.equal(editor.getValue(), source);
+});
+
+test('default toolbar collapses separators after disabling all headings', () => {
+  const editor = createEditor({ toolbar: true, allowedHeadingLevels: [] });
+
+  assert.deepEqual(toolbarLayout(editor), [
+    'bold', 'italic', 'code', 'separator', 'link', 'separator',
+    'bulletList', 'orderedList', 'taskList', 'separator', 'quote', 'separator', 'viewMode'
+  ]);
+});
+
+test('custom toolbar removes edge, repeated and orphan separators without mutating caller arrays', () => {
+  const { separator, h1, h2, h3, bold, italic } = toolbarButtons;
+  const cases = [
+    {
+      buttons: [separator, separator, h1, separator, bold, separator, h2, separator, italic, separator, h3, separator, separator],
+      expected: ['bold', 'separator', 'italic']
+    },
+    { buttons: [separator, h1, separator, h2, separator, h3, separator], expected: [] },
+    { buttons: [separator, separator], expected: [] },
+    { buttons: [], expected: [] }
+  ];
+
+  for (const { buttons, expected } of cases) {
+    const original = [...buttons];
+    const editor = createEditor({ toolbar: true, toolbarButtons: Object.freeze(buttons), allowedHeadingLevels: [] });
+
+    assert.deepEqual(toolbarLayout(editor), expected);
+    assert.deepEqual(buttons, original);
+  }
+});
+
+test('toolbar normalizes separators after automatic upload button insertion', () => {
+  const { separator, h1, h2, bold, viewMode } = toolbarButtons;
+  const cases = [
+    { buttons: [h1, separator, viewMode, separator, separator], expected: ['upload', 'viewMode'] },
+    { buttons: [bold, separator], expected: ['bold', 'separator', 'upload'] },
+    { buttons: [h1, separator, h2], expected: ['upload'] }
+  ];
+
+  for (const { buttons, expected } of cases) {
+    const editor = createEditor({
+      toolbar: true,
+      toolbarButtons: Object.freeze(buttons),
+      allowedHeadingLevels: [],
+      fileUpload: { enabled: true, onInsertFile: () => {} }
+    });
+
+    assert.deepEqual(toolbarLayout(editor), expected);
+  }
 });
 
 test('built-in heading actions are blocked even without a toolbar', async () => {
@@ -160,9 +216,50 @@ test('built-in heading actions are blocked even without a toolbar', async () => 
       editor.setValue('Heading');
       editor.textarea.setSelectionRange(0, 0);
       inputs = 0;
-      toolbarButtons[`h${level}`].action({ editor });
+      assert.equal(toolbarButtons[`h${level}`].action({ editor }), levels.includes(level) ? undefined : false);
       assert.equal(editor.getValue(), levels.includes(level) ? `${'#'.repeat(level)} Heading` : 'Heading');
       assert.equal(inputs > 0, levels.includes(level));
+    }
+  }
+});
+
+test('legacy and canonical toolbar actions report whether headings were allowed', async () => {
+  for (const levels of [[1, 2, 3], [2, 3], [3], []]) {
+    const editor = createEditor({ toolbar: true, allowedHeadingLevels: levels });
+    let inputs = 0;
+    editor.textarea.addEventListener('input', () => { inputs++; });
+
+    for (const level of [1, 2, 3]) {
+      for (const action of [toolbarButtons[`h${level}`], `toggleH${level}`]) {
+        editor.setValue('Heading');
+        editor.textarea.setSelectionRange(0, 0);
+        inputs = 0;
+
+        assert.equal(await editor.toolbar.handleAction(action), levels.includes(level));
+        assert.equal(editor.getValue(), levels.includes(level) ? `${'#'.repeat(level)} Heading` : 'Heading');
+        assert.equal(inputs > 0, levels.includes(level));
+      }
+    }
+  }
+});
+
+test('action dispatchers honor explicit false while preserving void callback success', async () => {
+  for (const asynchronous of [false, true]) {
+    for (const result of [undefined, true, false]) {
+      let calls = 0;
+      const custom = {
+        name: 'custom',
+        action: () => {
+          calls++;
+          return asynchronous ? Promise.resolve(result) : result;
+        }
+      };
+      const editor = createEditor({ toolbar: true, toolbarButtons: [custom] });
+
+      assert.equal(await editor.toolbar.handleAction(custom), result !== false);
+      assert.equal(await editor.toolbar.handleAction('custom'), result !== false);
+      assert.equal(await editor.performAction('custom'), result !== false);
+      assert.equal(calls, 3);
     }
   }
 });
@@ -203,6 +300,30 @@ test('reinit updates headings and toolbar without changing document, selection o
   assert.equal(editor.toolbar.buttons.h2, undefined);
   assert.equal(editor.toolbar.buttons.h3, undefined);
 });
+
+for (const hidden of [false, true]) {
+  test(`reinit preserves ${hidden ? 'hidden' : 'visible'} toolbar state when rebuilding buttons`, () => {
+    const editor = createEditor({ toolbar: true });
+    if (hidden) editor.hideToolbar();
+
+    for (const levels of [[2, 3], [3], [], [1, 2, 3]]) {
+      editor.reinit({ allowedHeadingLevels: levels });
+
+      assert.equal(editor.toolbar.container.classList.contains('overtype-toolbar-hidden'), hidden);
+      for (const level of [1, 2, 3]) {
+        assert.equal(Boolean(editor.toolbar.buttons[`h${level}`]), levels.includes(level));
+      }
+      assert.equal(editor.container.querySelectorAll('.overtype-toolbar').length, 1);
+    }
+
+    editor.reinit({ toolbarButtons: [toolbarButtons.bold, toolbarButtons.separator, toolbarButtons.h1] });
+    assert.equal(editor.toolbar.container.classList.contains('overtype-toolbar-hidden'), hidden);
+
+    editor.showToolbar();
+    editor.reinit({ allowedHeadingLevels: [] });
+    assert.equal(editor.toolbar.container.classList.contains('overtype-toolbar-hidden'), false);
+  });
+}
 
 test('coexisting editors keep independent heading levels in either mounting order', () => {
   for (const policies of [[[2, 3], []], [[], [2, 3]]]) {

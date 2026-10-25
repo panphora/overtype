@@ -3806,13 +3806,13 @@ var Toolbar = class {
     if (actionIdOrConfig && typeof actionIdOrConfig === "object" && typeof actionIdOrConfig.action === "function") {
       this.editor.textarea.focus();
       try {
-        await actionIdOrConfig.action({
+        const result = await actionIdOrConfig.action({
           editor: this.editor,
           getValue: () => this.editor.getValue(),
           setValue: (value) => this.editor.setValue(value),
           event: null
         });
-        return true;
+        return result !== false;
       } catch (error) {
         console.error(`Action "${actionIdOrConfig.name}" error:`, error);
         this.editor.wrapper.dispatchEvent(new CustomEvent("button-error", {
@@ -5614,7 +5614,7 @@ var toolbarButtons = {
     action: ({ editor }) => {
       var _a;
       if (((_a = editor.options) == null ? void 0 : _a.allowedHeadingLevels) && !editor.options.allowedHeadingLevels.includes(1))
-        return;
+        return false;
       toggleH1(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -5628,7 +5628,7 @@ var toolbarButtons = {
     action: ({ editor }) => {
       var _a;
       if (((_a = editor.options) == null ? void 0 : _a.allowedHeadingLevels) && !editor.options.allowedHeadingLevels.includes(2))
-        return;
+        return false;
       toggleH2(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -5642,7 +5642,7 @@ var toolbarButtons = {
     action: ({ editor }) => {
       var _a;
       if (((_a = editor.options) == null ? void 0 : _a.allowedHeadingLevels) && !editor.options.allowedHeadingLevels.includes(3))
-        return;
+        return false;
       toggleH3(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -6150,7 +6150,7 @@ var _OverType = class _OverType {
    * @private
    */
   _createToolbar() {
-    var _a;
+    var _a, _b;
     let toolbarButtons2 = (this.options.toolbarButtons || defaultToolbarButtons).filter((button) => {
       const level = [1, 2, 3].find(
         (level2) => (button == null ? void 0 : button.actionId) === `toggleH${level2}` || (button == null ? void 0 : button.action) === toolbarButtons[`h${level2}`].action
@@ -6165,6 +6165,15 @@ var _OverType = class _OverType {
       } else {
         toolbarButtons2 = [...toolbarButtons2, toolbarButtons.separator, toolbarButtons.upload];
       }
+    }
+    toolbarButtons2 = toolbarButtons2.reduce((buttons, button) => {
+      if (button.name !== "separator" || buttons.length > 0 && buttons[buttons.length - 1].name !== "separator") {
+        buttons.push(button);
+      }
+      return buttons;
+    }, []);
+    if (((_b = toolbarButtons2[toolbarButtons2.length - 1]) == null ? void 0 : _b.name) === "separator") {
+      toolbarButtons2.pop();
     }
     this.toolbar = new Toolbar(this, { toolbarButtons: toolbarButtons2 });
     this.toolbar.create();
@@ -6790,13 +6799,13 @@ var _OverType = class _OverType {
     }
     textarea.focus();
     try {
-      await action({
+      const result = await action({
         editor: this,
         getValue: () => this.getValue(),
         setValue: (value) => this.setValue(value),
         event
       });
-      return true;
+      return result !== false;
     } catch (error) {
       console.error(`OverType: Action "${actionId}" error:`, error);
       this.wrapper.dispatchEvent(new CustomEvent("button-error", {
@@ -6925,10 +6934,14 @@ var _OverType = class _OverType {
     const toolbarNeedsRebuild = this.toolbar && this.options.toolbar && (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) || prevHeadingLevels.join(",") !== this.options.allowedHeadingLevels.join(","));
     this._rebuildActionsMap();
     if (toolbarNeedsRebuild) {
+      const toolbarWasHidden = this.toolbar.container.classList.contains("overtype-toolbar-hidden");
       this._cleanupToolbarListeners();
       this.toolbar.destroy();
       this.toolbar = null;
       this._createToolbar();
+      if (toolbarWasHidden) {
+        this.toolbar.hide();
+      }
     }
     if (this.fileUploadInitialized) {
       this._destroyFileUpload();

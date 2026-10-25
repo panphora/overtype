@@ -580,6 +580,16 @@ class OverType {
         }
       }
 
+      toolbarButtons = toolbarButtons.reduce((buttons, button) => {
+        if (button.name !== 'separator' || (buttons.length > 0 && buttons[buttons.length - 1].name !== 'separator')) {
+          buttons.push(button);
+        }
+        return buttons;
+      }, []);
+      if (toolbarButtons[toolbarButtons.length - 1]?.name === 'separator') {
+        toolbarButtons.pop();
+      }
+
       this.toolbar = new Toolbar(this, { toolbarButtons });
       this.toolbar.create();
 
@@ -1336,7 +1346,7 @@ class OverType {
       textarea.focus();
 
       try {
-        await action({
+        const result = await action({
           editor: this,
           getValue: () => this.getValue(),
           setValue: (value) => this.setValue(value),
@@ -1344,7 +1354,7 @@ class OverType {
         });
         // Note: actions are responsible for dispatching input event
         // This preserves behavior for direct consumers of toolbarButtons.*.action
-        return true;
+        return result !== false;
       } catch (error) {
         console.error(`OverType: Action "${actionId}" error:`, error);
         this.wrapper.dispatchEvent(new CustomEvent('button-error', {
@@ -1504,10 +1514,14 @@ class OverType {
       this._rebuildActionsMap();
 
       if (toolbarNeedsRebuild) {
+        const toolbarWasHidden = this.toolbar.container.classList.contains('overtype-toolbar-hidden');
         this._cleanupToolbarListeners();
         this.toolbar.destroy();
         this.toolbar = null;
         this._createToolbar();
+        if (toolbarWasHidden) {
+          this.toolbar.hide();
+        }
       }
 
       if (this.fileUploadInitialized) {

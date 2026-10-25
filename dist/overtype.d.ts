@@ -77,13 +77,13 @@ export interface ToolbarButton {
   /** Button tooltip text (optional for separator) */
   title?: string;
 
-  /** Button action callback (optional for separator) */
+  /** Button action callback; return false when blocked (optional for separator) */
   action?: (context: {
     editor: OverType;
     getValue: () => string;
     setValue: (value: string) => void;
     event: MouseEvent;
-  }) => void | Promise<void>;
+  }) => void | boolean | Promise<void | boolean>;
 
   /** Canonical action identifier used by shortcuts and performAction */
   actionId?: string;

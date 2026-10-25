@@ -43,6 +43,11 @@ const editorsWithOptions: OverTypeInstance[] = new OverType('#editor', {
   showStats: true,
   toolbar: true,
   allowedHeadingLevels: [2, 3],
+  toolbarButtons: [
+    { name: 'blocked', action: () => false },
+    { name: 'asyncAction', action: ({ editor }) => editor.performAction('toggleH1') },
+    { name: 'voidAction', action: () => {} }
+  ],
   statsFormatter: (stats: Stats) => `${stats.words} words, ${stats.chars} chars`,
 
   // Callbacks
