@@ -779,11 +779,12 @@ var MarkdownParser = class {
   /**
    * Parse headers (h1-h3 only)
    * @param {string} html - HTML line to parse
+   * @param {number[]} allowedHeadingLevels - Heading levels to highlight (default: [1, 2, 3])
    * @returns {string} Parsed HTML with header styling
    */
-  static parseHeader(html) {
+  static parseHeader(html, allowedHeadingLevels = [1, 2, 3]) {
     const heading = scanAtxHeading(decodeEscapedLine(html));
-    if (!heading)
+    if (!heading || !allowedHeadingLevels.includes(heading.level))
       return html;
     const indent = heading.indent.replace(/ /g, "&nbsp;");
     const opening = this.escapeHtml(heading.marker + heading.separator);
@@ -1123,9 +1124,11 @@ var MarkdownParser = class {
   /**
    * Parse a single line of markdown
    * @param {string} line - Raw markdown line
+   * @param {boolean} isPreviewMode - Whether the editor is in preview mode
+   * @param {number[]} allowedHeadingLevels - Heading levels to highlight (default: [1, 2, 3])
    * @returns {string} Parsed HTML line
    */
-  static parseLine(line, isPreviewMode = false) {
+  static parseLine(line, isPreviewMode = false, allowedHeadingLevels = [1, 2, 3]) {
     if (line === "")
       return "<div>&nbsp;</div>";
     const thematicBreak = scanThematicBreak(line);
@@ -1137,7 +1140,7 @@ var MarkdownParser = class {
     if (fence)
       return this.renderFence(fence);
     const heading = scanAtxHeading(line);
-    if (heading) {
+    if (heading && allowedHeadingLevels.includes(heading.level)) {
       const indent = heading.indent.replace(/ /g, "&nbsp;");
       const opening = this.escapeHtml(heading.marker + heading.separator);
       const content = this.parseInlineElements(this.escapeHtml(heading.content));
@@ -1175,9 +1178,11 @@ var MarkdownParser = class {
    * @param {number} activeLine - Currently active line index (optional)
    * @param {boolean} showActiveLineRaw - Show raw markdown on active line
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
+   * @param {boolean} isPreviewMode - Whether the editor is in preview mode
+   * @param {number[]} allowedHeadingLevels - Heading levels to highlight (default: [1, 2, 3])
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false, allowedHeadingLevels = [1, 2, 3]) {
     this.resetLinkIndex();
     const lines = text.split("\n");
     const parsedLines = [];
@@ -1215,7 +1220,7 @@ var MarkdownParser = class {
         parsedLines.push(`<div class="raw-line">${content}</div>`);
         continue;
       }
-      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode)));
+      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode, allowedHeadingLevels)));
     }
     if (opening && codeLines.length > 0) {
       parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
@@ -5607,6 +5612,9 @@ var toolbarButtons = {
     title: "Heading 1",
     isActive: ({ activeFormats }) => activeFormats.includes("header"),
     action: ({ editor }) => {
+      var _a;
+      if (((_a = editor.options) == null ? void 0 : _a.allowedHeadingLevels) && !editor.options.allowedHeadingLevels.includes(1))
+        return;
       toggleH1(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -5618,6 +5626,9 @@ var toolbarButtons = {
     title: "Heading 2",
     isActive: ({ activeFormats }) => activeFormats.includes("header-2"),
     action: ({ editor }) => {
+      var _a;
+      if (((_a = editor.options) == null ? void 0 : _a.allowedHeadingLevels) && !editor.options.allowedHeadingLevels.includes(2))
+        return;
       toggleH2(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -5629,6 +5640,9 @@ var toolbarButtons = {
     title: "Heading 3",
     isActive: ({ activeFormats }) => activeFormats.includes("header-3"),
     action: ({ editor }) => {
+      var _a;
+      if (((_a = editor.options) == null ? void 0 : _a.allowedHeadingLevels) && !editor.options.allowedHeadingLevels.includes(3))
+        return;
       toggleH3(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -5827,6 +5841,8 @@ var _OverType = class _OverType {
       _OverType.stylesChrome = true;
       (_a = document.querySelector("style.overtype-styles")) == null ? void 0 : _a.setAttribute("clay", "editor-ui");
     }
+    if (this.options.persist)
+      _OverType._registerClaySnapshotHook();
     _OverType.injectStyles();
     _OverType.initGlobalListeners();
     const container = element.querySelector(".overtype-container");
@@ -5896,6 +5912,8 @@ var _OverType = class _OverType {
       toolbar: false,
       toolbarButtons: null,
       // Defaults to defaultToolbarButtons if toolbar: true
+      allowedHeadingLevels: [1, 2, 3],
+      // Empty array disables heading highlighting and actions
       statsFormatter: null,
       smartLists: true,
       // Enable smart list continuation
@@ -5912,7 +5930,8 @@ var _OverType = class _OverType {
     const { theme, colors, ...cleanOptions } = options;
     return {
       ...defaults,
-      ...cleanOptions
+      ...cleanOptions,
+      allowedHeadingLevels: Array.isArray(cleanOptions.allowedHeadingLevels) ? defaults.allowedHeadingLevels.filter((level) => cleanOptions.allowedHeadingLevels.includes(level)) : defaults.allowedHeadingLevels
     };
   }
   /**
@@ -6132,7 +6151,12 @@ var _OverType = class _OverType {
    */
   _createToolbar() {
     var _a;
-    let toolbarButtons2 = this.options.toolbarButtons || defaultToolbarButtons;
+    let toolbarButtons2 = (this.options.toolbarButtons || defaultToolbarButtons).filter((button) => {
+      const level = [1, 2, 3].find(
+        (level2) => (button == null ? void 0 : button.actionId) === `toggleH${level2}` || (button == null ? void 0 : button.action) === toolbarButtons[`h${level2}`].action
+      );
+      return !level || this.options.allowedHeadingLevels.includes(level);
+    });
     if (((_a = this.options.fileUpload) == null ? void 0 : _a.enabled) && !toolbarButtons2.some((b) => (b == null ? void 0 : b.name) === "upload")) {
       const viewModeIdx = toolbarButtons2.findIndex((b) => (b == null ? void 0 : b.name) === "viewMode");
       if (viewModeIdx !== -1) {
@@ -6480,7 +6504,7 @@ var _OverType = class _OverType {
     const cursorPos = this.textarea.selectionStart;
     const activeLine = this._getCurrentLine(text, cursorPos);
     const isPreviewMode = this.container.dataset.mode === "preview";
-    const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
+    const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode, this.options.allowedHeadingLevels);
     this.preview.innerHTML = html;
     if (this.placeholderEl) {
       this.placeholderEl.style.display = text ? "none" : "";
@@ -6734,6 +6758,17 @@ var _OverType = class _OverType {
     }
   }
   /**
+   * Redraw from the textarea after something other than typing changed it
+   * @private
+   */
+  _refreshFromTextarea() {
+    this._syncPreviewInteractivity();
+    this.updatePreview();
+    if (this.options.autoResize)
+      this._updateAutoHeight();
+    this._scheduleSafariReflow();
+  }
+  /**
    * Execute an action by ID
    * Central dispatcher used by toolbar clicks, keyboard shortcuts, and programmatic calls
    * @param {string} actionId - The action identifier (e.g., 'toggleBold', 'insertLink')
@@ -6744,6 +6779,9 @@ var _OverType = class _OverType {
     var _a;
     const textarea = this.textarea;
     if (!textarea)
+      return false;
+    const heading = /^toggleH([1-3])$/.exec(actionId);
+    if (heading && !this.options.allowedHeadingLevels.includes(Number(heading[1])))
       return false;
     const action = (_a = this.actionsById) == null ? void 0 : _a[actionId];
     if (!action) {
@@ -6775,7 +6813,7 @@ var _OverType = class _OverType {
    */
   getRenderedHTML(options = {}) {
     const markdown = this.getValue();
-    let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
+    let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter, false, this.options.allowedHeadingLevels);
     if (options.cleanHTML) {
       html = html.replace(/<span class="syntax-marker[^"]*">.*?<\/span>/g, "");
       html = html.replace(/\sclass="(bullet-list|ordered-list|code-fence|hr-marker|blockquote|url-part)"/g, "");
@@ -6882,8 +6920,9 @@ var _OverType = class _OverType {
   reinit(options = {}) {
     var _a;
     const prevToolbarButtons = (_a = this.options) == null ? void 0 : _a.toolbarButtons;
+    const prevHeadingLevels = this.options.allowedHeadingLevels;
     this.options = this._mergeOptions({ ...this.options, ...options });
-    const toolbarNeedsRebuild = this.toolbar && this.options.toolbar && toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons);
+    const toolbarNeedsRebuild = this.toolbar && this.options.toolbar && (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) || prevHeadingLevels.join(",") !== this.options.allowedHeadingLevels.join(","));
     this._rebuildActionsMap();
     if (toolbarNeedsRebuild) {
       this._cleanupToolbarListeners();
@@ -7418,6 +7457,41 @@ var _OverType = class _OverType {
     });
   }
   /**
+   * Keep autoResize heights out of every ClayJS snapshot, once per window
+   * @private
+   */
+  static _registerClaySnapshotHook() {
+    var _a;
+    const globalScope = typeof window !== "undefined" ? window : globalThis;
+    if (globalScope.__overtypeClaySnapshotHook)
+      return;
+    globalScope.__overtypeClaySnapshotHook = true;
+    const register = () => {
+      var _a2, _b;
+      return (_b = (_a2 = globalScope.clay) == null ? void 0 : _a2.onSnapshot) == null ? void 0 : _b.call(_a2, _OverType._stripLayoutFromSnapshot);
+    };
+    if (typeof ((_a = globalScope.clay) == null ? void 0 : _a.onSnapshot) === "function")
+      register();
+    else
+      document.addEventListener("clay:ready", register, { once: true });
+  }
+  /**
+   * Remove the inline heights autoResize writes, from a cloned document
+   * @private
+   */
+  static _stripLayoutFromSnapshot(clone) {
+    clone.querySelectorAll("textarea.overtype-input[persist]").forEach((textarea) => {
+      [textarea, textarea.closest(".overtype-wrapper")].forEach((el) => {
+        if (!el)
+          return;
+        el.style.removeProperty("height");
+        el.style.removeProperty("overflow-y");
+        if (!el.getAttribute("style"))
+          el.removeAttribute("style");
+      });
+    });
+  }
+  /**
    * Initialize global event listeners
    */
   static initGlobalListeners() {
@@ -7451,6 +7525,18 @@ var _OverType = class _OverType {
         if (instance)
           instance._handleTaskClick(e);
       }
+    });
+    document.addEventListener("clay:sync-applied", () => {
+      document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
+        const instance = wrapper._instance;
+        if (!instance || !instance.options.persist)
+          return;
+        try {
+          instance._refreshFromTextarea();
+        } catch (err) {
+          console.error("OverType: redraw after clay:sync-applied failed", err);
+        }
+      });
     });
     document.addEventListener("focus", (e) => {
       if (e.target && e.target.classList && e.target.classList.contains("overtype-input")) {

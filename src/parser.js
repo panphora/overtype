@@ -107,11 +107,12 @@ export class MarkdownParser {
   /**
    * Parse headers (h1-h3 only)
    * @param {string} html - HTML line to parse
+   * @param {number[]} allowedHeadingLevels - Heading levels to highlight (default: [1, 2, 3])
    * @returns {string} Parsed HTML with header styling
    */
-  static parseHeader(html) {
+  static parseHeader(html, allowedHeadingLevels = [1, 2, 3]) {
     const heading = scanAtxHeading(decodeEscapedLine(html));
-    if (!heading) return html;
+    if (!heading || !allowedHeadingLevels.includes(heading.level)) return html;
 
     const indent = heading.indent.replace(/ /g, '&nbsp;');
     const opening = this.escapeHtml(heading.marker + heading.separator);
@@ -529,9 +530,11 @@ export class MarkdownParser {
   /**
    * Parse a single line of markdown
    * @param {string} line - Raw markdown line
+   * @param {boolean} isPreviewMode - Whether the editor is in preview mode
+   * @param {number[]} allowedHeadingLevels - Heading levels to highlight (default: [1, 2, 3])
    * @returns {string} Parsed HTML line
    */
-  static parseLine(line, isPreviewMode = false) {
+  static parseLine(line, isPreviewMode = false, allowedHeadingLevels = [1, 2, 3]) {
     if (line === '') return '<div>&nbsp;</div>';
 
     const thematicBreak = scanThematicBreak(line);
@@ -544,7 +547,7 @@ export class MarkdownParser {
     if (fence) return this.renderFence(fence);
 
     const heading = scanAtxHeading(line);
-    if (heading) {
+    if (heading && allowedHeadingLevels.includes(heading.level)) {
       const indent = heading.indent.replace(/ /g, '&nbsp;');
       const opening = this.escapeHtml(heading.marker + heading.separator);
       const content = this.parseInlineElements(this.escapeHtml(heading.content));
@@ -588,9 +591,11 @@ export class MarkdownParser {
    * @param {number} activeLine - Currently active line index (optional)
    * @param {boolean} showActiveLineRaw - Show raw markdown on active line
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
+   * @param {boolean} isPreviewMode - Whether the editor is in preview mode
+   * @param {number[]} allowedHeadingLevels - Heading levels to highlight (default: [1, 2, 3])
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false, allowedHeadingLevels = [1, 2, 3]) {
     // Reset link counter for each parse
     this.resetLinkIndex();
 
@@ -634,7 +639,7 @@ export class MarkdownParser {
         continue;
       }
 
-      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode)));
+      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode, allowedHeadingLevels)));
     }
 
     if (opening && codeLines.length > 0) {

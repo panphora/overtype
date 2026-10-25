@@ -42,6 +42,7 @@ const editorsWithOptions: OverTypeInstance[] = new OverType('#editor', {
   showActiveLineRaw: true,
   showStats: true,
   toolbar: true,
+  allowedHeadingLevels: [2, 3],
   statsFormatter: (stats: Stats) => `${stats.words} words, ${stats.chars} chars`,
 
   // Callbacks
@@ -71,6 +72,10 @@ if (editorsWithOptions.length > 0) {
   instance.showStats(true);
   instance.setTheme('cave');
   instance.reinit({ fontSize: '18px' });
+  instance.reinit({ allowedHeadingLevels: [] });
+  instance.reinit({ allowedHeadingLevels: [3] });
+  // @ts-expect-error Only supported heading levels can be configured
+  instance.reinit({ allowedHeadingLevels: [4] });
   const isInit: boolean = instance.isInitialized();
   instance.destroy();
 }

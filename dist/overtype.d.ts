@@ -127,6 +127,7 @@ export interface Options {
   showStats?: boolean;
   toolbar?: boolean;
   toolbarButtons?: ToolbarButton[];  // Custom toolbar button configuration
+  allowedHeadingLevels?: (1 | 2 | 3)[];  // Heading levels to highlight and offer (default: [1, 2, 3]; [] disables headings)
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   clickToToggleTasks?: boolean;  // Click inside a rendered task's brackets to toggle its state (default: false)
   spellcheck?: boolean;       // Browser spellcheck (default: false)

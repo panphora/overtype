@@ -252,6 +252,7 @@ class OverType {
         showStats: false,
         toolbar: false,
         toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
+        allowedHeadingLevels: [1, 2, 3],  // Empty array disables heading highlighting and actions
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
         clickToToggleTasks: false,
@@ -266,7 +267,10 @@ class OverType {
       
       return {
         ...defaults,
-        ...cleanOptions
+        ...cleanOptions,
+        allowedHeadingLevels: Array.isArray(cleanOptions.allowedHeadingLevels)
+          ? defaults.allowedHeadingLevels.filter(level => cleanOptions.allowedHeadingLevels.includes(level))
+          : defaults.allowedHeadingLevels
       };
     }
 
@@ -559,7 +563,12 @@ class OverType {
      * @private
      */
     _createToolbar() {
-      let toolbarButtons = this.options.toolbarButtons || defaultToolbarButtons;
+      let toolbarButtons = (this.options.toolbarButtons || defaultToolbarButtons).filter(button => {
+        const level = [1, 2, 3].find(level =>
+          button?.actionId === `toggleH${level}` || button?.action === builtinToolbarButtons[`h${level}`].action
+        );
+        return !level || this.options.allowedHeadingLevels.includes(level);
+      });
 
       if (this.options.fileUpload?.enabled && !toolbarButtons.some(b => b?.name === 'upload')) {
         const viewModeIdx = toolbarButtons.findIndex(b => b?.name === 'viewMode');
@@ -957,7 +966,7 @@ class OverType {
       const isPreviewMode = this.container.dataset.mode === 'preview';
 
       // Parse markdown
-      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
+      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode, this.options.allowedHeadingLevels);
       this.preview.innerHTML = html;
 
       // Show/hide placeholder shim
@@ -1315,6 +1324,9 @@ class OverType {
       const textarea = this.textarea;
       if (!textarea) return false;
 
+      const heading = /^toggleH([1-3])$/.exec(actionId);
+      if (heading && !this.options.allowedHeadingLevels.includes(Number(heading[1]))) return false;
+
       const action = this.actionsById?.[actionId];
       if (!action) {
         console.warn(`OverType: Unknown action "${actionId}"`);
@@ -1350,7 +1362,7 @@ class OverType {
      */
     getRenderedHTML(options = {}) {
       const markdown = this.getValue();
-      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
+      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter, false, this.options.allowedHeadingLevels);
 
       if (options.cleanHTML) {
         // Remove all syntax marker spans for clean HTML export
@@ -1481,10 +1493,12 @@ class OverType {
      */
     reinit(options = {}) {
       const prevToolbarButtons = this.options?.toolbarButtons;
+      const prevHeadingLevels = this.options.allowedHeadingLevels;
       this.options = this._mergeOptions({ ...this.options, ...options });
       const toolbarNeedsRebuild = this.toolbar &&
         this.options.toolbar &&
-        toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons);
+        (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) ||
+          prevHeadingLevels.join(',') !== this.options.allowedHeadingLevels.join(','));
 
       // Rebuild action map in case toolbarButtons changed
       this._rebuildActionsMap();

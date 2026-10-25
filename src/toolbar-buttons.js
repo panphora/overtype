@@ -73,6 +73,7 @@ export const toolbarButtons = {
     title: 'Heading 1',
     isActive: ({ activeFormats }) => activeFormats.includes('header'),
     action: ({ editor }) => {
+      if (editor.options?.allowedHeadingLevels && !editor.options.allowedHeadingLevels.includes(1)) return;
       markdownActions.toggleH1(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -85,6 +86,7 @@ export const toolbarButtons = {
     title: 'Heading 2',
     isActive: ({ activeFormats }) => activeFormats.includes('header-2'),
     action: ({ editor }) => {
+      if (editor.options?.allowedHeadingLevels && !editor.options.allowedHeadingLevels.includes(2)) return;
       markdownActions.toggleH2(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -97,6 +99,7 @@ export const toolbarButtons = {
     title: 'Heading 3',
     isActive: ({ activeFormats }) => activeFormats.includes('header-3'),
     action: ({ editor }) => {
+      if (editor.options?.allowedHeadingLevels && !editor.options.allowedHeadingLevels.includes(3)) return;
       markdownActions.toggleH3(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
