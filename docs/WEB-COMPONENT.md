@@ -79,6 +79,7 @@ This content spans multiple lines using element text content.
 Notes:
 - The `value` attribute accepts common escaped sequences such as `\\n` (newline), `\\t` (tab), and `\\r` (carriage return).
 - When the `value` attribute is not present, the component uses its element `textContent` as the initial value.
+- Only values you author are decoded. Text the user types is kept as typed, so a literal `\\n` in a code sample stays two characters, even when the component rebuilds (toolbar, show-stats or auto-resize changes) or the element is moved or remounted.
 
 ## HTML Attributes (15 reactive attributes)
 
@@ -127,6 +128,24 @@ const internal = editor.getEditor();         // Access internal OverType instanc
 - `isReady()` → `boolean` - Initialization state
 - `getStats()` → `{chars, words, lines, line, column}` - Document statistics
 - `getEditor()` → `OverType` - Internal editor instance (for advanced usage)
+
+## Options Without Attributes
+
+Options that take functions or lists, such as `disable` and `customSyntax`, have no HTML attribute. Set them on the internal editor from the `ready` event:
+
+```javascript
+const editor = document.querySelector('overtype-editor');
+
+const applyOptions = (overtype) => overtype.reinit({
+  disable: ['headings', 'blockquote'],      // render these as plain text
+  customSyntax: (html) => html.replace(/(^|[^\w])@([\w-]+)/g, '$1<span class="mention">@$2</span>')
+});
+
+editor.addEventListener('ready', (e) => applyOptions(e.detail.editor));
+if (editor.isReady()) applyOptions(editor.getEditor());  // already initialized
+```
+
+Use the `ready` event rather than calling `getEditor().reinit()` once. Changing the `toolbar`, `show-stats` or `auto-resize` attribute rebuilds the internal editor from the element's attributes, which drops options set directly. The component fires `ready` again after every rebuild, so a `ready` listener reapplies them.
 
 ## Events (4 custom events with detailed payloads)
 

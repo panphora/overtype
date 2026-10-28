@@ -116,6 +116,27 @@ OverType.setCustomSyntax((html) => {
     <div id="editor"></div>
   </div>
 
+  <h2>Per-Editor Processors</h2>
+  <p>The processor above is global, so it applies to every editor on the page. One editor can use its own with the <code>customSyntax</code> option, or leave the global one out with <code>customSyntax: false</code>.</p>
+  <pre>
+// Only highlights @mentions
+new OverType('#mentions-only', {
+  customSyntax: (html) =&gt; html.replace(/(^|[^\w])@([\w-]+)/g, '$1&lt;span class="mention"&gt;@$2&lt;/span&gt;')
+});
+
+// No custom syntax at all
+new OverType('#no-custom-syntax', { customSyntax: false });</pre>
+
+  <h3>Mentions only</h3>
+  <div class="editor-container">
+    <div id="mentions-only"></div>
+  </div>
+
+  <h3>No custom syntax</h3>
+  <div class="editor-container">
+    <div id="no-custom-syntax"></div>
+  </div>
+
   <script src="../dist/overtype.js"></script>
   <script>
     // Set up custom syntax processor
@@ -190,6 +211,22 @@ That's awesome :thumbsup: and :rocket: :fire:
 - Inline code works too
 - [Regular link](https://example.com)
 `
+    });
+
+    new OverType('#mentions-only', {
+      theme: 'solar',
+      autoResize: true,
+      minHeight: '80px',
+      customSyntax: (html) => html.replace(/(^|[^\w])@([\w-]+)/g, '$1<span class="mention">@$2</span>'),
+      value: 'Thanks to @david for the review. #overtype and ==highlights== stay plain here.'
+    });
+
+    new OverType('#no-custom-syntax', {
+      theme: 'solar',
+      autoResize: true,
+      minHeight: '80px',
+      customSyntax: false,
+      value: 'Nothing custom here: @david #overtype ==highlight== [^1] :rocket:'
     });
   </script>
 </body>
