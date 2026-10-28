@@ -344,6 +344,50 @@ runTest('Decorated list rows still consolidate', () => {
   cleanup();
 });
 
+console.log('\n📋 Per-editor custom syntax\n');
+
+const mention = (html) => html.replace(/@(\w+)/g, '<span class="mention">$&</span>');
+const tag = (html) => html.replace(/#(\w+)/g, '<span class="tag">$&</span>');
+
+runTest('Instance processor applies without a global one', () => {
+  cleanup();
+  const html = MarkdownParser.parse('hi @ann', -1, false, null, false, { customSyntax: mention });
+  if (!html.includes('class="mention"')) throw new Error('Instance processor not applied');
+  verifyAlignment('hi @ann', html, 'instance only');
+});
+
+runTest('Instance processor replaces the global one', () => {
+  cleanup();
+  MarkdownParser.setCustomSyntax(mention);
+  const html = MarkdownParser.parse('@ann x#y', -1, false, null, false, { customSyntax: tag });
+  if (html.includes('class="mention"')) throw new Error('Global processor should not run');
+  if (!html.includes('class="tag"')) throw new Error('Instance processor not applied');
+  cleanup();
+});
+
+runTest('false skips the global processor', () => {
+  cleanup();
+  MarkdownParser.setCustomSyntax(mention);
+  const html = MarkdownParser.parse('hi @ann', -1, false, null, false, { customSyntax: false });
+  if (html.includes('class="mention"')) throw new Error('Global processor should be skipped');
+  cleanup();
+});
+
+runTest('null falls back to the global processor', () => {
+  cleanup();
+  MarkdownParser.setCustomSyntax(mention);
+  const html = MarkdownParser.parse('hi @ann', -1, false, null, false, { customSyntax: null });
+  if (!html.includes('class="mention"')) throw new Error('Global processor should apply');
+  cleanup();
+});
+
+runTest('Instance processor also runs on code fences', () => {
+  cleanup();
+  const fenceMark = (html) => html.replace('```', '<span class="fence-mark">```</span>');
+  const html = MarkdownParser.parse('```\ncode\n```', -1, false, null, false, { customSyntax: fenceMark });
+  if ((html.match(/class="fence-mark"/g) || []).length !== 2) throw new Error('Both fences should be processed');
+});
+
 // Summary
 console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 console.log('📊 Test Results Summary\n');

@@ -256,6 +256,7 @@ class OverType {
         smartLists: true,  // Enable smart list continuation
         clickToToggleTasks: false,
         codeHighlighter: null,  // Per-instance code highlighter
+        customSyntax: null,  // Per-instance custom syntax processor (false skips the global one)
         spellcheck: false,  // Browser spellcheck (disabled by default)
         persist: false,  // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
         transformLinkUrl: null  // Transform URLs shown/opened in the link tooltip
@@ -950,7 +951,7 @@ class OverType {
       const isPreviewMode = this.container.dataset.mode === 'preview';
 
       // Parse markdown
-      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
+      const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode, this._parserOptions());
       this.preview.innerHTML = html;
 
       // Show/hide placeholder shim
@@ -1343,7 +1344,7 @@ class OverType {
      */
     getRenderedHTML(options = {}) {
       const markdown = this.getValue();
-      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
+      let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter, false, this._parserOptions());
 
       if (options.cleanHTML) {
         // Remove all syntax marker spans for clean HTML export
@@ -1566,6 +1567,20 @@ class OverType {
     setCodeHighlighter(highlighter) {
       this.options.codeHighlighter = highlighter;
       this.updatePreview();
+    }
+
+    /**
+     * Set instance-specific custom syntax processor
+     * @param {Function|false|null} processor - Function that takes (html) and returns modified HTML;
+     *   false skips the global processor, null falls back to it
+     */
+    setCustomSyntax(processor) {
+      this.options.customSyntax = processor;
+      this.updatePreview();
+    }
+
+    _parserOptions() {
+      return { customSyntax: this.options.customSyntax };
     }
 
     /**

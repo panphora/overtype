@@ -1,6 +1,6 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~134KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~135KB minified with all features.
 
 ## Live Examples
 
@@ -19,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~134KB minified
+- 🚀 **Lightweight** - ~135KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -35,7 +35,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~134KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~135KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -557,6 +557,9 @@ new OverType(target, options)
   // Syntax highlighting
   codeHighlighter: null,  // Function: (code, lang) => html
                           // Overrides global OverType.setCodeHighlighter()
+  customSyntax: null,     // Function: (html) => html
+                          // Overrides global OverType.setCustomSyntax()
+                          // false = skip the global processor for this editor
 
   // Smart lists
   smartLists: true,       // Enable GitHub-style list continuation on Enter
@@ -618,6 +621,11 @@ editor.setTheme(customThemeObject)  // Custom theme
 // Set code highlighter (instance-specific)
 editor.setCodeHighlighter((code, lang) => highlightedHTML)
 editor.setCodeHighlighter(null)  // Disable for this instance
+
+// Set custom syntax processor (instance-specific)
+editor.setCustomSyntax((html) => html.replace(/@(\w+)/g, '<span class="mention">$&</span>'))
+editor.setCustomSyntax(false)  // Skip the global processor for this editor
+editor.setCustomSyntax(null)   // Fall back to the global processor
 
 // View modes
 editor.showNormalEditMode()   // Switch to normal edit mode (default)

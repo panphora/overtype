@@ -67,11 +67,12 @@ export class MarkdownParser {
   /**
    * Apply custom syntax processor to parsed HTML
    * @param {string} html - Parsed HTML line
+   * @param {Function|false|null} processor - Processor to apply (defaults to the global one)
    * @returns {string} HTML with custom syntax applied
    */
-  static applyCustomSyntax(html) {
-    if (this.customSyntax) {
-      return this.customSyntax(html);
+  static applyCustomSyntax(html, processor = this.customSyntax) {
+    if (typeof processor === 'function') {
+      return processor(html);
     }
     return html;
   }
@@ -588,9 +589,13 @@ export class MarkdownParser {
    * @param {number} activeLine - Currently active line index (optional)
    * @param {boolean} showActiveLineRaw - Show raw markdown on active line
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
+   * @param {boolean} isPreviewMode - Render for preview mode
+   * @param {Object} instanceOptions - Per-editor parser settings
+   * @param {Function|false|null} instanceOptions.customSyntax - Overrides the global custom syntax; false skips it
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false, instanceOptions = {}) {
+    const customSyntax = instanceOptions.customSyntax ?? this.customSyntax;
     // Reset link counter for each parse
     this.resetLinkIndex();
 
@@ -609,7 +614,7 @@ export class MarkdownParser {
         if (closing) {
           parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
           const renderedFence = this.renderFence(closing, isRaw);
-          parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+          parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence, customSyntax));
           opening = null;
           codeLines = [];
           rawCodeLine = -1;
@@ -624,7 +629,7 @@ export class MarkdownParser {
       if (candidate) {
         opening = candidate;
         const renderedFence = this.renderFence(candidate, isRaw);
-        parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+        parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence, customSyntax));
         continue;
       }
 
@@ -634,7 +639,7 @@ export class MarkdownParser {
         continue;
       }
 
-      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode)));
+      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode), customSyntax));
     }
 
     if (opening && codeLines.length > 0) {
