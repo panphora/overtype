@@ -133,6 +133,8 @@ export interface Options {
   persist?: boolean;          // Save only container, wrapper and textarea in a ClayJS self-saving page (default: false)
   statsFormatter?: (stats: Stats) => string;
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
+  customSyntax?: ((html: string) => string) | false | null;  // Per-instance custom syntax; false skips the global processor
+  disable?: Array<'h1' | 'h2' | 'h3' | 'headings' | 'lists' | 'tasks' | 'blockquote' | 'code' | 'hr'>;  // Line-level features to render as plain text
   transformLinkUrl?: ((url: string) => string) | null;  // Transform URLs shown/opened in the link tooltip
 
   // Theme (deprecated in favor of global theme)
@@ -179,6 +181,7 @@ export interface OverTypeConstructor {
   injectStyles(force?: boolean): void;
   setTheme(theme: string | Theme, customColors?: Partial<Theme['colors']>): void;
   setCodeHighlighter(highlighter: ((code: string, language: string) => string) | null): void;
+  setCustomSyntax(processor: ((html: string) => string) | null): void;
   initGlobalListeners(): void;
   getTheme(name: string): Theme;
 }
@@ -215,6 +218,7 @@ export interface OverTypeInstance {
   showStats(show: boolean): void;
   setTheme(theme: string | Theme): this;
   setCodeHighlighter(highlighter: ((code: string, language: string) => string) | null): void;
+  setCustomSyntax(processor: ((html: string) => string) | false | null): void;
   updatePreview(): void;
   performAction(actionId: string, event?: Event | null): Promise<boolean>;
   showToolbar(): void;

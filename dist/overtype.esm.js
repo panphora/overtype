@@ -464,6 +464,7 @@ function findRenderableLineLinks(text, options) {
   }
 }
 function findRenderableLinks(text, options = {}) {
+  const { fences = true, ...lineOptions } = options;
   const links = [];
   const lines = text.split("\n");
   let opening = null;
@@ -473,11 +474,11 @@ function findRenderableLinks(text, options = {}) {
       if (scanFenceClose(line, opening))
         opening = null;
     } else {
-      const candidate = scanFenceOpen(line);
+      const candidate = fences && scanFenceOpen(line);
       if (candidate)
         opening = candidate;
       else {
-        links.push(...findRenderableLineLinks(line, options).map((link) => shiftLink(link, offset3)));
+        links.push(...findRenderableLineLinks(line, lineOptions).map((link) => shiftLink(link, offset3)));
       }
     }
     offset3 += line.length + 1;
@@ -720,6 +721,21 @@ function decodeEscapedLine(html) {
 }
 var MarkdownParser = class {
   /**
+   * Expand a disable list into the set of line-level features parseLine checks
+   * @param {string[]} [disable] - Feature names: h1, h2, h3, headings, lists, tasks, blockquote, code, hr
+   * @returns {Set<string>} Disabled features ('headings' expands to h1-h3, 'lists' also disables tasks)
+   */
+  static resolveDisabled(disable) {
+    if (!disable || disable.length === 0)
+      return this.noneDisabled;
+    const disabled = new Set(disable);
+    if (disabled.has("headings"))
+      ["h1", "h2", "h3"].forEach((level) => disabled.add(level));
+    if (disabled.has("lists"))
+      disabled.add("tasks");
+    return disabled;
+  }
+  /**
    * Reset link index (call before parsing a new document)
    */
   static resetLinkIndex() {
@@ -742,11 +758,12 @@ var MarkdownParser = class {
   /**
    * Apply custom syntax processor to parsed HTML
    * @param {string} html - Parsed HTML line
+   * @param {Function|false|null} processor - Processor to apply (defaults to the global one)
    * @returns {string} HTML with custom syntax applied
    */
-  static applyCustomSyntax(html) {
-    if (this.customSyntax) {
-      return this.customSyntax(html);
+  static applyCustomSyntax(html, processor = this.customSyntax) {
+    if (typeof processor === "function") {
+      return processor(html);
     }
     return html;
   }
@@ -1125,26 +1142,26 @@ var MarkdownParser = class {
    * @param {string} line - Raw markdown line
    * @returns {string} Parsed HTML line
    */
-  static parseLine(line, isPreviewMode = false) {
+  static parseLine(line, isPreviewMode = false, disabled = this.noneDisabled) {
     if (line === "")
       return "<div>&nbsp;</div>";
-    const thematicBreak = scanThematicBreak(line);
-    if (thematicBreak) {
+    const isThematicBreak = scanThematicBreak(line);
+    if (isThematicBreak && !disabled.has("hr")) {
       const source = this.preserveIndentation(this.escapeHtml(line), line);
       return `<div><span class="hr-marker">${source}</span></div>`;
     }
-    const fence = scanFenceOpen(line);
+    const fence = !disabled.has("code") && scanFenceOpen(line);
     if (fence)
       return this.renderFence(fence);
     const heading = scanAtxHeading(line);
-    if (heading) {
+    if (heading && !disabled.has(`h${heading.level}`)) {
       const indent = heading.indent.replace(/ /g, "&nbsp;");
       const opening = this.escapeHtml(heading.marker + heading.separator);
       const content = this.parseInlineElements(this.escapeHtml(heading.content));
       const closing = heading.closing ? `<span class="syntax-marker">${this.escapeHtml(heading.closing)}</span>` : "";
       return `<div><h${heading.level}>${indent}<span class="syntax-marker">${opening}</span>${content}${closing}</h${heading.level}></div>`;
     }
-    const blockquote = scanBlockquote(line);
+    const blockquote = !disabled.has("blockquote") && scanBlockquote(line);
     if (blockquote) {
       const indent = blockquote.indent.replace(/ /g, "&nbsp;");
       const marker = this.escapeHtml(blockquote.marker);
@@ -1153,10 +1170,10 @@ var MarkdownParser = class {
       return `<div>${indent}<span class="blockquote"><span class="syntax-marker">${marker}</span>${separator}${content}</span></div>`;
     }
     let html = this.preserveIndentation(this.escapeHtml(line), line);
-    const taskList = this.parseTaskList(html, isPreviewMode);
+    const taskList = disabled.has("tasks") ? html : this.parseTaskList(html, isPreviewMode);
     if (taskList !== html)
       return `<div>${taskList}</div>`;
-    const listItem = scanListItem(line);
+    const listItem = !disabled.has("lists") && !isThematicBreak && scanListItem(line);
     if (listItem) {
       const indent = listItem.indent.replace(/ /g, "&nbsp;");
       const marker = this.escapeHtml(listItem.marker + listItem.separator);
@@ -1175,9 +1192,16 @@ var MarkdownParser = class {
    * @param {number} activeLine - Currently active line index (optional)
    * @param {boolean} showActiveLineRaw - Show raw markdown on active line
    * @param {Function} instanceHighlighter - Instance-specific code highlighter (optional, overrides global if provided)
+   * @param {boolean} isPreviewMode - Render for preview mode
+   * @param {Object} instanceOptions - Per-editor parser settings
+   * @param {Function|false|null} instanceOptions.customSyntax - Overrides the global custom syntax; false skips it
+   * @param {string[]} instanceOptions.disable - Line-level features to render as plain text
    * @returns {string} Parsed HTML
    */
-  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false) {
+  static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false, instanceOptions = {}) {
+    var _a;
+    const customSyntax = (_a = instanceOptions.customSyntax) != null ? _a : this.customSyntax;
+    const disabled = this.resolveDisabled(instanceOptions.disable);
     this.resetLinkIndex();
     const lines = text.split("\n");
     const parsedLines = [];
@@ -1192,7 +1216,7 @@ var MarkdownParser = class {
         if (closing) {
           parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
           const renderedFence = this.renderFence(closing, isRaw);
-          parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+          parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence, customSyntax));
           opening = null;
           codeLines = [];
           rawCodeLine = -1;
@@ -1203,11 +1227,11 @@ var MarkdownParser = class {
         }
         continue;
       }
-      const candidate = scanFenceOpen(line);
+      const candidate = !disabled.has("code") && scanFenceOpen(line);
       if (candidate) {
         opening = candidate;
         const renderedFence = this.renderFence(candidate, isRaw);
-        parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence));
+        parsedLines.push(isRaw ? renderedFence : this.applyCustomSyntax(renderedFence, customSyntax));
         continue;
       }
       if (isRaw) {
@@ -1215,7 +1239,7 @@ var MarkdownParser = class {
         parsedLines.push(`<div class="raw-line">${content}</div>`);
         continue;
       }
-      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode)));
+      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode, disabled), customSyntax));
     }
     if (opening && codeLines.length > 0) {
       parsedLines.push(this.renderCodeContent(codeLines, opening.info, instanceHighlighter, opening.indent.length, rawCodeLine));
@@ -1318,9 +1342,10 @@ var MarkdownParser = class {
    * Get list context at cursor position
    * @param {string} text - Full text content
    * @param {number} cursorPosition - Current cursor position
+   * @param {Set<string>} disabled - Disabled features from resolveDisabled (disabled tasks continue as bullets)
    * @returns {Object} List context information
    */
-  static getListContext(text, cursorPosition) {
+  static getListContext(text, cursorPosition, disabled = this.noneDisabled) {
     const lines = text.split("\n");
     let currentPos = 0;
     let lineIndex = 0;
@@ -1351,7 +1376,7 @@ var MarkdownParser = class {
     const listItem = scanListItem(currentLine);
     if (!listItem)
       return plainContext;
-    const checkboxMatch = listItem.listType === "bullet" && listItem.marker === "-" ? /^\[([ xX])\]([\t ]*)(.*)$/.exec(listItem.content) : null;
+    const checkboxMatch = !disabled.has("tasks") && listItem.listType === "bullet" && listItem.marker === "-" ? /^\[([ xX])\]([\t ]*)(.*)$/.exec(listItem.content) : null;
     if (checkboxMatch && (checkboxMatch[2] !== "" || checkboxMatch[3] === "")) {
       return {
         inList: true,
@@ -1449,6 +1474,7 @@ __publicField(MarkdownParser, "linkIndex", 0);
 __publicField(MarkdownParser, "codeHighlighter", null);
 // Custom syntax processor function
 __publicField(MarkdownParser, "customSyntax", null);
+__publicField(MarkdownParser, "noneDisabled", /* @__PURE__ */ new Set());
 /**
  * List pattern definitions
  */
@@ -5369,9 +5395,11 @@ var LinkTooltip = class {
   findLinkAtPosition(text, position) {
     if (this.editor.options.showActiveLineRaw)
       return null;
-    if (this.linkCacheText !== text) {
+    const fences = !MarkdownParser.resolveDisabled(this.editor.options.disable).has("code");
+    if (this.linkCacheText !== text || this.linkCacheFences !== fences) {
       this.linkCacheText = text;
-      this.linkCache = MarkdownParser.findRenderableLinks(text);
+      this.linkCacheFences = fences;
+      this.linkCache = MarkdownParser.findRenderableLinks(text, { fences });
     }
     const links = this.linkCache;
     for (const [linkIndex, link] of links.entries()) {
@@ -5769,6 +5797,15 @@ function normalizeButtons(buttons) {
     title: (btn == null ? void 0 : btn.title) || null
   }));
 }
+var ACTION_FEATURES = {
+  toggleH1: "h1",
+  toggleH2: "h2",
+  toggleH3: "h3",
+  toggleBulletList: "lists",
+  toggleNumberedList: "lists",
+  toggleTaskList: "tasks",
+  toggleQuote: "blockquote"
+};
 function toolbarButtonsChanged(prevButtons, nextButtons) {
   const prev = normalizeButtons(prevButtons);
   const next = normalizeButtons(nextButtons);
@@ -5827,6 +5864,8 @@ var _OverType = class _OverType {
       _OverType.stylesChrome = true;
       (_a = document.querySelector("style.overtype-styles")) == null ? void 0 : _a.setAttribute("clay", "editor-ui");
     }
+    if (this.options.persist)
+      _OverType._registerClaySnapshotHook();
     _OverType.injectStyles();
     _OverType.initGlobalListeners();
     const container = element.querySelector(".overtype-container");
@@ -5902,6 +5941,10 @@ var _OverType = class _OverType {
       clickToToggleTasks: false,
       codeHighlighter: null,
       // Per-instance code highlighter
+      customSyntax: null,
+      // Per-instance custom syntax processor (false skips the global one)
+      disable: [],
+      // Line-level features to render as plain text: h1, h2, h3, headings, lists, tasks, blockquote, code, hr
       spellcheck: false,
       // Browser spellcheck (disabled by default)
       persist: false,
@@ -5928,12 +5971,6 @@ var _OverType = class _OverType {
       this.wrapper = wrapper;
       this.container = document.createElement("div");
       this.container.className = "overtype-container";
-      if (this.instanceTheme) {
-        const themeObj = typeof this.instanceTheme === "string" ? getTheme(this.instanceTheme) : this.instanceTheme;
-        if (themeObj && themeObj.colors) {
-          this.container.style.cssText += themeToCSSVars(themeObj.colors);
-        }
-      }
       wrapper.parentNode.insertBefore(this.container, wrapper);
       this.container.appendChild(wrapper);
     }
@@ -5950,6 +5987,9 @@ var _OverType = class _OverType {
     const themeName = typeof themeToUse === "string" ? themeToUse : themeToUse.name;
     if (themeName) {
       this.container.setAttribute("data-theme", themeName);
+    }
+    if (this.instanceTheme) {
+      this._applyThemeVars(typeof this.instanceTheme === "string" ? getTheme(this.instanceTheme) : this.instanceTheme);
     }
     this.container.querySelectorAll(".overtype-toolbar, .overtype-link-tooltip, .overtype-stats, .overtype-placeholder, .overtype-preview").forEach((el) => el.remove());
     this.container.classList.remove("overtype-auto-resize");
@@ -6003,11 +6043,7 @@ var _OverType = class _OverType {
       this.container.setAttribute("data-theme", themeName);
     }
     if (this.instanceTheme) {
-      const themeObj = typeof this.instanceTheme === "string" ? getTheme(this.instanceTheme) : this.instanceTheme;
-      if (themeObj && themeObj.colors) {
-        const cssVars = themeToCSSVars(themeObj.colors);
-        this.container.style.cssText += cssVars;
-      }
+      this._applyThemeVars(typeof this.instanceTheme === "string" ? getTheme(this.instanceTheme) : this.instanceTheme);
     }
     this.wrapper = document.createElement("div");
     this.wrapper.className = "overtype-wrapper";
@@ -6142,6 +6178,7 @@ var _OverType = class _OverType {
         toolbarButtons2 = [...toolbarButtons2, toolbarButtons.separator, toolbarButtons.upload];
       }
     }
+    toolbarButtons2 = this._withoutDisabledButtons(toolbarButtons2);
     this.toolbar = new Toolbar(this, { toolbarButtons: toolbarButtons2 });
     this.toolbar.create();
     this._toolbarSelectionListener = () => {
@@ -6388,6 +6425,9 @@ var _OverType = class _OverType {
   _handleTaskClick(event) {
     if (!this.options.clickToToggleTasks || event.button !== 0 || !this._canEditTextarea() || this.container.dataset.mode === "preview")
       return;
+    const disabled = this._disabledFeatures();
+    if (disabled.has("tasks"))
+      return;
     const taskNodes = [...this.preview.querySelectorAll("li.task-list, div.raw-line")].filter((node) => node.matches("li.task-list") || /^ *-\s+\[[ xX]\](?:\s|$)/.test(node.textContent));
     let nodeIndex = 0;
     let offset3 = 0;
@@ -6399,13 +6439,13 @@ var _OverType = class _OverType {
         offset3 += line.length + 1;
         continue;
       }
-      opening = scanFenceOpen(line);
+      opening = disabled.has("code") ? null : scanFenceOpen(line);
       if (opening) {
         offset3 += line.length + 1;
         continue;
       }
       const match = /^( *-\s+\[)([ xX])\](?:\s|$)/.exec(line);
-      if (!match || !MarkdownParser.parseLine(line).includes('<li class="task-list">')) {
+      if (!match || !MarkdownParser.parseLine(line, false, disabled).includes('<li class="task-list">')) {
         offset3 += line.length + 1;
         continue;
       }
@@ -6480,7 +6520,7 @@ var _OverType = class _OverType {
     const cursorPos = this.textarea.selectionStart;
     const activeLine = this._getCurrentLine(text, cursorPos);
     const isPreviewMode = this.container.dataset.mode === "preview";
-    const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode);
+    const html = MarkdownParser.parse(text, activeLine, this.options.showActiveLineRaw, this.options.codeHighlighter, isPreviewMode, this._parserOptions());
     this.preview.innerHTML = html;
     if (this.placeholderEl) {
       this.placeholderEl.style.display = text ? "none" : "";
@@ -6611,9 +6651,12 @@ var _OverType = class _OverType {
    * @returns {boolean} Whether the event was handled
    */
   handleSmartListContinuation() {
+    const disabled = this._disabledFeatures();
+    if (disabled.has("lists"))
+      return false;
     const textarea = this.textarea;
     const cursorPos = textarea.selectionStart;
-    const context = MarkdownParser.getListContext(textarea.value, cursorPos);
+    const context = MarkdownParser.getListContext(textarea.value, cursorPos, disabled);
     if (!context || !context.inList)
       return false;
     if (context.content.trim() === "" && cursorPos >= context.markerEndPos) {
@@ -6734,6 +6777,17 @@ var _OverType = class _OverType {
     }
   }
   /**
+   * Redraw from the textarea after something other than typing changed it
+   * @private
+   */
+  _refreshFromTextarea() {
+    this._syncPreviewInteractivity();
+    this.updatePreview();
+    if (this.options.autoResize)
+      this._updateAutoHeight();
+    this._scheduleSafariReflow();
+  }
+  /**
    * Execute an action by ID
    * Central dispatcher used by toolbar clicks, keyboard shortcuts, and programmatic calls
    * @param {string} actionId - The action identifier (e.g., 'toggleBold', 'insertLink')
@@ -6750,6 +6804,8 @@ var _OverType = class _OverType {
       console.warn(`OverType: Unknown action "${actionId}"`);
       return false;
     }
+    if (this._disabledFeatures().has(ACTION_FEATURES[actionId]))
+      return false;
     textarea.focus();
     try {
       await action({
@@ -6775,7 +6831,7 @@ var _OverType = class _OverType {
    */
   getRenderedHTML(options = {}) {
     const markdown = this.getValue();
-    let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter);
+    let html = MarkdownParser.parse(markdown, -1, false, this.options.codeHighlighter, false, this._parserOptions());
     if (options.cleanHTML) {
       html = html.replace(/<span class="syntax-marker[^"]*">.*?<\/span>/g, "");
       html = html.replace(/\sclass="(bullet-list|ordered-list|code-fence|hr-marker|blockquote|url-part)"/g, "");
@@ -6880,10 +6936,11 @@ var _OverType = class _OverType {
    * @param {Object} options - New options to apply
    */
   reinit(options = {}) {
-    var _a;
+    var _a, _b;
     const prevToolbarButtons = (_a = this.options) == null ? void 0 : _a.toolbarButtons;
+    const prevDisable = (_b = this.options) == null ? void 0 : _b.disable;
     this.options = this._mergeOptions({ ...this.options, ...options });
-    const toolbarNeedsRebuild = this.toolbar && this.options.toolbar && toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons);
+    const toolbarNeedsRebuild = this.toolbar && this.options.toolbar && (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) || String(prevDisable) !== String(this.options.disable));
     this._rebuildActionsMap();
     if (toolbarNeedsRebuild) {
       this._cleanupToolbarListeners();
@@ -6930,10 +6987,7 @@ var _OverType = class _OverType {
       if (themeName) {
         this.container.setAttribute("data-theme", themeName);
       }
-      if (themeObj && themeObj.colors) {
-        const cssVars = themeToCSSVars(themeObj.colors, themeObj.previewColors);
-        this.container.style.cssText += cssVars;
-      }
+      this._applyThemeVars(themeObj);
       this.updatePreview();
     }
     _OverType._stopAutoListener();
@@ -6942,10 +6996,14 @@ var _OverType = class _OverType {
   _applyResolvedTheme(themeName) {
     const themeObj = getTheme(themeName);
     this.container.setAttribute("data-theme", themeName);
-    if (themeObj && themeObj.colors) {
-      this.container.style.cssText = themeToCSSVars(themeObj.colors, themeObj.previewColors);
-    }
+    this._applyThemeVars(themeObj, true);
     this.updatePreview();
+  }
+  _applyThemeVars(themeObj, replace = false) {
+    if (!themeObj || !themeObj.colors)
+      return;
+    const cssVars = themeToCSSVars(themeObj.colors, themeObj.previewColors);
+    this.container.style.cssText = replace ? cssVars : this.container.style.cssText + cssVars;
   }
   /**
    * Set instance-specific code highlighter
@@ -6954,6 +7012,38 @@ var _OverType = class _OverType {
   setCodeHighlighter(highlighter) {
     this.options.codeHighlighter = highlighter;
     this.updatePreview();
+  }
+  /**
+   * Set instance-specific custom syntax processor
+   * @param {Function|false|null} processor - Function that takes (html) and returns modified HTML;
+   *   false skips the global processor, null falls back to it
+   */
+  setCustomSyntax(processor) {
+    this.options.customSyntax = processor;
+    this.updatePreview();
+  }
+  _parserOptions() {
+    return { customSyntax: this.options.customSyntax, disable: this.options.disable };
+  }
+  _disabledFeatures() {
+    return MarkdownParser.resolveDisabled(this.options.disable);
+  }
+  _withoutDisabledButtons(buttons) {
+    var _a, _b;
+    const disabled = this._disabledFeatures();
+    if (disabled.size === 0)
+      return buttons;
+    const kept = [];
+    for (const button of buttons) {
+      if (disabled.has(ACTION_FEATURES[button == null ? void 0 : button.actionId]))
+        continue;
+      if ((button == null ? void 0 : button.name) === "separator" && (kept.length === 0 || ((_a = kept[kept.length - 1]) == null ? void 0 : _a.name) === "separator"))
+        continue;
+      kept.push(button);
+    }
+    if (((_b = kept[kept.length - 1]) == null ? void 0 : _b.name) === "separator")
+      kept.pop();
+    return kept;
   }
   /**
    * Update stats bar
@@ -7418,6 +7508,41 @@ var _OverType = class _OverType {
     });
   }
   /**
+   * Keep autoResize heights out of every ClayJS snapshot, once per window
+   * @private
+   */
+  static _registerClaySnapshotHook() {
+    var _a;
+    const globalScope = typeof window !== "undefined" ? window : globalThis;
+    if (globalScope.__overtypeClaySnapshotHook)
+      return;
+    globalScope.__overtypeClaySnapshotHook = true;
+    const register = () => {
+      var _a2, _b;
+      return (_b = (_a2 = globalScope.clay) == null ? void 0 : _a2.onSnapshot) == null ? void 0 : _b.call(_a2, _OverType._stripLayoutFromSnapshot);
+    };
+    if (typeof ((_a = globalScope.clay) == null ? void 0 : _a.onSnapshot) === "function")
+      register();
+    else
+      document.addEventListener("clay:ready", register, { once: true });
+  }
+  /**
+   * Remove the inline heights autoResize writes, from a cloned document
+   * @private
+   */
+  static _stripLayoutFromSnapshot(clone) {
+    clone.querySelectorAll("textarea.overtype-input[persist]").forEach((textarea) => {
+      [textarea, textarea.closest(".overtype-wrapper")].forEach((el) => {
+        if (!el)
+          return;
+        el.style.removeProperty("height");
+        el.style.removeProperty("overflow-y");
+        if (!el.getAttribute("style"))
+          el.removeAttribute("style");
+      });
+    });
+  }
+  /**
    * Initialize global event listeners
    */
   static initGlobalListeners() {
@@ -7451,6 +7576,18 @@ var _OverType = class _OverType {
         if (instance)
           instance._handleTaskClick(e);
       }
+    });
+    document.addEventListener("clay:sync-applied", () => {
+      document.querySelectorAll(".overtype-wrapper").forEach((wrapper) => {
+        const instance = wrapper._instance;
+        if (!instance || !instance.options.persist)
+          return;
+        try {
+          instance._refreshFromTextarea();
+        } catch (err) {
+          console.error("OverType: redraw after clay:sync-applied failed", err);
+        }
+      });
     });
     document.addEventListener("focus", (e) => {
       if (e.target && e.target.classList && e.target.classList.contains("overtype-input")) {
