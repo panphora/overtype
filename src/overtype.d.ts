@@ -134,6 +134,7 @@ export interface Options {
   statsFormatter?: (stats: Stats) => string;
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
   customSyntax?: ((html: string) => string) | false | null;  // Per-instance custom syntax; false skips the global processor
+  disable?: Array<'h1' | 'h2' | 'h3' | 'headings' | 'lists' | 'tasks' | 'blockquote' | 'code' | 'hr'>;  // Line-level features to render as plain text
   transformLinkUrl?: ((url: string) => string) | null;  // Transform URLs shown/opened in the link tooltip
 
   // Theme (deprecated in favor of global theme)

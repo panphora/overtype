@@ -265,6 +265,19 @@ The toolbar and keyboard shortcuts work together seamlessly:
 Collapsed **Tab** and **Shift+Tab** follow normal browser focus navigation so keyboard users can leave the editor.
 Editing shortcuts preserve text selection, allowing you to apply multiple formats quickly.
 
+### Disabling Features
+
+Turn off line-level Markdown features for one editor, for example a comment box without headings. A disabled feature renders as plain text, so `# Hello` stays the literal text "# Hello" in the editor and in preview mode. Matching toolbar buttons are hidden and their keyboard shortcuts do nothing.
+
+```javascript
+new OverType('#comment', {
+  toolbar: true,
+  disable: ['headings', 'blockquote']
+});
+```
+
+Names: `h1`, `h2`, `h3`, `headings` (all three), `lists` (also turns off tasks and smart list continuation), `tasks`, `blockquote`, `code` (fenced code blocks), `hr`. Inline formatting (bold, italic, links, inline code) can't be disabled. Change it later with `editor.reinit({ disable: [...] })`.
+
 ### Multiple Editors
 
 ```javascript
@@ -566,6 +579,10 @@ new OverType(target, options)
 
   // Task toggling
   clickToToggleTasks: false,  // Click a task checkbox marker to toggle its state
+
+  // Turn off line-level Markdown features (rendered as plain text)
+  disable: [],            // 'h1', 'h2', 'h3', 'headings', 'lists', 'tasks',
+                          // 'blockquote', 'code', 'hr'
 
   // Spellcheck
   spellcheck: false,      // Enable browser spellcheck (disabled by default)

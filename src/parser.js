@@ -41,6 +41,21 @@ export class MarkdownParser {
   // Custom syntax processor function
   static customSyntax = null;
 
+  static noneDisabled = new Set();
+
+  /**
+   * Expand a disable list into the set of line-level features parseLine checks
+   * @param {string[]} [disable] - Feature names: h1, h2, h3, headings, lists, tasks, blockquote, code, hr
+   * @returns {Set<string>} Disabled features ('headings' expands to h1-h3, 'lists' also disables tasks)
+   */
+  static resolveDisabled(disable) {
+    if (!disable || disable.length === 0) return this.noneDisabled;
+    const disabled = new Set(disable);
+    if (disabled.has('headings')) ['h1', 'h2', 'h3'].forEach(level => disabled.add(level));
+    if (disabled.has('lists')) disabled.add('tasks');
+    return disabled;
+  }
+
   /**
    * Reset link index (call before parsing a new document)
    */
@@ -532,20 +547,20 @@ export class MarkdownParser {
    * @param {string} line - Raw markdown line
    * @returns {string} Parsed HTML line
    */
-  static parseLine(line, isPreviewMode = false) {
+  static parseLine(line, isPreviewMode = false, disabled = this.noneDisabled) {
     if (line === '') return '<div>&nbsp;</div>';
 
-    const thematicBreak = scanThematicBreak(line);
+    const thematicBreak = !disabled.has('hr') && scanThematicBreak(line);
     if (thematicBreak) {
       const source = this.preserveIndentation(this.escapeHtml(line), line);
       return `<div><span class="hr-marker">${source}</span></div>`;
     }
 
-    const fence = scanFenceOpen(line);
+    const fence = !disabled.has('code') && scanFenceOpen(line);
     if (fence) return this.renderFence(fence);
 
     const heading = scanAtxHeading(line);
-    if (heading) {
+    if (heading && !disabled.has(`h${heading.level}`)) {
       const indent = heading.indent.replace(/ /g, '&nbsp;');
       const opening = this.escapeHtml(heading.marker + heading.separator);
       const content = this.parseInlineElements(this.escapeHtml(heading.content));
@@ -555,7 +570,7 @@ export class MarkdownParser {
       return `<div><h${heading.level}>${indent}<span class="syntax-marker">${opening}</span>${content}${closing}</h${heading.level}></div>`;
     }
 
-    const blockquote = scanBlockquote(line);
+    const blockquote = !disabled.has('blockquote') && scanBlockquote(line);
     if (blockquote) {
       const indent = blockquote.indent.replace(/ /g, '&nbsp;');
       const marker = this.escapeHtml(blockquote.marker);
@@ -565,10 +580,10 @@ export class MarkdownParser {
     }
 
     let html = this.preserveIndentation(this.escapeHtml(line), line);
-    const taskList = this.parseTaskList(html, isPreviewMode);
+    const taskList = disabled.has('tasks') ? html : this.parseTaskList(html, isPreviewMode);
     if (taskList !== html) return `<div>${taskList}</div>`;
 
-    const listItem = scanListItem(line);
+    const listItem = !disabled.has('lists') && scanListItem(line);
     if (listItem) {
       const indent = listItem.indent.replace(/ /g, '&nbsp;');
       const marker = this.escapeHtml(listItem.marker + listItem.separator);
@@ -592,10 +607,12 @@ export class MarkdownParser {
    * @param {boolean} isPreviewMode - Render for preview mode
    * @param {Object} instanceOptions - Per-editor parser settings
    * @param {Function|false|null} instanceOptions.customSyntax - Overrides the global custom syntax; false skips it
+   * @param {string[]} instanceOptions.disable - Line-level features to render as plain text
    * @returns {string} Parsed HTML
    */
   static parse(text, activeLine = -1, showActiveLineRaw = false, instanceHighlighter, isPreviewMode = false, instanceOptions = {}) {
     const customSyntax = instanceOptions.customSyntax ?? this.customSyntax;
+    const disabled = this.resolveDisabled(instanceOptions.disable);
     // Reset link counter for each parse
     this.resetLinkIndex();
 
@@ -625,7 +642,7 @@ export class MarkdownParser {
         continue;
       }
 
-      const candidate = scanFenceOpen(line);
+      const candidate = !disabled.has('code') && scanFenceOpen(line);
       if (candidate) {
         opening = candidate;
         const renderedFence = this.renderFence(candidate, isRaw);
@@ -639,7 +656,7 @@ export class MarkdownParser {
         continue;
       }
 
-      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode), customSyntax));
+      parsedLines.push(this.applyCustomSyntax(this.parseLine(line, isPreviewMode, disabled), customSyntax));
     }
 
     if (opening && codeLines.length > 0) {

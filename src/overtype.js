@@ -65,6 +65,17 @@ function normalizeButtons(buttons) {
   }));
 }
 
+// Line-level feature each built-in action inserts, for the disable option
+const ACTION_FEATURES = {
+  toggleH1: 'h1',
+  toggleH2: 'h2',
+  toggleH3: 'h3',
+  toggleBulletList: 'lists',
+  toggleNumberedList: 'lists',
+  toggleTaskList: 'tasks',
+  toggleQuote: 'blockquote'
+};
+
 /**
  * Determine if toolbar button configuration changed
  * @param {Array|null} prevButtons
@@ -257,6 +268,7 @@ class OverType {
         clickToToggleTasks: false,
         codeHighlighter: null,  // Per-instance code highlighter
         customSyntax: null,  // Per-instance custom syntax processor (false skips the global one)
+        disable: [],  // Line-level features to render as plain text: h1, h2, h3, headings, lists, tasks, blockquote, code, hr
         spellcheck: false,  // Browser spellcheck (disabled by default)
         persist: false,  // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
         transformLinkUrl: null  // Transform URLs shown/opened in the link tooltip
@@ -565,6 +577,8 @@ class OverType {
         }
       }
 
+      toolbarButtons = this._withoutDisabledButtons(toolbarButtons);
+
       this.toolbar = new Toolbar(this, { toolbarButtons });
       this.toolbar.create();
 
@@ -848,6 +862,9 @@ class OverType {
       if (!this.options.clickToToggleTasks || event.button !== 0 ||
           !this._canEditTextarea() || this.container.dataset.mode === 'preview') return;
 
+      const disabled = this._disabledFeatures();
+      if (disabled.has('tasks')) return;
+
       const taskNodes = [...this.preview.querySelectorAll('li.task-list, div.raw-line')]
         .filter(node => node.matches('li.task-list') || /^ *-\s+\[[ xX]\](?:\s|$)/.test(node.textContent));
       let nodeIndex = 0;
@@ -860,14 +877,14 @@ class OverType {
           offset += line.length + 1;
           continue;
         }
-        opening = scanFenceOpen(line);
+        opening = disabled.has('code') ? null : scanFenceOpen(line);
         if (opening) {
           offset += line.length + 1;
           continue;
         }
 
         const match = /^( *-\s+\[)([ xX])\](?:\s|$)/.exec(line);
-        if (!match || !MarkdownParser.parseLine(line).includes('<li class="task-list">')) {
+        if (!match || !MarkdownParser.parseLine(line, false, disabled).includes('<li class="task-list">')) {
           offset += line.length + 1;
           continue;
         }
@@ -1119,6 +1136,8 @@ class OverType {
      * @returns {boolean} Whether the event was handled
      */
     handleSmartListContinuation() {
+      if (this._disabledFeatures().has('lists')) return false;
+
       const textarea = this.textarea;
       const cursorPos = textarea.selectionStart;
       const context = MarkdownParser.getListContext(textarea.value, cursorPos);
@@ -1315,6 +1334,8 @@ class OverType {
         return false;
       }
 
+      if (this._disabledFeatures().has(ACTION_FEATURES[actionId])) return false;
+
       textarea.focus();
 
       try {
@@ -1475,10 +1496,12 @@ class OverType {
      */
     reinit(options = {}) {
       const prevToolbarButtons = this.options?.toolbarButtons;
+      const prevDisable = this.options?.disable;
       this.options = this._mergeOptions({ ...this.options, ...options });
       const toolbarNeedsRebuild = this.toolbar &&
         this.options.toolbar &&
-        toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons);
+        (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) ||
+          String(prevDisable) !== String(this.options.disable));
 
       // Rebuild action map in case toolbarButtons changed
       this._rebuildActionsMap();
@@ -1580,7 +1603,25 @@ class OverType {
     }
 
     _parserOptions() {
-      return { customSyntax: this.options.customSyntax };
+      return { customSyntax: this.options.customSyntax, disable: this.options.disable };
+    }
+
+    _disabledFeatures() {
+      return MarkdownParser.resolveDisabled(this.options.disable);
+    }
+
+    _withoutDisabledButtons(buttons) {
+      const disabled = this._disabledFeatures();
+      if (disabled.size === 0) return buttons;
+
+      const kept = [];
+      for (const button of buttons) {
+        if (disabled.has(ACTION_FEATURES[button?.actionId])) continue;
+        if (button?.name === 'separator' && (kept.length === 0 || kept[kept.length - 1]?.name === 'separator')) continue;
+        kept.push(button);
+      }
+      if (kept[kept.length - 1]?.name === 'separator') kept.pop();
+      return kept;
     }
 
     /**
