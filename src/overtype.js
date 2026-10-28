@@ -288,10 +288,7 @@ class OverType {
         this.container = document.createElement('div');
         this.container.className = 'overtype-container';
         if (this.instanceTheme) {
-          const themeObj = typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme;
-          if (themeObj && themeObj.colors) {
-            this.container.style.cssText += themeToCSSVars(themeObj.colors);
-          }
+          this._applyThemeVars(typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme);
         }
         wrapper.parentNode.insertBefore(this.container, wrapper);
         this.container.appendChild(wrapper);
@@ -397,11 +394,7 @@ class OverType {
       
       // If using instance theme, apply CSS variables to container
       if (this.instanceTheme) {
-        const themeObj = typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme;
-        if (themeObj && themeObj.colors) {
-          const cssVars = themeToCSSVars(themeObj.colors);
-          this.container.style.cssText += cssVars;
-        }
+        this._applyThemeVars(typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme);
       }
       
       // Create wrapper for editor
@@ -1542,10 +1535,7 @@ class OverType {
           this.container.setAttribute('data-theme', themeName);
         }
 
-        if (themeObj && themeObj.colors) {
-          const cssVars = themeToCSSVars(themeObj.colors, themeObj.previewColors);
-          this.container.style.cssText += cssVars;
-        }
+        this._applyThemeVars(themeObj);
 
         this.updatePreview();
       }
@@ -1558,11 +1548,15 @@ class OverType {
       const themeObj = getTheme(themeName);
       this.container.setAttribute('data-theme', themeName);
 
-      if (themeObj && themeObj.colors) {
-        this.container.style.cssText = themeToCSSVars(themeObj.colors, themeObj.previewColors);
-      }
+      this._applyThemeVars(themeObj, true);
 
       this.updatePreview();
+    }
+
+    _applyThemeVars(themeObj, replace = false) {
+      if (!themeObj || !themeObj.colors) return;
+      const cssVars = themeToCSSVars(themeObj.colors, themeObj.previewColors);
+      this.container.style.cssText = replace ? cssVars : this.container.style.cssText + cssVars;
     }
 
     /**

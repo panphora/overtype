@@ -309,6 +309,23 @@ resetOverType(OverType);
   assert(OverType._autoMediaQuery === null, 'Listener torn down after switching to fixed theme', '');
 })();
 
+// --- Constructor theme writes preview colors ---
+
+console.log('\n📋 Constructor theme writes preview colors');
+
+mockMatchMedia(false);
+resetOverType(OverType);
+
+(() => {
+  document.getElementById('editor').innerHTML = '';
+  const editor = new OverType('#editor', { theme: 'cave' })[0];
+  const previewText = editor.container.style.getPropertyValue('--preview-text-default');
+
+  assert(previewText === '#c5dde8', 'Constructor cave sets cave preview text over solar global', `got ${previewText || '(unset)'}`);
+
+  editor.destroy();
+})();
+
 // --- Results ---
 
 console.log('\n' + '━'.repeat(50));
