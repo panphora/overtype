@@ -2,9 +2,21 @@
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-10-27
+
+### Added
+- A `customSyntax` option and `editor.setCustomSyntax()` set a custom syntax processor for one editor, overriding the global `OverType.setCustomSyntax()`. Passing `false` skips the global processor, so an editor for a restricted group can leave out mentions or directives that other editors on the page render.
+- A `disable` option turns line-level Markdown features into plain text in one editor, so a comment box can show `# Hello` literally. The names are `h1`, `h2`, `h3`, `headings`, `lists` (also `tasks`), `tasks`, `blockquote`, `code` and `hr`. Matching toolbar buttons are hidden, their actions and shortcuts do nothing, and smart list continuation and task toggling follow the setting.
+- The shipped type definitions cover `customSyntax` and `disable`.
+
 ### Fixed
 - A `persist` editor redraws when ClayJS live sync merges a change into its textarea (`clay:sync-applied`), instead of showing the old text
 - With `persist` and `autoResize`, the editor's inline heights stay out of ClayJS saves, so a resize no longer makes the page read as unsaved
+- An editor created with a theme option now shows that theme's preview colors, instead of falling back to the global theme's. Restoring a saved container also reapplies the instance theme's colors, including preview colors.
+- Typed `\n`, `\r` and `\t` stay literal when the Web Component rebuilds, whether from toggling the toolbar, show-stats or auto-resize, or from moving or remounting the element. Authored value attributes still decode as documented.
+- With `code` disabled, the link tooltip counts links inside fenced code blocks, matching the preview's link numbering.
+- With `tasks` disabled, Enter on a task line continues a plain bullet.
+- With `hr` disabled, `- - -` and `* * *` render as plain text rather than bullet items.
 
 ## [2.6.1] - 2026-10-05
 
