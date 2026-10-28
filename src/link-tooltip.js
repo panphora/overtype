@@ -122,9 +122,11 @@ export class LinkTooltip {
   findLinkAtPosition(text, position) {
     if (this.editor.options.showActiveLineRaw) return null;
 
-    if (this.linkCacheText !== text) {
+    const fences = !MarkdownParser.resolveDisabled(this.editor.options.disable).has('code');
+    if (this.linkCacheText !== text || this.linkCacheFences !== fences) {
       this.linkCacheText = text;
-      this.linkCache = MarkdownParser.findRenderableLinks(text);
+      this.linkCacheFences = fences;
+      this.linkCache = MarkdownParser.findRenderableLinks(text, { fences });
     }
     const links = this.linkCache;
 

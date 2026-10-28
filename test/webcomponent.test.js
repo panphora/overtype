@@ -257,6 +257,31 @@ setTimeout(async () => {
     container.removeChild(editor);
   });
 
+  // Test 5a3b: Moving the element keeps typed escape sequences literal
+  runTest('Remounts keep typed escape sequences literal', () => {
+    const container = dom.window.document.getElementById('test-container');
+    const other = dom.window.document.createElement('div');
+    container.appendChild(other);
+    const editor = dom.window.document.createElement('overtype-editor');
+    container.appendChild(editor);
+
+    const typed = 'C:\\new\\temp';
+    const textarea = editor._editor.textarea;
+    textarea.value = typed;
+    textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+
+    other.appendChild(editor);
+    editor.setAttribute('toolbar', '');
+    container.appendChild(editor);
+
+    if (editor.getValue() !== typed) throw new Error(`got ${JSON.stringify(editor.getValue())}`);
+
+    editor.setAttribute('value', 'a\\nb');
+    if (editor.getValue() !== 'a\nb') throw new Error(`host value not decoded: ${JSON.stringify(editor.getValue())}`);
+    other.remove();
+    container.removeChild(editor);
+  });
+
   // Test 5a4: Rebuilding an empty editor keeps it empty
   runTest('Rebuilds keep an empty editor empty', () => {
     const container = dom.window.document.getElementById('test-container');

@@ -148,4 +148,13 @@ console.log('Fetched theme:', fetchedTheme);
 console.log('Current theme:', OverType.currentTheme);
 console.log('Instance count:', OverType.instanceCount);
 
+// Test per-editor custom syntax and the disable option
+const [restricted] = new OverType('#restricted', {
+  customSyntax: false,
+  disable: ['headings', 'lists', 'blockquote', 'code', 'hr', 'tasks', 'h1']
+});
+restricted.setCustomSyntax((html: string) => html);
+restricted.setCustomSyntax(false);
+OverType.setCustomSyntax(null);
+
 console.log('TypeScript definitions test completed successfully!');

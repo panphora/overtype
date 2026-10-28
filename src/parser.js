@@ -550,8 +550,8 @@ export class MarkdownParser {
   static parseLine(line, isPreviewMode = false, disabled = this.noneDisabled) {
     if (line === '') return '<div>&nbsp;</div>';
 
-    const thematicBreak = !disabled.has('hr') && scanThematicBreak(line);
-    if (thematicBreak) {
+    const isThematicBreak = scanThematicBreak(line);
+    if (isThematicBreak && !disabled.has('hr')) {
       const source = this.preserveIndentation(this.escapeHtml(line), line);
       return `<div><span class="hr-marker">${source}</span></div>`;
     }
@@ -583,7 +583,7 @@ export class MarkdownParser {
     const taskList = disabled.has('tasks') ? html : this.parseTaskList(html, isPreviewMode);
     if (taskList !== html) return `<div>${taskList}</div>`;
 
-    const listItem = !disabled.has('lists') && scanListItem(line);
+    const listItem = !disabled.has('lists') && !isThematicBreak && scanListItem(line);
     if (listItem) {
       const indent = listItem.indent.replace(/ /g, '&nbsp;');
       const marker = this.escapeHtml(listItem.marker + listItem.separator);
@@ -816,9 +816,10 @@ export class MarkdownParser {
    * Get list context at cursor position
    * @param {string} text - Full text content
    * @param {number} cursorPosition - Current cursor position
+   * @param {Set<string>} disabled - Disabled features from resolveDisabled (disabled tasks continue as bullets)
    * @returns {Object} List context information
    */
-  static getListContext(text, cursorPosition) {
+  static getListContext(text, cursorPosition, disabled = this.noneDisabled) {
     // Find the line containing the cursor
     const lines = text.split('\n');
     let currentPos = 0;
@@ -853,7 +854,7 @@ export class MarkdownParser {
     const listItem = scanListItem(currentLine);
     if (!listItem) return plainContext;
 
-    const checkboxMatch = listItem.listType === 'bullet' && listItem.marker === '-'
+    const checkboxMatch = !disabled.has('tasks') && listItem.listType === 'bullet' && listItem.marker === '-'
       ? /^\[([ xX])\]([\t ]*)(.*)$/.exec(listItem.content)
       : null;
     if (checkboxMatch && (checkboxMatch[2] !== '' || checkboxMatch[3] === '')) {

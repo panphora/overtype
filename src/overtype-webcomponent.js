@@ -106,7 +106,7 @@ class OverTypeEditor extends HTMLElement {
    * Initialize the OverType editor inside shadow DOM
    * @private
    */
-  _initializeEditor(value) {
+  _initializeEditor() {
     if (this._initialized || !this._isConnected) return;
 
     try {
@@ -131,7 +131,6 @@ class OverTypeEditor extends HTMLElement {
 
       // Prepare OverType options from attributes
       const options = this._getOptionsFromAttributes();
-      if (value !== undefined) options.value = value;
 
       // Initialize OverType editor
       const editorInstances = new OverType(container, options);
@@ -254,6 +253,18 @@ class OverTypeEditor extends HTMLElement {
   }
 
   /**
+   * Text to start the editor with. The value attribute is decoded only when the
+   * host wrote it: text the component mirrored there is already decoded.
+   * @private
+   * @returns {string}
+   */
+  _initialValue() {
+    const attr = this.getAttribute('value');
+    if (attr === null) return (this.textContent || '').trim();
+    return attr === this._liveValue ? attr : this._decodeValue(attr);
+  }
+
+  /**
    * Extract options from HTML attributes
    * @private
    * @returns {Object} OverType options object
@@ -262,7 +273,7 @@ class OverTypeEditor extends HTMLElement {
     const options = {
       // Allow authoring multi-line content via escaped sequences in attributes
       // and fall back to light DOM text content if attribute is absent
-      value: this.getAttribute('value') !== null ? this._decodeValue(this.getAttribute('value')) : (this.textContent || '').trim(),
+      value: this._initialValue(),
       placeholder: this.getAttribute('placeholder') || DEFAULT_PLACEHOLDER,
       toolbar: this.hasAttribute('toolbar'),
       autofocus: this.hasAttribute('autofocus'),
@@ -486,13 +497,12 @@ class OverTypeEditor extends HTMLElement {
     // Clear shadow root
     this.shadowRoot.innerHTML = '';
 
-    // The live text is already decoded, so it must not go back through the attribute
     if (currentValue !== undefined) {
       this._updateValueAttribute(currentValue);
     }
 
     // Reinitialize
-    this._initializeEditor(currentValue);
+    this._initializeEditor();
   }
 
   /**
@@ -548,6 +558,7 @@ class OverTypeEditor extends HTMLElement {
    * @param {string} value - New value
    */
   _updateValueAttribute(value) {
+    this._liveValue = value;
     // Temporarily store the current value to avoid infinite loop
     const currentAttrValue = this.getAttribute('value');
     if (currentAttrValue !== value) {

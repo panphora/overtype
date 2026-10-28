@@ -300,9 +300,6 @@ class OverType {
         this.wrapper = wrapper;
         this.container = document.createElement('div');
         this.container.className = 'overtype-container';
-        if (this.instanceTheme) {
-          this._applyThemeVars(typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme);
-        }
         wrapper.parentNode.insertBefore(this.container, wrapper);
         this.container.appendChild(wrapper);
       }
@@ -322,6 +319,9 @@ class OverType {
       const themeName = typeof themeToUse === 'string' ? themeToUse : themeToUse.name;
       if (themeName) {
         this.container.setAttribute('data-theme', themeName);
+      }
+      if (this.instanceTheme) {
+        this._applyThemeVars(typeof this.instanceTheme === 'string' ? getTheme(this.instanceTheme) : this.instanceTheme);
       }
 
       // Everything except the textarea is rebuilt, so remove what was saved
@@ -1136,11 +1136,12 @@ class OverType {
      * @returns {boolean} Whether the event was handled
      */
     handleSmartListContinuation() {
-      if (this._disabledFeatures().has('lists')) return false;
+      const disabled = this._disabledFeatures();
+      if (disabled.has('lists')) return false;
 
       const textarea = this.textarea;
       const cursorPos = textarea.selectionStart;
-      const context = MarkdownParser.getListContext(textarea.value, cursorPos);
+      const context = MarkdownParser.getListContext(textarea.value, cursorPos, disabled);
       
       if (!context || !context.inList) return false;
       

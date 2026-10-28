@@ -363,6 +363,7 @@ function findRenderableLineLinks(text, options) {
 }
 
 export function findRenderableLinks(text, options = {}) {
+  const { fences = true, ...lineOptions } = options;
   const links = [];
   const lines = text.split('\n');
   let opening = null;
@@ -372,10 +373,10 @@ export function findRenderableLinks(text, options = {}) {
     if (opening) {
       if (scanFenceClose(line, opening)) opening = null;
     } else {
-      const candidate = scanFenceOpen(line);
+      const candidate = fences && scanFenceOpen(line);
       if (candidate) opening = candidate;
       else {
-        links.push(...findRenderableLineLinks(line, options).map(link => shiftLink(link, offset)));
+        links.push(...findRenderableLineLinks(line, lineOptions).map(link => shiftLink(link, offset)));
       }
     }
 

@@ -142,6 +142,41 @@ await (async () => {
   editor.destroy();
 })();
 
+(() => {
+  const html = parse('- - -\n* * *', ['hr']);
+  assert(!html.includes('<li'), 'Disabled horizontal rule does not become a bullet item', html);
+})();
+
+(() => {
+  const context = MarkdownParser.getListContext('- [ ] task', 10, MarkdownParser.resolveDisabled(['tasks']));
+  assert(context.listType === 'bullet', 'Disabled tasks continue as plain bullets', context.listType);
+  const enabled = MarkdownParser.getListContext('- [ ] task', 10);
+  assert(enabled.listType === 'checkbox', 'Enabled tasks still continue as tasks', enabled.listType);
+})();
+
+(() => {
+  const value = '```\n[a](http://a)\n```\n[b](http://b)';
+  const editor = createEditor({ value, disable: ['code'] });
+  const link = editor.linkTooltip.findLinkAtPosition(value, value.indexOf('[b]') + 1);
+  const anchors = editor.preview.querySelectorAll('a').length;
+  assert(link?.index === 1 && anchors === 2, 'Link tooltip counts links inside disabled fences', `index ${link?.index}, anchors ${anchors}`);
+
+  editor.reinit({ disable: [] });
+  const fenced = editor.linkTooltip.findLinkAtPosition(value, value.indexOf('[b]') + 1);
+  assert(fenced?.index === 0, 'Link tooltip skips fenced links again after re-enabling code', `index ${fenced?.index}`);
+  editor.destroy();
+})();
+
+(() => {
+  document.body.innerHTML = '<div id="saved"></div><div id="restored"></div>';
+  new OverType('#saved', { theme: 'solar', value: 'hi' });
+  const restored = document.getElementById('restored');
+  restored.innerHTML = document.getElementById('saved').innerHTML;
+  const editor = new OverType(restored, { theme: 'cave' })[0];
+  const previewText = editor.container.style.getPropertyValue('--preview-text-default');
+  assert(previewText === '#c5dde8', 'Restoring a saved editor applies its theme preview colors', previewText || '(unset)');
+})();
+
 console.log(`\n✅ Passed: ${passed}`);
 console.log(`❌ Failed: ${failed}`);
 
