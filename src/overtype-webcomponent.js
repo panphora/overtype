@@ -106,7 +106,7 @@ class OverTypeEditor extends HTMLElement {
    * Initialize the OverType editor inside shadow DOM
    * @private
    */
-  _initializeEditor() {
+  _initializeEditor(value) {
     if (this._initialized || !this._isConnected) return;
 
     try {
@@ -131,6 +131,7 @@ class OverTypeEditor extends HTMLElement {
 
       // Prepare OverType options from attributes
       const options = this._getOptionsFromAttributes();
+      if (value !== undefined) options.value = value;
 
       // Initialize OverType editor
       const editorInstances = new OverType(container, options);
@@ -478,20 +479,20 @@ class OverTypeEditor extends HTMLElement {
    * @private
    */
   _reinitializeEditor() {
-    const currentValue = this._editor ? this._editor.getValue() : '';
+    const currentValue = this._editor ? this._editor.getValue() : undefined;
     this._cleanup();
     this._initialized = false;
 
     // Clear shadow root
     this.shadowRoot.innerHTML = '';
 
-    // Preserve current value
-    if (currentValue && !this.getAttribute('value')) {
-      this.setAttribute('value', currentValue);
+    // The live text is already decoded, so it must not go back through the attribute
+    if (currentValue !== undefined) {
+      this._updateValueAttribute(currentValue);
     }
 
     // Reinitialize
-    this._initializeEditor();
+    this._initializeEditor(currentValue);
   }
 
   /**

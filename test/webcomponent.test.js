@@ -225,6 +225,56 @@ setTimeout(async () => {
     container.removeChild(editor);
   });
 
+  // Test 5a2: Authored value attribute still decodes escapes
+  runTest('Authored value attribute decodes escapes', () => {
+    const container = dom.window.document.getElementById('test-container');
+    const editor = dom.window.document.createElement('overtype-editor');
+    editor.setAttribute('value', 'a\\nb\\tc');
+    container.appendChild(editor);
+
+    if (editor.getValue() !== 'a\nb\tc') throw new Error(`got ${JSON.stringify(editor.getValue())}`);
+    container.removeChild(editor);
+  });
+
+  // Test 5a3: Rebuilding for toolbar/stats/auto-resize keeps typed escapes literal
+  runTest('Rebuilds keep typed escape sequences literal', () => {
+    const container = dom.window.document.getElementById('test-container');
+    const editor = dom.window.document.createElement('overtype-editor');
+    editor.setAttribute('toolbar', '');
+    container.appendChild(editor);
+
+    const typed = '```python\nprint("\\n\\r\\t")\n```';
+    const textarea = editor._editor.textarea;
+    textarea.value = typed;
+    textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+
+    editor.removeAttribute('toolbar');
+    editor.setAttribute('show-stats', '');
+    editor.setAttribute('auto-resize', '');
+    editor.setAttribute('toolbar', '');
+
+    if (editor.getValue() !== typed) throw new Error(`got ${JSON.stringify(editor.getValue())}`);
+    container.removeChild(editor);
+  });
+
+  // Test 5a4: Rebuilding an empty editor keeps it empty
+  runTest('Rebuilds keep an empty editor empty', () => {
+    const container = dom.window.document.getElementById('test-container');
+    const editor = dom.window.document.createElement('overtype-editor');
+    editor.setAttribute('value', 'start');
+    container.appendChild(editor);
+
+    const textarea = editor._editor.textarea;
+    textarea.value = '';
+    textarea.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+
+    editor.setAttribute('toolbar', '');
+    editor.setAttribute('show-stats', '');
+
+    if (editor.getValue() !== '') throw new Error(`got ${JSON.stringify(editor.getValue())}`);
+    container.removeChild(editor);
+  });
+
   // Test 5b: Container height/min/max styles applied and updated
   runTest('Height/min/max attributes update container styles', () => {
     const container = dom.window.document.getElementById('test-container');
