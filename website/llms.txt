@@ -1,0 +1,12 @@
+# OverType
+
+> OverType is a lightweight Markdown editor library. It places a transparent textarea over rendered Markdown, so you type plain text and see it styled, with the Markdown marks still visible.
+
+- [Home](https://overtype.dev/): what OverType is, with a live editor
+- [Documentation](https://github.com/panphora/overtype#readme): installation, options and API
+- [Examples](https://overtype.dev/examples/): toolbars, themes, custom syntax, Web Component
+- [npm package](https://npmjs.com/package/overtype)
+
+## Learning
+
+- [Markdown for Kids](https://markdownforkids.overtype.dev/_/uploads/mini-apps/markdown-for-kids/markdown-for-kids.md): a free, hands-on Markdown lesson for kids from about age 7, who are learning to read and type. Interactive version: https://markdownforkids.overtype.dev/
