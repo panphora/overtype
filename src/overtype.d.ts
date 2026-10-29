@@ -135,6 +135,9 @@ export interface Options {
   codeHighlighter?: ((code: string, language: string) => string) | null;  // Per-instance code highlighter
   customSyntax?: ((html: string) => string) | false | null;  // Per-instance custom syntax; false skips the global processor
   disable?: Array<'h1' | 'h2' | 'h3' | 'headings' | 'lists' | 'tasks' | 'blockquote' | 'code' | 'hr'>;  // Line-level features to render as plain text
+  italicUsesAsterisk?: boolean | null;  // true writes *italic*, false writes _italic_, null matches the document
+  boldUsesUnderscore?: boolean | null;  // true writes __bold__, false writes **bold**, null matches the document
+  bulletMarker?: '-' | '*' | '+' | null;  // Bullet the list button writes; null matches the document
   transformLinkUrl?: ((url: string) => string) | null;  // Transform URLs shown/opened in the link tooltip
 
   // Theme (deprecated in favor of global theme)

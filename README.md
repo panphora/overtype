@@ -280,6 +280,20 @@ new OverType('#comment', {
 
 Names: `h1`, `h2`, `h3`, `headings` (all three), `lists` (also turns off tasks and smart list continuation), `tasks`, `blockquote`, `code` (fenced code blocks), `hr`. Inline formatting (bold, italic, links, inline code) can't be disabled. Change it later with `editor.reinit({ disable: [...] })`.
 
+### Markdown Spelling
+
+Italic, bold and bullets each have more than one standard spelling. The toolbar buttons and keyboard shortcuts remove any of them, and write the one you choose:
+
+```javascript
+new OverType('#editor', {
+  italicUsesAsterisk: true,   // *italic* instead of _italic_
+  boldUsesUnderscore: false,  // **bold** (the default)
+  bulletMarker: '*'           // * item instead of - item
+});
+```
+
+Leave an option out and the editor matches the document: if the text already has `*italic*`, the italic button writes stars. A document with none of that format gets `_italic_`, `**bold**` and `- item`.
+
 ### Per-Editor Custom Syntax
 
 `OverType.setCustomSyntax()` applies to every editor on the page. Give one editor its own processor with the `customSyntax` option, or pass `false` to leave the global one out, for example when some users shouldn't get mentions:
@@ -606,6 +620,11 @@ new OverType(target, options)
   // Turn off line-level Markdown features (rendered as plain text)
   disable: [],            // 'h1', 'h2', 'h3', 'headings', 'lists', 'tasks',
                           // 'blockquote', 'code', 'hr'
+
+  // Which spelling the toolbar and shortcuts write (null matches the document)
+  italicUsesAsterisk: null, // true: *italic*, false: _italic_
+  boldUsesUnderscore: null, // true: __bold__, false: **bold**
+  bulletMarker: null,       // '-', '*' or '+'
 
   // Spellcheck
   spellcheck: false,      // Enable browser spellcheck (disabled by default)

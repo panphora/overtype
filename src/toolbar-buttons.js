@@ -7,6 +7,24 @@ import * as icons from './icons.js';
 import * as markdownActions from 'markdown-actions';
 
 /**
+ * The marker a button writes: the editor's option, else the spelling the document
+ * already uses, else markdown-actions' default
+ */
+function markerFor(editor, kind) {
+  const options = editor.options || {};
+  if (kind === 'italic' && typeof options.italicUsesAsterisk === 'boolean') {
+    return options.italicUsesAsterisk ? '*' : '_';
+  }
+  if (kind === 'bold' && typeof options.boldUsesUnderscore === 'boolean') {
+    return options.boldUsesUnderscore ? '__' : '**';
+  }
+  if (kind === 'bullet' && options.bulletMarker) {
+    return options.bulletMarker;
+  }
+  return markdownActions.detectMarkers(editor.textarea.value)[kind] || undefined;
+}
+
+/**
  * Built-in toolbar button definitions
  * Each button has: name, actionId, icon, title, action
  * - name: DOM identifier for the button element
@@ -21,7 +39,7 @@ export const toolbarButtons = {
     title: 'Bold (Ctrl+B)',
     isActive: ({ activeFormats }) => activeFormats.includes('bold'),
     action: ({ editor }) => {
-      markdownActions.toggleBold(editor.textarea);
+      markdownActions.toggleBold(editor.textarea, { marker: markerFor(editor, 'bold') });
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
   },
@@ -33,7 +51,7 @@ export const toolbarButtons = {
     title: 'Italic (Ctrl+I)',
     isActive: ({ activeFormats }) => activeFormats.includes('italic'),
     action: ({ editor }) => {
-      markdownActions.toggleItalic(editor.textarea);
+      markdownActions.toggleItalic(editor.textarea, { marker: markerFor(editor, 'italic') });
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
   },
@@ -109,7 +127,7 @@ export const toolbarButtons = {
     title: 'Bullet List',
     isActive: ({ activeFormats }) => activeFormats.includes('bullet-list'),
     action: ({ editor }) => {
-      markdownActions.toggleBulletList(editor.textarea);
+      markdownActions.toggleBulletList(editor.textarea, { marker: markerFor(editor, 'bullet') });
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
   },

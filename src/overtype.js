@@ -269,6 +269,9 @@ class OverType {
         codeHighlighter: null,  // Per-instance code highlighter
         customSyntax: null,  // Per-instance custom syntax processor (false skips the global one)
         disable: [],  // Line-level features to render as plain text: h1, h2, h3, headings, lists, tasks, blockquote, code, hr
+        italicUsesAsterisk: null,  // true writes *italic*, false writes _italic_, null matches the document
+        boldUsesUnderscore: null,  // true writes __bold__, false writes **bold**, null matches the document
+        bulletMarker: null,  // '-', '*' or '+'; null matches the document
         spellcheck: false,  // Browser spellcheck (disabled by default)
         persist: false,  // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
         transformLinkUrl: null  // Transform URLs shown/opened in the link tooltip

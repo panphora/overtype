@@ -93,6 +93,6 @@
   "homepage": "https://github.com/panphora/overtype#readme",
   "dependencies": {
     "@floating-ui/dom": "^1.7.4",
-    "markdown-actions": "^1.1.2"
+    "markdown-actions": "^1.2.0"
   }
 }
