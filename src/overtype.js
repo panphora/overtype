@@ -1144,6 +1144,10 @@ class OverType {
       const context = MarkdownParser.getListContext(textarea.value, cursorPos, disabled);
       
       if (!context || !context.inList) return false;
+
+      if (cursorPos === context.lineStart && cursorPos === textarea.selectionEnd) {
+        return false;
+      }
       
       // Handle empty list item (exit list)
       if (context.content.trim() === '' && cursorPos >= context.markerEndPos) {

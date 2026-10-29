@@ -74,6 +74,78 @@ function selectedText(editor) {
 console.log('🧪 Running Keyboard Accessibility Tests...\n');
 console.log('━'.repeat(50));
 
+console.log('\n📝 Enter at list boundaries\n');
+
+(() => {
+  const originalExecCommand = document.execCommand;
+  document.execCommand = (command, _showUI, text = '') => {
+    const textarea = document.activeElement;
+    textarea.setRangeText(
+      command === 'delete' ? '' : text,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      'end'
+    );
+    return true;
+  };
+
+  try {
+    const lines = ['-', '- ', '- Item', '* Item', '+ Item', '- [ ] ', '- [x] Done', '1.', '1. ', '10. Item', '  - Item', '  - [ ] Task', '  1. Item'];
+
+    for (const prefix of ['', 'Previous line\n']) {
+      for (const line of lines) {
+        const editor = createEditor();
+        const value = prefix + line;
+        editor.setValue(value);
+        editor.textarea.focus();
+        editor.textarea.setSelectionRange(prefix.length, prefix.length);
+
+        const event = dispatchKey(editor, 'Enter');
+        const label = `${JSON.stringify(line)} at offset ${prefix.length}`;
+
+        assert(!event.defaultPrevented, `Enter before ${label} uses native editing`, 'Enter should not continue the list');
+        assert(editor.getValue() === value, `Enter before ${label} preserves the item`, 'The handler should not insert a duplicate marker');
+        assert(
+          editor.textarea.selectionStart === prefix.length && editor.textarea.selectionEnd === prefix.length,
+          `Enter before ${label} preserves the cursor for native editing`,
+          'The handler should leave the cursor before the existing marker'
+        );
+        assert(!editor.numberUpdateTimeout, `Enter before ${label} does not schedule renumbering`, 'Moving an item down should not renumber it');
+        editor.destroy();
+      }
+    }
+
+    for (const [value, cursor, expected, expectedCursor] of [
+      ['- Item', 6, '- Item\n- ', 9],
+      ['- [x] Done', 10, '- [x] Done\n- [ ] ', 17],
+      ['1. Item', 7, '1. Item\n2. ', 11],
+      ['- ', 2, '', 0],
+      ['- [ ] ', 6, '', 0],
+      ['1. ', 3, '', 0],
+      ['- First second', 8, '- First \n- second', 11]
+    ]) {
+      const editor = createEditor();
+      editor.setValue(value);
+      editor.textarea.focus();
+      editor.textarea.setSelectionRange(cursor, cursor);
+
+      const event = dispatchKey(editor, 'Enter');
+      const label = `${JSON.stringify(value)} at offset ${cursor}`;
+
+      assert(event.defaultPrevented, `Enter in ${label} handles the list`, 'List continuation should still handle Enter');
+      assert(editor.getValue() === expected, `Enter in ${label} produces the expected content`, JSON.stringify(editor.getValue()));
+      assert(
+        editor.textarea.selectionStart === expectedCursor && editor.textarea.selectionEnd === expectedCursor,
+        `Enter in ${label} places the cursor correctly`,
+        `Expected ${expectedCursor}, got ${editor.textarea.selectionStart}`
+      );
+      editor.destroy();
+    }
+  } finally {
+    document.execCommand = originalExecCommand;
+  }
+})();
+
 console.log('\n⌨️  Tab focus escape\n');
 
 (() => {
