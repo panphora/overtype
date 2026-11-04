@@ -884,8 +884,20 @@ Due to the transparent textarea overlay approach, OverType has some intentional 
 ### Images Not Supported
 Images (`![alt](url)`) are not rendered. Variable-height images would break the character alignment between textarea and preview.
 
-### Monospace Font Required
-All text must use a monospace font to maintain alignment. Variable-width fonts would cause the textarea cursor position to drift from the visual text position.
+### Letter Widths Must Not Change With Style
+The textarea draws the cursor and the preview draws the text, so any style that changes a letter's width moves the two apart. The default font is monospace because its bold and italic keep the same widths.
+
+A proportional font works too, set through `fontFamily`, but real bold and slanted italic change letter widths. Add this CSS so they do not while editing. Bold becomes a thin stroke, italic loses its slant, and preview mode keeps both:
+
+```css
+.overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview :is(h1, h2, h3, strong, .header) {
+  font-weight: normal !important;
+  -webkit-text-stroke: 0.45px currentColor;
+}
+.overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview :is(em, .blockquote) {
+  font-style: normal !important;
+}
+```
 
 ### Fixed Font Size
 All content must use the same font size. Different sizes for headers or other elements would break vertical alignment.
@@ -972,7 +984,7 @@ OverType uses a unique invisible textarea overlay approach:
    - Styled preview div (bottom) - shows formatted markdown
 
 2. **Character-perfect alignment:**
-   - Monospace font required
+   - Letter widths that do not change with style (monospace by default)
    - No size changes in styling
    - Syntax markers remain visible
 
