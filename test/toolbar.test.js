@@ -290,8 +290,8 @@ function withPlatform(platform, run) {
 }
 
 for (const [platform, expected] of [
-  ['MacIntel', { bold: 'Bold (⌘B)', bulletList: 'Bullet List (⇧⌘8)', indent: 'Indent (⌘])', outdent: 'Outdent (⌘[)', quote: 'Quote' }],
-  ['Win32', { bold: 'Bold (Ctrl+B)', bulletList: 'Bullet List (Ctrl+Shift+8)', indent: 'Indent (Ctrl+])', outdent: 'Outdent (Ctrl+[)', quote: 'Quote' }]
+  ['MacIntel', { bold: 'Bold (⌘B)', bulletList: 'Bullet List (⇧⌘8)', indent: 'Indent (⌘])', outdent: 'Outdent (⌘[)', quote: 'Quote (⇧⌘.)', code: 'Inline Code (⌘E)', h1: 'Heading 1 (⌥⌘1)', h3: 'Heading 3 (⌥⌘3)', taskList: 'Task List (⇧⌘9)' }],
+  ['Win32', { bold: 'Bold (Ctrl+B)', bulletList: 'Bullet List (Ctrl+Shift+8)', indent: 'Indent (Ctrl+])', outdent: 'Outdent (Ctrl+[)', quote: 'Quote (Ctrl+Shift+.)', code: 'Inline Code (Ctrl+E)', h1: 'Heading 1 (Ctrl+Alt+1)', h3: 'Heading 3 (Ctrl+Alt+3)', taskList: 'Task List (Ctrl+Shift+9)' }]
 ]) {
   withPlatform(platform, () => {
     const editor = createEditor();

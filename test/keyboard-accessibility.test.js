@@ -17,6 +17,7 @@ global.NodeList = dom.window.NodeList;
 global.HTMLElement = dom.window.HTMLElement;
 global.Event = dom.window.Event;
 global.KeyboardEvent = dom.window.KeyboardEvent;
+global.CustomEvent = dom.window.CustomEvent;
 global.CSS = { supports: () => false };
 global.performance = { now: () => Date.now() };
 global.requestAnimationFrame = (callback) => setTimeout(callback, 0);
@@ -285,6 +286,44 @@ console.log('\n⌘ Explicit indent shortcuts\n');
   assert(editor.getValue() === '  one\n  two', 'Ctrl+] indents selected lines', 'Selected lines should be indented');
   assert(selectedText(editor) === '  one\n  two', 'Ctrl+] preserves selected lines', 'Indented selected lines should remain selected');
 })();
+
+console.log('\n⌘ Formatting shortcuts\n');
+
+for (const [name, key, options, start, expected] of [
+  ['Ctrl+E inline code', 'e', { ctrlKey: true }, 'word', '`word`'],
+  ['Ctrl+Alt+1 heading 1', '1', { ctrlKey: true, altKey: true, code: 'Digit1' }, 'word', '# word'],
+  ['Ctrl+Alt+2 heading 2', '2', { ctrlKey: true, altKey: true, code: 'Digit2' }, 'word', '## word'],
+  ['Ctrl+Alt+3 heading 3', '3', { ctrlKey: true, altKey: true, code: 'Digit3' }, 'word', '### word'],
+  ['Option on a Mac reports another character for heading 1', '¡', { ctrlKey: true, altKey: true, code: 'Digit1' }, 'word', '# word'],
+  ['Ctrl+Shift+9 task list', '(', { ctrlKey: true, shiftKey: true, code: 'Digit9' }, 'word', '- [ ] word'],
+  ['Ctrl+Shift+. quote', '>', { ctrlKey: true, shiftKey: true, code: 'Period' }, 'word', '> word'],
+  ['Ctrl+Shift+8 bullets when Shift changes the key', '*', { ctrlKey: true, shiftKey: true, code: 'Digit8' }, 'word', '- word'],
+  ['Ctrl+Shift+7 numbers when Shift changes the key', '&', { ctrlKey: true, shiftKey: true, code: 'Digit7' }, 'word', '1. word']
+]) {
+  const editor = createEditor();
+  editor.setValue(start);
+  editor.textarea.setSelectionRange(0, start.length);
+  const event = dispatchKey(editor, key, options);
+  assert(event.defaultPrevented, `${name} is prevented`, 'The shortcut should be handled');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert(editor.getValue() === expected, `${name} formats the text`, `Got ${JSON.stringify(editor.getValue())}`);
+  editor.destroy();
+}
+
+for (const [name, key, options] of [
+  ['Ctrl+Alt+B (AltGr on Windows) leaves bold alone', 'b', { ctrlKey: true, altKey: true }],
+  ['Ctrl+Alt+4 is not a heading', '4', { ctrlKey: true, altKey: true, code: 'Digit4' }],
+  ['Ctrl+1 without Alt is not a heading', '1', { ctrlKey: true, code: 'Digit1' }],
+  ['Ctrl+9 without Shift is not a task list', '9', { ctrlKey: true, code: 'Digit9' }]
+]) {
+  const editor = createEditor();
+  editor.setValue('word');
+  editor.textarea.setSelectionRange(0, 4);
+  const event = dispatchKey(editor, key, options);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert(!event.defaultPrevented && editor.getValue() === 'word', name, `Got ${JSON.stringify(editor.getValue())}`);
+  editor.destroy();
+}
 
 console.log('\n🔒 Readonly and disabled no-op behavior\n');
 

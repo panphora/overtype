@@ -757,8 +757,12 @@ OverType.themes.cave
 | Cmd/Ctrl + B | Toggle bold |
 | Cmd/Ctrl + I | Toggle italic |
 | Cmd/Ctrl + K | Insert link |
+| Cmd/Ctrl + E | Toggle inline code |
+| Cmd/Ctrl + Alt + 1, 2, 3 | Toggle heading 1, 2, 3 |
 | Cmd/Ctrl + Shift + 7 | Toggle numbered list |
 | Cmd/Ctrl + Shift + 8 | Toggle bullet list |
+| Cmd/Ctrl + Shift + 9 | Toggle task list |
+| Cmd/Ctrl + Shift + . | Toggle quote |
 | Cmd/Ctrl + ] | Indent current line or selection |
 | Cmd/Ctrl + [ | Outdent current line or selection |
 | Tab / Shift+Tab | Indent or outdent selected lines |

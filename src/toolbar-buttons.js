@@ -64,6 +64,7 @@ export const toolbarButtons = {
     actionId: 'toggleCode',
     icon: icons.codeIcon,
     title: 'Inline Code',
+    shortcut: 'Mod+E',
     isActive: () => false,
     action: ({ editor }) => {
       markdownActions.toggleCode(editor.textarea);
@@ -93,6 +94,7 @@ export const toolbarButtons = {
     actionId: 'toggleH1',
     icon: icons.h1Icon,
     title: 'Heading 1',
+    shortcut: 'Mod+Alt+1',
     isActive: ({ activeFormats }) => activeFormats.includes('header'),
     action: ({ editor }) => {
       markdownActions.toggleH1(editor.textarea);
@@ -105,6 +107,7 @@ export const toolbarButtons = {
     actionId: 'toggleH2',
     icon: icons.h2Icon,
     title: 'Heading 2',
+    shortcut: 'Mod+Alt+2',
     isActive: ({ activeFormats }) => activeFormats.includes('header-2'),
     action: ({ editor }) => {
       markdownActions.toggleH2(editor.textarea);
@@ -117,6 +120,7 @@ export const toolbarButtons = {
     actionId: 'toggleH3',
     icon: icons.h3Icon,
     title: 'Heading 3',
+    shortcut: 'Mod+Alt+3',
     isActive: ({ activeFormats }) => activeFormats.includes('header-3'),
     action: ({ editor }) => {
       markdownActions.toggleH3(editor.textarea);
@@ -155,6 +159,7 @@ export const toolbarButtons = {
     actionId: 'toggleTaskList',
     icon: icons.taskListIcon,
     title: 'Task List',
+    shortcut: 'Mod+Shift+9',
     isActive: ({ activeFormats }) => activeFormats.includes('task-list'),
     action: ({ editor }) => {
       if (markdownActions.toggleTaskList) {
@@ -191,6 +196,7 @@ export const toolbarButtons = {
     actionId: 'toggleQuote',
     icon: icons.quoteIcon,
     title: 'Quote',
+    shortcut: 'Mod+Shift+.',
     isActive: ({ activeFormats }) => activeFormats.includes('quote'),
     action: ({ editor }) => {
       markdownActions.toggleQuote(editor.textarea);

@@ -1543,28 +1543,48 @@ var OverType = (() => {
         this.editor.outdentSelection();
         return true;
       }
+      const physicalKeys = { Digit1: "1", Digit2: "2", Digit3: "3", Digit7: "7", Digit8: "8", Digit9: "9", Period: "." };
+      const key = physicalKeys[event.code] || event.key.toLowerCase();
       let actionId = null;
-      switch (event.key.toLowerCase()) {
-        case "b":
-          if (!event.shiftKey)
-            actionId = "toggleBold";
-          break;
-        case "i":
-          if (!event.shiftKey)
-            actionId = "toggleItalic";
-          break;
-        case "k":
-          if (!event.shiftKey)
-            actionId = "insertLink";
-          break;
-        case "7":
-          if (event.shiftKey)
-            actionId = "toggleNumberedList";
-          break;
-        case "8":
-          if (event.shiftKey)
-            actionId = "toggleBulletList";
-          break;
+      if (event.altKey) {
+        if (!event.shiftKey) {
+          actionId = { 1: "toggleH1", 2: "toggleH2", 3: "toggleH3" }[key] || null;
+        }
+      } else {
+        switch (key) {
+          case "b":
+            if (!event.shiftKey)
+              actionId = "toggleBold";
+            break;
+          case "i":
+            if (!event.shiftKey)
+              actionId = "toggleItalic";
+            break;
+          case "k":
+            if (!event.shiftKey)
+              actionId = "insertLink";
+            break;
+          case "e":
+            if (!event.shiftKey)
+              actionId = "toggleCode";
+            break;
+          case "7":
+            if (event.shiftKey)
+              actionId = "toggleNumberedList";
+            break;
+          case "8":
+            if (event.shiftKey)
+              actionId = "toggleBulletList";
+            break;
+          case "9":
+            if (event.shiftKey)
+              actionId = "toggleTaskList";
+            break;
+          case ".":
+            if (event.shiftKey)
+              actionId = "toggleQuote";
+            break;
+        }
       }
       if (actionId) {
         event.preventDefault();
@@ -5770,6 +5790,7 @@ ${blockSuffix}` : suffix;
       actionId: "toggleCode",
       icon: codeIcon,
       title: "Inline Code",
+      shortcut: "Mod+E",
       isActive: () => false,
       action: ({ editor }) => {
         toggleCode(editor.textarea);
@@ -5796,6 +5817,7 @@ ${blockSuffix}` : suffix;
       actionId: "toggleH1",
       icon: h1Icon,
       title: "Heading 1",
+      shortcut: "Mod+Alt+1",
       isActive: ({ activeFormats }) => activeFormats.includes("header"),
       action: ({ editor }) => {
         toggleH1(editor.textarea);
@@ -5807,6 +5829,7 @@ ${blockSuffix}` : suffix;
       actionId: "toggleH2",
       icon: h2Icon,
       title: "Heading 2",
+      shortcut: "Mod+Alt+2",
       isActive: ({ activeFormats }) => activeFormats.includes("header-2"),
       action: ({ editor }) => {
         toggleH2(editor.textarea);
@@ -5818,6 +5841,7 @@ ${blockSuffix}` : suffix;
       actionId: "toggleH3",
       icon: h3Icon,
       title: "Heading 3",
+      shortcut: "Mod+Alt+3",
       isActive: ({ activeFormats }) => activeFormats.includes("header-3"),
       action: ({ editor }) => {
         toggleH3(editor.textarea);
@@ -5853,6 +5877,7 @@ ${blockSuffix}` : suffix;
       actionId: "toggleTaskList",
       icon: taskListIcon,
       title: "Task List",
+      shortcut: "Mod+Shift+9",
       isActive: ({ activeFormats }) => activeFormats.includes("task-list"),
       action: ({ editor }) => {
         if (toggleTaskList) {
@@ -5886,6 +5911,7 @@ ${blockSuffix}` : suffix;
       actionId: "toggleQuote",
       icon: quoteIcon,
       title: "Quote",
+      shortcut: "Mod+Shift+.",
       isActive: ({ activeFormats }) => activeFormats.includes("quote"),
       action: ({ editor }) => {
         toggleQuote(editor.textarea);
