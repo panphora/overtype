@@ -1,6 +1,6 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~141KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~144KB minified with all features.
 
 ## Live Examples
 
@@ -19,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~141KB minified
+- 🚀 **Lightweight** - ~144KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -37,7 +37,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~141KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~144KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -631,6 +631,7 @@ new OverType(target, options)
 
   // Link tooltip
   transformLinkUrl: (url) => url,  // Rewrite the URL shown/opened in the link tooltip (per instance)
+  linkActions: null,      // Show the link tooltip for your own text patterns
 
   // Stats bar
   showStats: false,       // Enable/disable stats bar
@@ -910,6 +911,20 @@ const [editor] = new OverType('#editor', {
 ```
 
 The transformed URL is passed through OverType's URL sanitizer before opening, so the tooltip can never open a dangerous scheme (`javascript:`, `data:`, and similar). If your function throws or returns a non-string, the original URL is used.
+
+## Link Actions
+
+`linkActions` shows the same tooltip for your own text patterns. Each entry has a `pattern` with the `g` flag, a `label` that returns the tooltip text, and an `onClick` that runs when the tooltip is clicked. Matches inside code are skipped.
+
+```javascript
+const [editor] = new OverType('#editor', {
+  linkActions: [{
+    pattern: /\[\[(\d{4}-\d{2}-\d{2})\]\]/g,
+    label: match => `Go to ${match[1]}`,
+    onClick: (match, editor) => goToDay(match[1])
+  }]
+});
+```
 
 ## Recipes
 

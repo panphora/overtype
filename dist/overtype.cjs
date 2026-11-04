@@ -5464,6 +5464,7 @@ var LinkTooltip = class {
     this.isTooltipHovered = false;
     this.linkCacheText = null;
     this.linkCache = [];
+    this.warnedPatterns = /* @__PURE__ */ new Set();
     this.init();
   }
   init() {
@@ -5526,6 +5527,15 @@ var LinkTooltip = class {
       e.preventDefault();
       e.stopPropagation();
       if (this.currentLink) {
+        if (this.currentLink.action) {
+          try {
+            this.currentLink.action.onClick(this.currentLink.match, this.editor);
+          } catch (error) {
+            console.error("linkActions onClick threw:", error);
+          }
+          this.hide();
+          return;
+        }
         const safeUrl = MarkdownParser.sanitizeUrl(this.currentLink.url);
         if (safeUrl !== "#") {
           window.open(safeUrl, "_blank");
@@ -5538,7 +5548,7 @@ var LinkTooltip = class {
   checkCursorPosition() {
     const cursorPos = this.editor.textarea.selectionStart;
     const text = this.editor.textarea.value;
-    const linkInfo = this.findLinkAtPosition(text, cursorPos);
+    const linkInfo = this.findLinkAtPosition(text, cursorPos) || this.findActionAtPosition(text, cursorPos);
     if (linkInfo) {
       if (!this.currentLink || this.currentLink.url !== linkInfo.url || this.currentLink.index !== linkInfo.index) {
         this.show(linkInfo);
@@ -5572,6 +5582,58 @@ var LinkTooltip = class {
     }
     return null;
   }
+  findActionAtPosition(text, position) {
+    const actions = this.editor.options.linkActions;
+    if (!Array.isArray(actions) || actions.length === 0)
+      return null;
+    const lineStart = text.lastIndexOf("\n", position - 1) + 1;
+    let lineEnd = text.indexOf("\n", position);
+    if (lineEnd === -1)
+      lineEnd = text.length;
+    const line = text.slice(lineStart, lineEnd);
+    for (const action of actions) {
+      const pattern = action && action.pattern;
+      if (!(pattern instanceof RegExp) || !pattern.global) {
+        if (pattern && typeof pattern === "object" && !this.warnedPatterns.has(pattern)) {
+          this.warnedPatterns.add(pattern);
+          console.warn("linkActions patterns need the global (g) flag and are ignored without it.");
+        }
+        continue;
+      }
+      for (const match of line.matchAll(pattern)) {
+        const start = lineStart + match.index;
+        const end = start + match[0].length;
+        if (position < start || position > end)
+          continue;
+        const range = this.rangeForOffsets(start, end);
+        if (range) {
+          const startNode = range.startContainer;
+          const parent = startNode.nodeType === 1 ? startNode : startNode.parentElement;
+          if (parent && parent.closest && parent.closest("code, pre, .code-block, .code-fence")) {
+            continue;
+          }
+        }
+        let labelText;
+        try {
+          labelText = action.label(match);
+        } catch (error) {
+          console.error("linkActions label threw:", error);
+          continue;
+        }
+        if (!labelText)
+          continue;
+        return {
+          url: labelText,
+          index: -1 - start,
+          start,
+          end,
+          match,
+          action
+        };
+      }
+    }
+    return null;
+  }
   transformUrl(url) {
     const transform = this.editor.options.transformLinkUrl;
     if (typeof transform !== "function")
@@ -5595,13 +5657,26 @@ var LinkTooltip = class {
     }
   }
   async positionTooltip(linkInfo) {
-    const anchorElement = this.findAnchorElement(linkInfo.index);
-    if (!anchorElement) {
-      return;
-    }
-    const rect = anchorElement.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) {
-      return;
+    let anchorElement;
+    if (linkInfo.action) {
+      const range = this.rangeForOffsets(linkInfo.start, linkInfo.end);
+      if (!range) {
+        return;
+      }
+      const rangeRect = range.getBoundingClientRect();
+      if (rangeRect.width === 0 || rangeRect.height === 0) {
+        return;
+      }
+      anchorElement = { getBoundingClientRect: () => range.getBoundingClientRect() };
+    } else {
+      anchorElement = this.findAnchorElement(linkInfo.index);
+      if (!anchorElement) {
+        return;
+      }
+      const rect = anchorElement.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return;
+      }
     }
     try {
       const { x, y } = await computePosition2(
@@ -5629,6 +5704,83 @@ var LinkTooltip = class {
   findAnchorElement(linkIndex) {
     const preview = this.editor.preview;
     return preview.querySelector(`a[style*="--link-${linkIndex}"]`);
+  }
+  rangeForOffsets(start, end) {
+    const preview = this.editor.preview;
+    if (!preview)
+      return null;
+    const text = this.editor.textarea.value;
+    const before = text.slice(0, start);
+    const lineIndex = before.split("\n").length - 1;
+    const lineStart = before.lastIndexOf("\n") + 1;
+    const startColumn = start - lineStart;
+    const endColumn = end - lineStart;
+    if (endColumn < startColumn)
+      return null;
+    const lineInfo = this.findPreviewLineElement(lineIndex);
+    if (!lineInfo)
+      return null;
+    const targetStart = lineInfo.offset + startColumn;
+    const targetEnd = lineInfo.offset + endColumn;
+    const walker = document.createTreeWalker(lineInfo.element, window.NodeFilter.SHOW_TEXT);
+    let count = 0;
+    let startNode = null;
+    let startOffset = 0;
+    let endNode = null;
+    let endOffset = 0;
+    let node;
+    while (node = walker.nextNode()) {
+      const length = node.nodeValue.length;
+      if (startNode === null && targetStart >= count && targetStart <= count + length) {
+        startNode = node;
+        startOffset = targetStart - count;
+      }
+      if (endNode === null && targetEnd >= count && targetEnd <= count + length) {
+        endNode = node;
+        endOffset = targetEnd - count;
+      }
+      if (startNode !== null && endNode !== null)
+        break;
+      count += length;
+    }
+    if (startNode === null || endNode === null)
+      return null;
+    const range = document.createRange();
+    range.setStart(startNode, startOffset);
+    range.setEnd(endNode, endOffset);
+    if (typeof range.getBoundingClientRect !== "function")
+      return null;
+    return range;
+  }
+  findPreviewLineElement(lineIndex) {
+    const preview = this.editor.preview;
+    if (!preview)
+      return null;
+    let index = 0;
+    for (const child of preview.children) {
+      if (child.tagName === "PRE") {
+        const codeLines = (child.textContent || "").split("\n");
+        if (lineIndex < index + codeLines.length) {
+          let offset3 = 0;
+          for (let i = 0; i < lineIndex - index; i++) {
+            offset3 += codeLines[i].length + 1;
+          }
+          return { element: child, offset: offset3 };
+        }
+        index += codeLines.length;
+      } else if (child.tagName === "UL" || child.tagName === "OL") {
+        const items = child.children;
+        if (lineIndex < index + items.length) {
+          return { element: items[lineIndex - index], offset: 0 };
+        }
+        index += items.length;
+      } else {
+        if (lineIndex === index)
+          return { element: child, offset: 0 };
+        index++;
+      }
+    }
+    return null;
   }
   hide() {
     this.tooltip.classList.remove("visible");
@@ -6170,8 +6322,10 @@ var _OverType = class _OverType {
       // Browser spellcheck (disabled by default)
       persist: false,
       // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
-      transformLinkUrl: null
+      transformLinkUrl: null,
       // Transform URLs shown/opened in the link tooltip
+      linkActions: null
+      // Show the link tooltip for custom text patterns
     };
     const { theme, colors, ...cleanOptions } = options;
     return {

@@ -231,6 +231,7 @@ export interface Options {
   customSyntax?: ((html: string) => string) | false | null;  // Per-instance custom syntax; false skips the global processor
   disable?: Array<'h1' | 'h2' | 'h3' | 'headings' | 'lists' | 'tasks' | 'blockquote' | 'code' | 'hr'>;  // Line-level features to render as plain text
   transformLinkUrl?: ((url: string) => string) | null;  // Transform URLs shown/opened in the link tooltip
+  linkActions?: { pattern: RegExp; label: (match: RegExpMatchArray) => string | null | undefined | false; onClick: (match: RegExpMatchArray, editor: OverTypeInstance) => void }[] | null;  // Show the link tooltip for custom text patterns
 
   // Theme (deprecated in favor of global theme)
   theme?: string | Theme;

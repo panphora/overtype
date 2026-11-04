@@ -275,7 +275,8 @@ class OverType {
         bulletMarker: null,  // '-', '*' or '+'; null matches the document
         spellcheck: false,  // Browser spellcheck (disabled by default)
         persist: false,  // Keep only container, wrapper and textarea in a self-saving page (ClayJS)
-        transformLinkUrl: null  // Transform URLs shown/opened in the link tooltip
+        transformLinkUrl: null,  // Transform URLs shown/opened in the link tooltip
+        linkActions: null  // Show the link tooltip for custom text patterns
       };
       
       // Remove theme and colors from options - these are now global
