@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+- Indent and outdent toolbar buttons, in the default toolbar and as `toolbarButtons.indent` and `toolbarButtons.outdent`.
+- A toolbar button's tooltip shows its keyboard shortcut for the current platform, such as `Bold (⌘B)` on a Mac and `Bold (Ctrl+B)` elsewhere. Custom buttons can set the label with `shortcut: 'Mod+B'`. The built-in `bold` and `italic` titles no longer include a hardcoded `Ctrl`.
+
+### Fixed
+- Indenting or outdenting keeps the cursor and selection on the same text, instead of selecting the whole line.
+- Enter with the cursor before or inside a list marker moves the item down, instead of adding a second marker.
+
 ## [2.7.0] - 2026-10-27
 
 ### Added

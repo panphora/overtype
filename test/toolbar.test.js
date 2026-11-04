@@ -24,6 +24,7 @@ global.HTMLElement = dom.window.HTMLElement;
 global.Element = dom.window.Element;
 global.Node = dom.window.Node;
 global.CustomEvent = dom.window.CustomEvent;
+global.Event = dom.window.Event;
 global.CSS = { supports: () => false };
 global.performance = { now: () => Date.now() };
 global.requestAnimationFrame = (callback) => setTimeout(callback, 0);
@@ -272,6 +273,62 @@ console.log('━'.repeat(50));
     'Custom toggle can update pressed state',
     'Expected custom toggle to clear pressed state and active class'
   );
+
+  editor.destroy();
+})();
+
+console.log('\n⌨️ Shortcut tooltips\n');
+
+function withPlatform(platform, run) {
+  const original = Object.getOwnPropertyDescriptor(global, 'navigator');
+  Object.defineProperty(global, 'navigator', { configurable: true, value: { platform, userAgent: '' } });
+  try {
+    run();
+  } finally {
+    Object.defineProperty(global, 'navigator', original);
+  }
+}
+
+for (const [platform, expected] of [
+  ['MacIntel', { bold: 'Bold (⌘B)', bulletList: 'Bullet List (⇧⌘8)', indent: 'Indent (⌘])', outdent: 'Outdent (⌘[)', quote: 'Quote' }],
+  ['Win32', { bold: 'Bold (Ctrl+B)', bulletList: 'Bullet List (Ctrl+Shift+8)', indent: 'Indent (Ctrl+])', outdent: 'Outdent (Ctrl+[)', quote: 'Quote' }]
+]) {
+  withPlatform(platform, () => {
+    const editor = createEditor();
+    for (const [name, label] of Object.entries(expected)) {
+      const button = editor.toolbar.buttons[name];
+      assert(button.title === label, `${platform} ${name} tooltip`, `Got "${button.title}"`);
+      assert(button.getAttribute('aria-label') === label, `${platform} ${name} label`, `Got "${button.getAttribute('aria-label')}"`);
+    }
+    editor.destroy();
+  });
+}
+
+(() => {
+  const editor = createEditor({
+    toolbarButtons: [{ name: 'save', title: 'Save', shortcut: 'Mod+Alt+Shift+S', icon: '<svg></svg>', action: () => {} }]
+  });
+  withPlatform('MacIntel', () => {
+    editor.toolbar.destroy();
+    editor.toolbar.create();
+    assert(editor.toolbar.buttons.save.title === 'Save (⌥⇧⌘S)', 'Custom button shortcut orders Mac symbols', `Got "${editor.toolbar.buttons.save.title}"`);
+  });
+  editor.destroy();
+})();
+
+console.log('\n⇥ Indent and outdent buttons\n');
+
+await (async () => {
+  const editor = createEditor({ value: '- Item' });
+  editor.textarea.setSelectionRange(4, 4);
+
+  await editor.performAction('indent');
+  assert(editor.getValue() === '  - Item', 'Indent button indents the line', JSON.stringify(editor.getValue()));
+  assert(editor.textarea.selectionStart === 6 && editor.textarea.selectionEnd === 6, 'Indent button keeps the cursor on its text', `Got ${editor.textarea.selectionStart}-${editor.textarea.selectionEnd}`);
+
+  await editor.performAction('outdent');
+  assert(editor.getValue() === '- Item', 'Outdent button outdents the line', JSON.stringify(editor.getValue()));
+  assert(editor.textarea.selectionStart === 4 && editor.textarea.selectionEnd === 4, 'Outdent button keeps the cursor on its text', `Got ${editor.textarea.selectionStart}-${editor.textarea.selectionEnd}`);
 
   editor.destroy();
 })();

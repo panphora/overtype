@@ -4,6 +4,7 @@
  */
 
 import * as markdownActions from 'markdown-actions';
+import { formatShortcut } from './shortcuts.js';
 
 export class Toolbar {
   constructor(editor, options = {}) {
@@ -197,8 +198,10 @@ export class Toolbar {
     button.className = 'overtype-toolbar-button';
     button.type = 'button';
     button.setAttribute('data-button', buttonConfig.name);
-    button.title = buttonConfig.title || '';
-    button.setAttribute('aria-label', buttonConfig.title || buttonConfig.name);
+    const title = buttonConfig.title || '';
+    const label = buttonConfig.shortcut ? `${title} (${formatShortcut(buttonConfig.shortcut)})`.trim() : title;
+    button.title = label;
+    button.setAttribute('aria-label', label || buttonConfig.name);
     button.innerHTML = this.sanitizeSVG(buttonConfig.icon || '');
 
     // Special handling for viewMode dropdown

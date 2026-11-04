@@ -1485,6 +1485,18 @@ __publicField(MarkdownParser, "LIST_PATTERNS", {
 });
 
 // src/shortcuts.js
+function isMacPlatform() {
+  return navigator.platform.toLowerCase().includes("mac");
+}
+function formatShortcut(shortcut) {
+  const parts = shortcut.split("+");
+  const key = parts.pop();
+  if (!isMacPlatform()) {
+    return [...parts.map((part) => part === "Mod" ? "Ctrl" : part), key].join("+");
+  }
+  const symbols = { Ctrl: "\u2303", Alt: "\u2325", Shift: "\u21E7", Mod: "\u2318" };
+  return Object.keys(symbols).filter((part) => parts.includes(part)).map((part) => symbols[part]).join("") + key;
+}
 var ShortcutsManager = class {
   constructor(editor) {
     this.editor = editor;
@@ -1495,8 +1507,7 @@ var ShortcutsManager = class {
    * @returns {boolean} Whether the event was handled
    */
   handleKeydown(event) {
-    const isMac = navigator.platform.toLowerCase().includes("mac");
-    const modKey = isMac ? event.metaKey : event.ctrlKey;
+    const modKey = isMacPlatform() ? event.metaKey : event.ctrlKey;
     if (!modKey)
       return false;
     if (event.key === "]") {
@@ -2656,6 +2667,7 @@ var markdown_actions_esm_exports = {};
 __export(markdown_actions_esm_exports, {
   applyCustomFormat: () => applyCustomFormat,
   default: () => src_default,
+  detectMarkers: () => detectMarkers,
   expandSelection: () => expandSelection2,
   getActiveFormats: () => getActiveFormats2,
   getDebugMode: () => getDebugMode,
@@ -3131,20 +3143,20 @@ function undoOrderedListStyle(text) {
 }
 function undoUnorderedListStyle(text) {
   const lines = text.split("\n");
-  const unorderedListPrefix = "- ";
-  const shouldUndoUnorderedList = lines.every((line) => line.startsWith(unorderedListPrefix));
+  const unorderedListRegex = /^[-*+] /;
+  const shouldUndoUnorderedList = lines.every((line) => unorderedListRegex.test(line));
   let result = lines;
   if (shouldUndoUnorderedList) {
-    result = lines.map((line) => line.slice(unorderedListPrefix.length));
+    result = lines.map((line) => line.replace(unorderedListRegex, ""));
   }
   return {
     text: result.join("\n"),
     processed: shouldUndoUnorderedList
   };
 }
-function makePrefix(index, unorderedList) {
+function makePrefix(index, unorderedList, bulletMarker = "-") {
   if (unorderedList) {
-    return "- ";
+    return `${bulletMarker} `;
   } else {
     return `${index + 1}. `;
   }
@@ -3172,7 +3184,7 @@ function listStyle(textarea, style) {
   const selectedText = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd);
   const [undoResult, undoResultOppositeList, pristineText] = clearExistingListStyle(style, selectedText);
   const prefixedLines = pristineText.split("\n").map((value, index) => {
-    return `${makePrefix(index, style.unorderedList)}${value}`;
+    return `${makePrefix(index, style.unorderedList, style.bulletMarker)}${value}`;
   });
   const totalPrefixLength = prefixedLines.reduce((previousValue, _currentValue, currentIndex) => {
     return previousValue + makePrefix(currentIndex, style.unorderedList).length;
@@ -3215,7 +3227,7 @@ function applyListStyle(textarea, style) {
       adjustSelection: (isRemoving, selStart, selEnd, lineStart) => {
         const currentLine = textarea.value.slice(lineStart, textarea.selectionEnd);
         const orderedListRegex = /^\d+\.\s+/;
-        const unorderedListRegex = /^- /;
+        const unorderedListRegex = /^[-*+] /;
         const hasOrderedList = orderedListRegex.test(currentLine);
         const hasUnorderedList = unorderedListRegex.test(currentLine);
         const isRemovingCurrent = style.orderedList && hasOrderedList || style.unorderedList && hasUnorderedList;
@@ -3288,8 +3300,8 @@ function getActiveFormats(textarea) {
     }
     lineStart += line.length + 1;
   }
-  if (currentLine.startsWith("- ")) {
-    if (currentLine.startsWith("- [ ] ") || currentLine.startsWith("- [x] ")) {
+  if (/^[-*+] /.test(currentLine)) {
+    if (/^[-*+] \[[ xX]\] /.test(currentLine)) {
       formats.push("task-list");
     } else {
       formats.push("bullet-list");
@@ -3310,36 +3322,30 @@ function getActiveFormats(textarea) {
   const lookBehind = Math.max(0, selectionStart - 10);
   const lookAhead = Math.min(value.length, selectionEnd + 10);
   const surrounding = value.slice(lookBehind, lookAhead);
-  if (surrounding.includes("**")) {
-    const beforeCursor = value.slice(Math.max(0, selectionStart - 100), selectionStart);
-    const afterCursor = value.slice(selectionEnd, Math.min(value.length, selectionEnd + 100));
-    const lastOpenBold = beforeCursor.lastIndexOf("**");
-    const nextCloseBold = afterCursor.indexOf("**");
-    if (lastOpenBold !== -1 && nextCloseBold !== -1) {
-      formats.push("bold");
-    }
+  const beforeCursor = value.slice(Math.max(0, selectionStart - 100), selectionStart);
+  const afterCursor = value.slice(selectionEnd, Math.min(value.length, selectionEnd + 100));
+  if (["**", "__"].some((marker) => surrounding.includes(marker) && beforeCursor.lastIndexOf(marker) !== -1 && afterCursor.indexOf(marker) !== -1)) {
+    formats.push("bold");
   }
-  if (surrounding.includes("_")) {
-    const beforeCursor = value.slice(Math.max(0, selectionStart - 100), selectionStart);
-    const afterCursor = value.slice(selectionEnd, Math.min(value.length, selectionEnd + 100));
-    const lastOpenItalic = beforeCursor.lastIndexOf("_");
-    const nextCloseItalic = afterCursor.indexOf("_");
-    if (lastOpenItalic !== -1 && nextCloseItalic !== -1) {
-      formats.push("italic");
-    }
+  const singleMarker = (ch) => {
+    const c = ch === "*" ? "\\*" : ch;
+    return new RegExp(`(^|[^${c}])${c}[^${c}]*$`).test(beforeCursor) && new RegExp(`^[^${c}]*${c}(?!${c})`).test(afterCursor);
+  };
+  if (surrounding.includes("_") && singleMarker("_") || surrounding.includes("*") && singleMarker("*")) {
+    formats.push("italic");
   }
   if (surrounding.includes("`")) {
-    const beforeCursor = value.slice(Math.max(0, selectionStart - 100), selectionStart);
-    const afterCursor = value.slice(selectionEnd, Math.min(value.length, selectionEnd + 100));
-    if (beforeCursor.includes("`") && afterCursor.includes("`")) {
+    const beforeCursor2 = value.slice(Math.max(0, selectionStart - 100), selectionStart);
+    const afterCursor2 = value.slice(selectionEnd, Math.min(value.length, selectionEnd + 100));
+    if (beforeCursor2.includes("`") && afterCursor2.includes("`")) {
       formats.push("code");
     }
   }
   if (surrounding.includes("[") && surrounding.includes("]")) {
-    const beforeCursor = value.slice(Math.max(0, selectionStart - 100), selectionStart);
-    const afterCursor = value.slice(selectionEnd, Math.min(value.length, selectionEnd + 100));
-    const lastOpenBracket = beforeCursor.lastIndexOf("[");
-    const nextCloseBracket = afterCursor.indexOf("]");
+    const beforeCursor2 = value.slice(Math.max(0, selectionStart - 100), selectionStart);
+    const afterCursor2 = value.slice(selectionEnd, Math.min(value.length, selectionEnd + 100));
+    const lastOpenBracket = beforeCursor2.lastIndexOf("[");
+    const nextCloseBracket = afterCursor2.indexOf("]");
     if (lastOpenBracket !== -1 && nextCloseBracket !== -1) {
       const afterBracket = value.slice(selectionEnd + nextCloseBracket + 1, selectionEnd + nextCloseBracket + 10);
       if (afterBracket.startsWith("(")) {
@@ -3386,22 +3392,124 @@ function expandSelection(textarea, options = {}) {
     textarea.selectionEnd = end;
   }
 }
-function toggleBold(textarea) {
+var isEmphasis = (ch) => ch === "*" || ch === "_";
+var OPENING_PUNCTUATION = /[(\[{"'“‘]/;
+var CLOSING_PUNCTUATION = /[.,;:!?)\]}"'”’]/;
+function carries(kind, n) {
+  return kind === "bold" ? n >= 2 : n % 2 === 1;
+}
+function runLength(text, ch, fromEnd) {
+  let n = 0;
+  while (n < text.length && text[fromEnd ? text.length - 1 - n : n] === ch)
+    n++;
+  return n;
+}
+function findWrap(value, start, end, kind) {
+  const size2 = kind === "bold" ? 2 : 1;
+  let open = start;
+  while (open > 0 && isEmphasis(value[open - 1]))
+    open--;
+  let close = end;
+  while (close < value.length && isEmphasis(value[close]))
+    close++;
+  const before = value.slice(open, start);
+  const after = value.slice(end, close);
+  for (const ch of ["*", "_"]) {
+    if (carries(kind, runLength(before, ch, true)) && carries(kind, runLength(after, ch, false))) {
+      return { open: start - size2, close: end, size: size2 };
+    }
+    const outerBefore = runLength(before, ch, false);
+    if (outerBefore < before.length && carries(kind, outerBefore) && carries(kind, runLength(after, ch, true))) {
+      return { open, close: close - size2, size: size2 };
+    }
+  }
+  return null;
+}
+function targetRange(value, selectionStart, selectionEnd) {
+  let start = selectionStart;
+  let end = selectionEnd;
+  if (start === end) {
+    start = wordSelectionStart(value, start);
+    end = wordSelectionEnd(value, end, false);
+    while (start < end && OPENING_PUNCTUATION.test(value[start]))
+      start++;
+    while (end > start && CLOSING_PUNCTUATION.test(value[end - 1]))
+      end--;
+  }
+  while (start < end && /\s/.test(value[start]))
+    start++;
+  while (end > start && /\s/.test(value[end - 1]))
+    end--;
+  while (start < end && isEmphasis(value[start]))
+    start++;
+  while (end > start && isEmphasis(value[end - 1]))
+    end--;
+  return { start, end };
+}
+var clamp = (n, low, high) => Math.min(Math.max(n, low), high);
+function inlineStyle(textarea, kind, marker) {
+  const value = textarea.value;
+  const caretStart = textarea.selectionStart;
+  const caretEnd = textarea.selectionEnd;
+  const hadSelection = caretStart !== caretEnd;
+  const { start, end } = targetRange(value, caretStart, caretEnd);
+  const wrap = start < end ? findWrap(value, start, end, kind) : null;
+  if (wrap) {
+    textarea.selectionStart = wrap.open;
+    textarea.selectionEnd = wrap.close + wrap.size;
+    const newStart = start - wrap.size;
+    const newEnd = end - wrap.size;
+    const caret2 = clamp(caretStart - wrap.size, newStart, newEnd);
+    return {
+      text: value.slice(wrap.open + wrap.size, wrap.close),
+      selectionStart: hadSelection ? newStart : caret2,
+      selectionEnd: hadSelection ? newEnd : caret2
+    };
+  }
+  textarea.selectionStart = start;
+  textarea.selectionEnd = end;
+  const caret = clamp(caretStart, start, end) + marker.length;
+  return {
+    text: marker + value.slice(start, end) + marker,
+    selectionStart: hadSelection ? start + marker.length : caret,
+    selectionEnd: hadSelection ? end + marker.length : caret
+  };
+}
+var MARKERS = {
+  bold: ["**", "__"],
+  italic: ["_", "*"],
+  bullet: ["-", "*", "+"]
+};
+function resolveMarker(kind, marker) {
+  return MARKERS[kind].indexOf(marker) !== -1 ? marker : MARKERS[kind][0];
+}
+var DETECT = {
+  bullet: /^[ \t]*([-*+])[ \t]+\S/m,
+  bold: /(\*\*|__)(?=[^\s*_])[^\n]*?[^\s*_]\1/,
+  italic: /(?:^|[^*_\w])([*_])(?=[^\s*_])[^\n*_]*?[^\s*_]\1(?![*_\w])/
+};
+function detectMarkers(text) {
+  const found = {};
+  Object.keys(DETECT).forEach((kind) => {
+    const match = DETECT[kind].exec(text || "");
+    found[kind] = match ? match[1] : null;
+  });
+  return found;
+}
+function toggleBold(textarea, options = {}) {
   if (!textarea || textarea.disabled || textarea.readOnly)
     return;
   debugLog("toggleBold", "Starting");
   debugSelection(textarea, "Before");
-  const style = mergeWithDefaults(FORMATS.bold);
-  const result = blockStyle(textarea, style);
+  const result = inlineStyle(textarea, "bold", resolveMarker("bold", options.marker));
   debugResult(result);
   insertText(textarea, result);
   debugSelection(textarea, "After");
 }
-function toggleItalic(textarea) {
+function toggleItalic(textarea, options = {}) {
   if (!textarea || textarea.disabled || textarea.readOnly)
     return;
-  const style = mergeWithDefaults(FORMATS.italic);
-  const result = blockStyle(textarea, style);
+  const result = inlineStyle(textarea, "italic", resolveMarker("italic", options.marker));
   insertText(textarea, result);
 }
 function toggleCode(textarea) {
@@ -3433,10 +3541,11 @@ function insertLink(textarea, options = {}) {
   const result = blockStyle(textarea, style);
   insertText(textarea, result);
 }
-function toggleBulletList(textarea) {
+function toggleBulletList(textarea, options = {}) {
   if (!textarea || textarea.disabled || textarea.readOnly)
     return;
   const style = mergeWithDefaults(FORMATS.bulletList);
+  style.bulletMarker = resolveMarker("bullet", options.marker);
   applyListStyle(textarea, style);
 }
 function toggleNumberedList(textarea) {
@@ -3619,6 +3728,7 @@ var src_default = {
   hasFormat: hasFormat2,
   expandSelection: expandSelection2,
   applyCustomFormat,
+  detectMarkers,
   preserveSelection,
   setUndoMethod,
   setDebugMode,
@@ -3785,8 +3895,10 @@ var Toolbar = class {
     button.className = "overtype-toolbar-button";
     button.type = "button";
     button.setAttribute("data-button", buttonConfig.name);
-    button.title = buttonConfig.title || "";
-    button.setAttribute("aria-label", buttonConfig.title || buttonConfig.name);
+    const title = buttonConfig.title || "";
+    const label = buttonConfig.shortcut ? `${title} (${formatShortcut(buttonConfig.shortcut)})`.trim() : title;
+    button.title = label;
+    button.setAttribute("aria-label", label || buttonConfig.name);
     button.innerHTML = this.sanitizeSVG(buttonConfig.icon || "");
     if (buttonConfig.name === "viewMode") {
       button.classList.add("has-dropdown");
@@ -4119,7 +4231,7 @@ var oppositeAlignmentMap = {
   start: "end",
   end: "start"
 };
-function clamp(start, value, end) {
+function clamp2(start, value, end) {
   return max(start, min(value, end));
 }
 function evaluate(value, param) {
@@ -4653,14 +4765,14 @@ var shift = function(options) {
         const maxSide = mainAxis === "y" ? "bottom" : "right";
         const min2 = mainAxisCoord + overflow[minSide];
         const max2 = mainAxisCoord - overflow[maxSide];
-        mainAxisCoord = clamp(min2, mainAxisCoord, max2);
+        mainAxisCoord = clamp2(min2, mainAxisCoord, max2);
       }
       if (checkCrossAxis) {
         const minSide = crossAxis === "y" ? "top" : "left";
         const maxSide = crossAxis === "y" ? "bottom" : "right";
         const min2 = crossAxisCoord + overflow[minSide];
         const max2 = crossAxisCoord - overflow[maxSide];
-        crossAxisCoord = clamp(min2, crossAxisCoord, max2);
+        crossAxisCoord = clamp2(min2, crossAxisCoord, max2);
       }
       const limitedCoords = limiter.fn({
         ...state,
@@ -5557,6 +5669,18 @@ var orderedListIcon = `<svg viewBox="0 0 18 18">
   <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4.5,10.5h-2c0-.234,1.85-1.076,1.85-2.234A0.959,0.959,0,0,0,2.5,8.156"></path>
   <path stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M2.5,14.846a0.959,0.959,0,0,0,1.85-.109A0.7,0.7,0,0,0,3.75,14a0.688,0.688,0,0,0,.6-0.736,0.959,0.959,0,0,0-1.85-.109"></path>
 </svg>`;
+var indentIcon = `<svg viewBox="0 0 18 18">
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="15" y1="4" y2="4"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="9" x2="15" y1="9" y2="9"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="15" y1="14" y2="14"></line>
+  <polyline stroke="currentColor" fill="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" points="3 7 3 11 5 9 3 7"></polyline>
+</svg>`;
+var outdentIcon = `<svg viewBox="0 0 18 18">
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="15" y1="4" y2="4"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="9" x2="15" y1="9" y2="9"></line>
+  <line stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="3" x2="15" y1="14" y2="14"></line>
+  <polyline stroke="currentColor" fill="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1" points="5 7 5 11 3 9 5 7"></polyline>
+</svg>`;
 var quoteIcon = `<svg viewBox="2 2 20 20">
   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 10.8182L9 10.8182C8.80222 10.8182 8.60888 10.7649 8.44443 10.665C8.27998 10.5651 8.15181 10.4231 8.07612 10.257C8.00043 10.0909 7.98063 9.90808 8.01922 9.73174C8.0578 9.55539 8.15304 9.39341 8.29289 9.26627C8.43275 9.13913 8.61093 9.05255 8.80491 9.01747C8.99889 8.98239 9.19996 9.00039 9.38268 9.0692C9.56541 9.13801 9.72159 9.25453 9.83147 9.40403C9.94135 9.55353 10 9.72929 10 9.90909L10 12.1818C10 12.664 9.78929 13.1265 9.41421 13.4675C9.03914 13.8084 8.53043 14 8 14"></path>
   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 10.8182L15 10.8182C14.8022 10.8182 14.6089 10.7649 14.4444 10.665C14.28 10.5651 14.1518 10.4231 14.0761 10.257C14.0004 10.0909 13.9806 9.90808 14.0192 9.73174C14.0578 9.55539 14.153 9.39341 14.2929 9.26627C14.4327 9.13913 14.6109 9.05255 14.8049 9.01747C14.9989 8.98239 15.2 9.00039 15.3827 9.0692C15.5654 9.13801 15.7216 9.25453 15.8315 9.40403C15.9414 9.55353 16 9.72929 16 9.90909L16 12.1818C16 12.664 15.7893 13.1265 15.4142 13.4675C15.0391 13.8084 14.5304 14 14 14"></path>
@@ -5580,15 +5704,29 @@ var eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke
 </svg>`;
 
 // src/toolbar-buttons.js
+function markerFor(editor, kind) {
+  const options = editor.options || {};
+  if (kind === "italic" && typeof options.italicUsesAsterisk === "boolean") {
+    return options.italicUsesAsterisk ? "*" : "_";
+  }
+  if (kind === "bold" && typeof options.boldUsesUnderscore === "boolean") {
+    return options.boldUsesUnderscore ? "__" : "**";
+  }
+  if (kind === "bullet" && options.bulletMarker) {
+    return options.bulletMarker;
+  }
+  return detectMarkers(editor.textarea.value)[kind] || void 0;
+}
 var toolbarButtons = {
   bold: {
     name: "bold",
     actionId: "toggleBold",
     icon: boldIcon,
-    title: "Bold (Ctrl+B)",
+    title: "Bold",
+    shortcut: "Mod+B",
     isActive: ({ activeFormats }) => activeFormats.includes("bold"),
     action: ({ editor }) => {
-      toggleBold(editor.textarea);
+      toggleBold(editor.textarea, { marker: markerFor(editor, "bold") });
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
   },
@@ -5596,10 +5734,11 @@ var toolbarButtons = {
     name: "italic",
     actionId: "toggleItalic",
     icon: italicIcon,
-    title: "Italic (Ctrl+I)",
+    title: "Italic",
+    shortcut: "Mod+I",
     isActive: ({ activeFormats }) => activeFormats.includes("italic"),
     action: ({ editor }) => {
-      toggleItalic(editor.textarea);
+      toggleItalic(editor.textarea, { marker: markerFor(editor, "italic") });
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
   },
@@ -5623,6 +5762,7 @@ var toolbarButtons = {
     actionId: "insertLink",
     icon: linkIcon,
     title: "Insert Link",
+    shortcut: "Mod+K",
     action: ({ editor }) => {
       insertLink(editor.textarea);
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
@@ -5666,9 +5806,10 @@ var toolbarButtons = {
     actionId: "toggleBulletList",
     icon: bulletListIcon,
     title: "Bullet List",
+    shortcut: "Mod+Shift+8",
     isActive: ({ activeFormats }) => activeFormats.includes("bullet-list"),
     action: ({ editor }) => {
-      toggleBulletList(editor.textarea);
+      toggleBulletList(editor.textarea, { marker: markerFor(editor, "bullet") });
       editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
     }
   },
@@ -5677,6 +5818,7 @@ var toolbarButtons = {
     actionId: "toggleNumberedList",
     icon: orderedListIcon,
     title: "Numbered List",
+    shortcut: "Mod+Shift+7",
     isActive: ({ activeFormats }) => activeFormats.includes("numbered-list"),
     action: ({ editor }) => {
       toggleNumberedList(editor.textarea);
@@ -5694,6 +5836,26 @@ var toolbarButtons = {
         toggleTaskList(editor.textarea);
         editor.textarea.dispatchEvent(new Event("input", { bubbles: true }));
       }
+    }
+  },
+  outdent: {
+    name: "outdent",
+    actionId: "outdent",
+    icon: outdentIcon,
+    title: "Outdent",
+    shortcut: "Mod+[",
+    action: ({ editor }) => {
+      editor.outdentSelection();
+    }
+  },
+  indent: {
+    name: "indent",
+    actionId: "indent",
+    icon: indentIcon,
+    title: "Indent",
+    shortcut: "Mod+]",
+    action: ({ editor }) => {
+      editor.indentSelection();
     }
   },
   quote: {
@@ -5757,6 +5919,9 @@ var defaultToolbarButtons = [
   toolbarButtons.orderedList,
   toolbarButtons.taskList,
   toolbarButtons.separator,
+  toolbarButtons.outdent,
+  toolbarButtons.indent,
+  toolbarButtons.separator,
   toolbarButtons.quote,
   toolbarButtons.separator,
   toolbarButtons.viewMode
@@ -5794,7 +5959,8 @@ function normalizeButtons(buttons) {
     name: (btn == null ? void 0 : btn.name) || null,
     actionId: (btn == null ? void 0 : btn.actionId) || (btn == null ? void 0 : btn.name) || null,
     icon: (btn == null ? void 0 : btn.icon) || null,
-    title: (btn == null ? void 0 : btn.title) || null
+    title: (btn == null ? void 0 : btn.title) || null,
+    shortcut: (btn == null ? void 0 : btn.shortcut) || null
   }));
 }
 var ACTION_FEATURES = {
@@ -5945,6 +6111,12 @@ var _OverType = class _OverType {
       // Per-instance custom syntax processor (false skips the global one)
       disable: [],
       // Line-level features to render as plain text: h1, h2, h3, headings, lists, tasks, blockquote, code, hr
+      italicUsesAsterisk: null,
+      // true writes *italic*, false writes _italic_, null matches the document
+      boldUsesUnderscore: null,
+      // true writes __bold__, false writes **bold**, null matches the document
+      bulletMarker: null,
+      // '-', '*' or '+'; null matches the document
       spellcheck: false,
       // Browser spellcheck (disabled by default)
       persist: false,
@@ -6659,6 +6831,10 @@ var _OverType = class _OverType {
     const context = MarkdownParser.getListContext(textarea.value, cursorPos, disabled);
     if (!context || !context.inList)
       return false;
+    if (cursorPos === textarea.selectionEnd && cursorPos < context.markerEndPos) {
+      textarea.setSelectionRange(context.lineStart, context.lineStart);
+      return false;
+    }
     if (context.content.trim() === "" && cursorPos >= context.markerEndPos) {
       this.deleteListMarker(context);
       return true;
@@ -6873,9 +7049,28 @@ var _OverType = class _OverType {
     const lineEndOffset = value.indexOf("\n", effectiveEnd);
     const lineEnd = lineEndOffset === -1 ? value.length : lineEndOffset;
     const selectedLines = value.slice(lineStart, lineEnd);
-    const replacement = selectedLines.split("\n").map(transformLine).join("\n");
+    const oldLines = selectedLines.split("\n");
+    const newLines = oldLines.map(transformLine);
+    const replacement = newLines.join("\n");
     if (replacement === selectedLines)
       return false;
+    const shiftPosition = (position) => {
+      if (position > lineEnd)
+        return position + replacement.length - selectedLines.length;
+      let oldStart = lineStart;
+      let newStart = lineStart;
+      for (let i = 0; i < oldLines.length; i++) {
+        if (position <= oldStart + oldLines[i].length) {
+          return newStart + Math.max(0, position - oldStart + newLines[i].length - oldLines[i].length);
+        }
+        oldStart += oldLines[i].length + 1;
+        newStart += newLines[i].length + 1;
+      }
+      return position;
+    };
+    const isCollapsed = selectionStart === selectionEnd;
+    const nextEnd = shiftPosition(selectionEnd);
+    const nextStart = isCollapsed ? nextEnd : selectionStart === lineStart ? lineStart : shiftPosition(selectionStart);
     textarea.setSelectionRange(lineStart, lineEnd);
     let inserted = false;
     try {
@@ -6885,7 +7080,7 @@ var _OverType = class _OverType {
     if (!inserted) {
       textarea.setRangeText(replacement, lineStart, lineEnd, "preserve");
     }
-    textarea.setSelectionRange(lineStart, lineStart + replacement.length);
+    textarea.setSelectionRange(nextStart, nextEnd);
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
   }

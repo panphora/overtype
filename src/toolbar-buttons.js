@@ -26,9 +26,10 @@ function markerFor(editor, kind) {
 
 /**
  * Built-in toolbar button definitions
- * Each button has: name, actionId, icon, title, action
+ * Each button has: name, actionId, icon, title, action, and optionally shortcut
  * - name: DOM identifier for the button element
  * - actionId: Canonical action identifier used by performAction
+ * - shortcut: Key combination shown in the button's tooltip, such as 'Mod+Shift+8'
  * Action signature: ({ editor, getValue, setValue, event }) => void
  */
 export const toolbarButtons = {
@@ -36,7 +37,8 @@ export const toolbarButtons = {
     name: 'bold',
     actionId: 'toggleBold',
     icon: icons.boldIcon,
-    title: 'Bold (Ctrl+B)',
+    title: 'Bold',
+    shortcut: 'Mod+B',
     isActive: ({ activeFormats }) => activeFormats.includes('bold'),
     action: ({ editor }) => {
       markdownActions.toggleBold(editor.textarea, { marker: markerFor(editor, 'bold') });
@@ -48,7 +50,8 @@ export const toolbarButtons = {
     name: 'italic',
     actionId: 'toggleItalic',
     icon: icons.italicIcon,
-    title: 'Italic (Ctrl+I)',
+    title: 'Italic',
+    shortcut: 'Mod+I',
     isActive: ({ activeFormats }) => activeFormats.includes('italic'),
     action: ({ editor }) => {
       markdownActions.toggleItalic(editor.textarea, { marker: markerFor(editor, 'italic') });
@@ -78,6 +81,7 @@ export const toolbarButtons = {
     actionId: 'insertLink',
     icon: icons.linkIcon,
     title: 'Insert Link',
+    shortcut: 'Mod+K',
     action: ({ editor }) => {
       markdownActions.insertLink(editor.textarea);
       editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
@@ -125,6 +129,7 @@ export const toolbarButtons = {
     actionId: 'toggleBulletList',
     icon: icons.bulletListIcon,
     title: 'Bullet List',
+    shortcut: 'Mod+Shift+8',
     isActive: ({ activeFormats }) => activeFormats.includes('bullet-list'),
     action: ({ editor }) => {
       markdownActions.toggleBulletList(editor.textarea, { marker: markerFor(editor, 'bullet') });
@@ -137,6 +142,7 @@ export const toolbarButtons = {
     actionId: 'toggleNumberedList',
     icon: icons.orderedListIcon,
     title: 'Numbered List',
+    shortcut: 'Mod+Shift+7',
     isActive: ({ activeFormats }) => activeFormats.includes('numbered-list'),
     action: ({ editor }) => {
       markdownActions.toggleNumberedList(editor.textarea);
@@ -155,6 +161,28 @@ export const toolbarButtons = {
         markdownActions.toggleTaskList(editor.textarea);
         editor.textarea.dispatchEvent(new Event('input', { bubbles: true }));
       }
+    }
+  },
+
+  outdent: {
+    name: 'outdent',
+    actionId: 'outdent',
+    icon: icons.outdentIcon,
+    title: 'Outdent',
+    shortcut: 'Mod+[',
+    action: ({ editor }) => {
+      editor.outdentSelection();
+    }
+  },
+
+  indent: {
+    name: 'indent',
+    actionId: 'indent',
+    icon: icons.indentIcon,
+    title: 'Indent',
+    shortcut: 'Mod+]',
+    action: ({ editor }) => {
+      editor.indentSelection();
     }
   },
 
@@ -220,6 +248,9 @@ export const defaultToolbarButtons = [
   toolbarButtons.bulletList,
   toolbarButtons.orderedList,
   toolbarButtons.taskList,
+  toolbarButtons.separator,
+  toolbarButtons.outdent,
+  toolbarButtons.indent,
   toolbarButtons.separator,
   toolbarButtons.quote,
   toolbarButtons.separator,

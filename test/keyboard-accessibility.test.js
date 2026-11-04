@@ -115,6 +115,21 @@ console.log('\n📝 Enter at list boundaries\n');
       }
     }
 
+    for (const [value, cursor] of [['  - Item', 1], ['  - Item', 2], ['- Item', 1], ['1. Item', 2], ['- [ ] Task', 3]]) {
+      const editor = createEditor();
+      editor.setValue(value);
+      editor.textarea.focus();
+      editor.textarea.setSelectionRange(cursor, cursor);
+
+      const event = dispatchKey(editor, 'Enter');
+      const label = `${JSON.stringify(value)} at offset ${cursor}`;
+
+      assert(!event.defaultPrevented, `Enter inside the marker of ${label} uses native editing`, 'Enter should not add a second marker');
+      assert(editor.getValue() === value, `Enter inside the marker of ${label} preserves the item`, JSON.stringify(editor.getValue()));
+      assert(editor.textarea.selectionStart === 0, `Enter inside the marker of ${label} moves the whole item down`, 'The native newline should go before the line');
+      editor.destroy();
+    }
+
     for (const [value, cursor, expected, expectedCursor] of [
       ['- Item', 6, '- Item\n- ', 9],
       ['- [x] Done', 10, '- [x] Done\n- [ ] ', 17],
@@ -208,6 +223,34 @@ console.log('\n↹ Selected-line indentation\n');
     'The line after a trailing selected newline should not be indented'
   );
 })();
+
+console.log('\n📍 Indent keeps the cursor and selection on the same text\n');
+
+for (const [label, action, value, start, end, expected, expectedStart, expectedEnd] of [
+  ['Indent moves a cursor with its text', 'indentSelection', '- Item', 4, 4, '  - Item', 6, 6],
+  ['Indent moves a cursor at the line start', 'indentSelection', '- Item', 0, 0, '  - Item', 2, 2],
+  ['Outdent moves a cursor with its text', 'outdentSelection', '  - Item', 6, 6, '- Item', 4, 4],
+  ['Outdent stops a cursor inside the removed spaces', 'outdentSelection', '  - Item', 1, 1, '- Item', 0, 0],
+  ['Indent only moves the cursor on the second line', 'indentSelection', 'one\n- two', 6, 6, 'one\n  - two', 8, 8],
+  ['Indent keeps a partial selection on the same text', 'indentSelection', '- Item', 2, 4, '  - Item', 4, 6],
+  ['Indent keeps a selection across lines on the same text', 'indentSelection', 'one\ntwo', 1, 5, '  one\n  two', 3, 9],
+  ['Outdent keeps a selection across lines on the same text', 'outdentSelection', '  one\n  two', 3, 9, 'one\ntwo', 1, 5],
+  ['A selection ending at a newline stays there', 'indentSelection', 'one\ntwo\nthree', 0, 8, '  one\n  two\nthree', 0, 12]
+]) {
+  const editor = createEditor();
+  editor.setValue(value);
+  editor.textarea.setSelectionRange(start, end);
+
+  editor[action]();
+
+  assert(editor.getValue() === expected, `${label}: content`, JSON.stringify(editor.getValue()));
+  assert(
+    editor.textarea.selectionStart === expectedStart && editor.textarea.selectionEnd === expectedEnd,
+    `${label}: selection`,
+    `Expected ${expectedStart}-${expectedEnd}, got ${editor.textarea.selectionStart}-${editor.textarea.selectionEnd}`
+  );
+  editor.destroy();
+}
 
 console.log('\n⌘ Explicit indent shortcuts\n');
 

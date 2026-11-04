@@ -180,6 +180,9 @@ export interface ToolbarButton {
   /** Canonical action identifier used by shortcuts and performAction */
   actionId?: string;
 
+  /** Key combination shown in the tooltip, such as 'Mod+Shift+8'. Mod is Cmd on a Mac and Ctrl elsewhere */
+  shortcut?: string;
+
   /** Return true when this button should be announced as pressed */
   isActive?: (context: {
     editor: OverType;

@@ -3,6 +3,25 @@
  * Delegates to editor.performAction for consistent behavior
  */
 
+function isMacPlatform() {
+  return navigator.platform.toLowerCase().includes('mac');
+}
+
+/**
+ * Format a shortcut such as 'Mod+Shift+8' for the current platform: ⇧⌘8 on a Mac, Ctrl+Shift+8 elsewhere
+ * @param {string} shortcut - Parts joined by +, where Mod is Cmd on a Mac and Ctrl elsewhere
+ * @returns {string} The label to show
+ */
+export function formatShortcut(shortcut) {
+  const parts = shortcut.split('+');
+  const key = parts.pop();
+  if (!isMacPlatform()) {
+    return [...parts.map(part => (part === 'Mod' ? 'Ctrl' : part)), key].join('+');
+  }
+  const symbols = { Ctrl: '⌃', Alt: '⌥', Shift: '⇧', Mod: '⌘' };
+  return Object.keys(symbols).filter(part => parts.includes(part)).map(part => symbols[part]).join('') + key;
+}
+
 /**
  * ShortcutsManager - Handles keyboard shortcuts for the editor
  */
@@ -17,8 +36,7 @@ export class ShortcutsManager {
    * @returns {boolean} Whether the event was handled
    */
   handleKeydown(event) {
-    const isMac = navigator.platform.toLowerCase().includes('mac');
-    const modKey = isMac ? event.metaKey : event.ctrlKey;
+    const modKey = isMacPlatform() ? event.metaKey : event.ctrlKey;
 
     if (!modKey) return false;
 

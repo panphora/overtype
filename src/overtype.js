@@ -61,7 +61,8 @@ function normalizeButtons(buttons) {
     name: btn?.name || null,
     actionId: btn?.actionId || btn?.name || null,
     icon: btn?.icon || null,
-    title: btn?.title || null
+    title: btn?.title || null,
+    shortcut: btn?.shortcut || null
   }));
 }
 
@@ -1148,7 +1149,8 @@ class OverType {
       
       if (!context || !context.inList) return false;
 
-      if (cursorPos === context.lineStart && cursorPos === textarea.selectionEnd) {
+      if (cursorPos === textarea.selectionEnd && cursorPos < context.markerEndPos) {
+        textarea.setSelectionRange(context.lineStart, context.lineStart);
         return false;
       }
       
@@ -1424,12 +1426,30 @@ class OverType {
       const lineEndOffset = value.indexOf('\n', effectiveEnd);
       const lineEnd = lineEndOffset === -1 ? value.length : lineEndOffset;
       const selectedLines = value.slice(lineStart, lineEnd);
-      const replacement = selectedLines
-        .split('\n')
-        .map(transformLine)
-        .join('\n');
+      const oldLines = selectedLines.split('\n');
+      const newLines = oldLines.map(transformLine);
+      const replacement = newLines.join('\n');
 
       if (replacement === selectedLines) return false;
+
+      // A position keeps its place in the text as its line shifts. A position past the
+      // last line moves by the whole change, and one that the outdent removed stops at column 0.
+      const shiftPosition = (position) => {
+        if (position > lineEnd) return position + replacement.length - selectedLines.length;
+        let oldStart = lineStart;
+        let newStart = lineStart;
+        for (let i = 0; i < oldLines.length; i++) {
+          if (position <= oldStart + oldLines[i].length) {
+            return newStart + Math.max(0, position - oldStart + newLines[i].length - oldLines[i].length);
+          }
+          oldStart += oldLines[i].length + 1;
+          newStart += newLines[i].length + 1;
+        }
+        return position;
+      };
+      const isCollapsed = selectionStart === selectionEnd;
+      const nextEnd = shiftPosition(selectionEnd);
+      const nextStart = isCollapsed ? nextEnd : selectionStart === lineStart ? lineStart : shiftPosition(selectionStart);
 
       // Replace via execCommand to preserve native undo history (matches
       // insertAtCursor); fall back to setRangeText where execCommand is unavailable.
@@ -1443,7 +1463,7 @@ class OverType {
         textarea.setRangeText(replacement, lineStart, lineEnd, 'preserve');
       }
 
-      textarea.setSelectionRange(lineStart, lineStart + replacement.length);
+      textarea.setSelectionRange(nextStart, nextEnd);
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
 
       return true;
