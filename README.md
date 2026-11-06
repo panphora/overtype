@@ -562,6 +562,7 @@ new OverType(target, options)
   fontSize: '14px',
   lineHeight: 1.6,
   fontFamily: 'monospace',
+  proportional: false,  // Set true with a proportional fontFamily, see "Letter Widths"
   padding: '16px',
   
   // Theme - 'solar', 'cave', or custom theme object
@@ -887,15 +888,20 @@ Images (`![alt](url)`) are not rendered. Variable-height images would break the 
 ### Letter Widths Must Not Change With Style
 The textarea draws the cursor and the preview draws the text, so any style that changes a letter's width moves the two apart. The default font is monospace because its bold and italic keep the same widths.
 
-A proportional font works too, set through `fontFamily`, but real bold and slanted italic change letter widths. Add this CSS so they do not while editing. Bold becomes a thin stroke, italic loses its slant, and preview mode keeps both:
+A proportional font works too, but real bold and slanted italic change letter widths. Turn on `proportional` so they do not while editing. Bold becomes a thin stroke, italic loses its slant, and preview mode keeps both:
+
+```javascript
+new OverType('#editor', { fontFamily: 'Georgia, serif', proportional: true });
+```
+
+The option sets three CSS variables, which a stylesheet can set instead. Any other style that changes a letter's width, such as a real italic in your own CSS, moves the text away from the cursor too.
 
 ```css
-.overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview :is(h1, h2, h3, strong, .header) {
-  font-weight: normal !important;
-  -webkit-text-stroke: 0.45px currentColor;
-}
-.overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview :is(em, .blockquote) {
-  font-style: normal !important;
+.overtype-wrapper {
+  --instance-font-family: Georgia, serif;
+  --instance-bold-weight: normal;
+  --instance-bold-stroke: 0.45px currentColor;
+  --instance-italic-style: normal;
 }
 ```
 

@@ -2087,7 +2087,8 @@ function generateStyles(options = {}) {
 
     /* Markdown element styling - NO SIZE CHANGES */
     .overtype-wrapper .overtype-preview .header {
-      font-weight: bold !important;
+      font-weight: var(--instance-bold-weight, bold) !important;
+      -webkit-text-stroke: var(--instance-bold-stroke, 0);
     }
 
     /* Header colors */
@@ -2106,7 +2107,8 @@ function generateStyles(options = {}) {
     .overtype-wrapper .overtype-preview h2,
     .overtype-wrapper .overtype-preview h3 {
       font-size: inherit !important;
-      font-weight: bold !important;
+      font-weight: var(--instance-bold-weight, bold) !important;
+      -webkit-text-stroke: var(--instance-bold-stroke, 0);
       margin: 0 !important;
       padding: 0 !important;
       display: inline !important;
@@ -2143,7 +2145,8 @@ function generateStyles(options = {}) {
     /* Bold text */
     .overtype-wrapper .overtype-preview strong {
       color: var(--strong, #ee964b) !important;
-      font-weight: bold !important;
+      font-weight: var(--instance-bold-weight, bold) !important;
+      -webkit-text-stroke: var(--instance-bold-stroke, 0);
     }
 
     /* Italic text */
@@ -2151,7 +2154,7 @@ function generateStyles(options = {}) {
       color: var(--em, #f95738) !important;
       text-decoration-color: var(--em, #f95738) !important;
       text-decoration-thickness: 1px !important;
-      font-style: italic !important;
+      font-style: var(--instance-italic-style, italic) !important;
     }
 
     /* Strikethrough text */
@@ -2264,6 +2267,7 @@ function generateStyles(options = {}) {
     .overtype-wrapper .overtype-preview .syntax-marker {
       color: var(--syntax-marker, rgba(13, 59, 102, 0.52)) !important;
       opacity: 0.7 !important;
+      -webkit-text-stroke: 0;
     }
 
     /* List markers */
@@ -2501,6 +2505,13 @@ function generateStyles(options = {}) {
     .overtype-container.overtype-auto-resize[data-mode="preview"] .overtype-preview {
       position: static !important;
       height: auto !important;
+    }
+
+    /* Preview mode never shares the textarea's letter widths, so it keeps real bold and italic */
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview {
+      --instance-bold-weight: bold;
+      --instance-bold-stroke: 0;
+      --instance-italic-style: italic;
     }
 
     /* Hide syntax markers in preview mode */
@@ -6270,6 +6281,8 @@ var _OverType = class _OverType {
       lineHeight: 1.6,
       /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
       fontFamily: '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
+      proportional: false,
+      // Keep letter widths the same in bold and italic, for a proportional fontFamily
       padding: "16px",
       // Mobile styles
       mobile: {
@@ -6607,11 +6620,15 @@ var _OverType = class _OverType {
   _applyInstanceCSSVars() {
     if (!this.wrapper)
       return;
+    const { proportional } = this.options;
     const vars = [
       ["--instance-font-size", this.options.fontSize, styleDefaults.fontSize],
       ["--instance-line-height", this.options.lineHeight, styleDefaults.lineHeight],
       ["--instance-padding", this.options.padding, styleDefaults.padding],
-      ["--instance-font-family", this.options.fontFamily, styleDefaults.fontFamily]
+      ["--instance-font-family", this.options.fontFamily, styleDefaults.fontFamily],
+      ["--instance-bold-weight", proportional && "normal"],
+      ["--instance-bold-stroke", proportional && "0.45px currentColor"],
+      ["--instance-italic-style", proportional && "normal"]
     ];
     for (const [name, value, fallback] of vars) {
       if (value && String(value) !== String(fallback)) {

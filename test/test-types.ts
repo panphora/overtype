@@ -13,6 +13,7 @@ const editorsWithOptions: OverTypeInstance[] = new OverType('#editor', {
   fontSize: '16px',
   lineHeight: 1.8,
   fontFamily: 'monospace',
+  proportional: false,
   padding: '20px',
 
   // Mobile responsive

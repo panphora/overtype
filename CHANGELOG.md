@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- A `proportional` option keeps letter widths the same in bold and italic while editing, so the cursor stays on the text with a proportional `fontFamily`. It draws bold as a thin stroke and turns off the slant, preview mode keeps real bold and italic, and a stylesheet can set the same `--instance-bold-weight`, `--instance-bold-stroke` and `--instance-italic-style` variables.
 - A `linkActions` option shows the link popover for your own text patterns, such as `[[2026-10-06]]`, and runs your action on click.
 - Indent and outdent toolbar buttons, in the default toolbar and as `toolbarButtons.indent` and `toolbarButtons.outdent`.
 - A toolbar button's tooltip shows its keyboard shortcut for the current platform, such as `Bold (⌘B)` on a Mac and `Bold (Ctrl+B)` elsewhere. Custom buttons can set the label with `shortcut: 'Mod+B'`. The built-in `bold` and `italic` titles no longer include a hardcoded `Ctrl`.

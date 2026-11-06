@@ -232,6 +232,7 @@ class OverType {
         lineHeight: 1.6,
         /* System-first, guaranteed monospaced; avoids Android 'ui-monospace' pitfalls */
         fontFamily: '"SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace',
+        proportional: false, // Keep letter widths the same in bold and italic, for a proportional fontFamily
         padding: '16px',
         
         // Mobile styles
@@ -648,11 +649,15 @@ class OverType {
      */
     _applyInstanceCSSVars() {
       if (!this.wrapper) return;
+      const { proportional } = this.options;
       const vars = [
         ['--instance-font-size', this.options.fontSize, styleDefaults.fontSize],
         ['--instance-line-height', this.options.lineHeight, styleDefaults.lineHeight],
         ['--instance-padding', this.options.padding, styleDefaults.padding],
-        ['--instance-font-family', this.options.fontFamily, styleDefaults.fontFamily]
+        ['--instance-font-family', this.options.fontFamily, styleDefaults.fontFamily],
+        ['--instance-bold-weight', proportional && 'normal'],
+        ['--instance-bold-stroke', proportional && '0.45px currentColor'],
+        ['--instance-italic-style', proportional && 'normal']
       ];
       for (const [name, value, fallback] of vars) {
         if (value && String(value) !== String(fallback)) {

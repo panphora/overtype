@@ -24,6 +24,7 @@ function setDocument(html) {
 
 setDocument('<!DOCTYPE html><html><head></head><body></body></html>');
 const { OverType } = await import('../src/overtype.js');
+const { generateStyles } = await import('../src/styles.js');
 
 const results = { passed: 0, failed: 0 };
 
@@ -286,6 +287,37 @@ console.log('🧪 Running DOM Persistence Tests...\n');
 
   editor.reinit({ fontSize: '14px' });
   assert(style.getPropertyValue('--instance-font-size') === '', 'going back to the default removes the var', editor.wrapper.getAttribute('style'));
+})();
+
+// The proportional option draws bold and italic without changing letter widths
+(() => {
+  reload(EMPTY_PAGE);
+  const editor = open({});
+  const style = editor.wrapper.style;
+  const vars = () => ['--instance-bold-weight', '--instance-bold-stroke', '--instance-italic-style'].map((name) => style.getPropertyValue(name)).join('|');
+  assert(vars() === '||', 'proportional is off by default and writes no vars', vars());
+
+  editor.reinit({ fontFamily: 'Georgia, serif', proportional: true });
+  assert(vars() === 'normal|0.45px currentColor|normal', 'proportional writes its vars', vars());
+
+  editor.reinit({ fontSize: '18px' });
+  assert(vars() === 'normal|0.45px currentColor|normal', 'an unrelated reinit keeps proportional on', vars());
+
+  editor.reinit({ proportional: false });
+  assert(vars() === '||', 'turning proportional off removes its vars', vars());
+
+  const css = generateStyles();
+  const rule = (selector) => css.split(selector + ' {')[1]?.split('}')[0] ?? '';
+  const preview = '.overtype-wrapper .overtype-preview';
+  for (const selector of [`${preview} .header`, `${preview} h3`, `${preview} strong`]) {
+    assert(rule(selector).includes('font-weight: var(--instance-bold-weight, bold) !important') && rule(selector).includes('-webkit-text-stroke: var(--instance-bold-stroke, 0);'),
+      `${selector} reads the bold vars, with real bold as the default`, rule(selector));
+  }
+  assert(rule(`${preview} em`).includes('font-style: var(--instance-italic-style, italic) !important'), 'em reads the italic var, with real italic as the default', rule(`${preview} em`));
+  assert(rule(`${preview} .syntax-marker`).includes('-webkit-text-stroke: 0;'), 'syntax markers inside bold stay unstroked', rule(`${preview} .syntax-marker`));
+  const previewMode = rule(`.overtype-container[data-mode="preview"] ${preview}`);
+  assert(previewMode.includes('--instance-bold-weight: bold') && previewMode.includes('--instance-bold-stroke: 0') && previewMode.includes('--instance-italic-style: italic'),
+    'preview mode resets the vars so it keeps real bold and italic', previewMode);
 })();
 
 const syncApplied = () => document.dispatchEvent(new window.CustomEvent('clay:sync-applied', { detail: { source: 'disk' } }));

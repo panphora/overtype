@@ -295,7 +295,8 @@ export function generateStyles(options = {}) {
 
     /* Markdown element styling - NO SIZE CHANGES */
     .overtype-wrapper .overtype-preview .header {
-      font-weight: bold !important;
+      font-weight: var(--instance-bold-weight, bold) !important;
+      -webkit-text-stroke: var(--instance-bold-stroke, 0);
     }
 
     /* Header colors */
@@ -314,7 +315,8 @@ export function generateStyles(options = {}) {
     .overtype-wrapper .overtype-preview h2,
     .overtype-wrapper .overtype-preview h3 {
       font-size: inherit !important;
-      font-weight: bold !important;
+      font-weight: var(--instance-bold-weight, bold) !important;
+      -webkit-text-stroke: var(--instance-bold-stroke, 0);
       margin: 0 !important;
       padding: 0 !important;
       display: inline !important;
@@ -351,7 +353,8 @@ export function generateStyles(options = {}) {
     /* Bold text */
     .overtype-wrapper .overtype-preview strong {
       color: var(--strong, #ee964b) !important;
-      font-weight: bold !important;
+      font-weight: var(--instance-bold-weight, bold) !important;
+      -webkit-text-stroke: var(--instance-bold-stroke, 0);
     }
 
     /* Italic text */
@@ -359,7 +362,7 @@ export function generateStyles(options = {}) {
       color: var(--em, #f95738) !important;
       text-decoration-color: var(--em, #f95738) !important;
       text-decoration-thickness: 1px !important;
-      font-style: italic !important;
+      font-style: var(--instance-italic-style, italic) !important;
     }
 
     /* Strikethrough text */
@@ -472,6 +475,7 @@ export function generateStyles(options = {}) {
     .overtype-wrapper .overtype-preview .syntax-marker {
       color: var(--syntax-marker, rgba(13, 59, 102, 0.52)) !important;
       opacity: 0.7 !important;
+      -webkit-text-stroke: 0;
     }
 
     /* List markers */
@@ -709,6 +713,13 @@ export function generateStyles(options = {}) {
     .overtype-container.overtype-auto-resize[data-mode="preview"] .overtype-preview {
       position: static !important;
       height: auto !important;
+    }
+
+    /* Preview mode never shares the textarea's letter widths, so it keeps real bold and italic */
+    .overtype-container[data-mode="preview"] .overtype-wrapper .overtype-preview {
+      --instance-bold-weight: bold;
+      --instance-bold-stroke: 0;
+      --instance-italic-style: italic;
     }
 
     /* Hide syntax markers in preview mode */

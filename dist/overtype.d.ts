@@ -109,6 +109,7 @@ export interface Options {
   fontSize?: string;
   lineHeight?: string | number;
   fontFamily?: string;
+  proportional?: boolean;
   padding?: string;
 
   // Mobile responsive
