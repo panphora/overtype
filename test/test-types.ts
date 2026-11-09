@@ -158,4 +158,13 @@ restricted.setCustomSyntax((html: string) => html);
 restricted.setCustomSyntax(false);
 OverType.setCustomSyntax(null);
 
+// Test translated toolbar labels
+const [translated] = new OverType('#translated', {
+  toolbar: true,
+  labels: { toolbar: 'Formatierung', viewMode: 'Ansicht', viewModes: { preview: 'Vorschau' }, buttons: { bold: 'Fett' } }
+});
+translated.reinit({ labels: { buttons: { italic: 'Kursiv' } } });
+const englishBold: string = OverType.defaultLabels.viewModes.normal;
+console.log('Default labels:', englishBold);
+
 console.log('TypeScript definitions test completed successfully!');

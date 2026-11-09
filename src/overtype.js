@@ -8,7 +8,7 @@ import { MarkdownParser } from './parser.js';
 import { ShortcutsManager } from './shortcuts.js';
 import { generateStyles, styleDefaults } from './styles.js';
 import { getTheme, mergeTheme, solar, themeToCSSVars, resolveAutoTheme } from './themes.js';
-import { Toolbar } from './toolbar.js';
+import { Toolbar, defaultLabels } from './toolbar.js';
 import { LinkTooltip } from './link-tooltip.js';
 import { defaultToolbarButtons, toolbarButtons as builtinToolbarButtons } from './toolbar-buttons.js';
 import { scanFenceOpen, scanFenceClose } from './block-scanner.js';
@@ -265,6 +265,7 @@ class OverType {
         showStats: false,
         toolbar: false,
         toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
+        labels: null,          // The toolbar's words in another language (see defaultLabels)
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
         clickToToggleTasks: false,
@@ -585,7 +586,7 @@ class OverType {
 
       toolbarButtons = this._withoutDisabledButtons(toolbarButtons);
 
-      this.toolbar = new Toolbar(this, { toolbarButtons });
+      this.toolbar = new Toolbar(this, { toolbarButtons, labels: this.options.labels });
       this.toolbar.create();
 
 
@@ -1531,11 +1532,13 @@ class OverType {
     reinit(options = {}) {
       const prevToolbarButtons = this.options?.toolbarButtons;
       const prevDisable = this.options?.disable;
+      const prevLabels = JSON.stringify(this.options?.labels ?? null);
       this.options = this._mergeOptions({ ...this.options, ...options });
       const toolbarNeedsRebuild = this.toolbar &&
         this.options.toolbar &&
         (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) ||
-          String(prevDisable) !== String(this.options.disable));
+          String(prevDisable) !== String(this.options.disable) ||
+          prevLabels !== JSON.stringify(this.options.labels ?? null));
 
       // Rebuild action map in case toolbarButtons changed
       this._rebuildActionsMap();
@@ -2363,6 +2366,7 @@ OverType.ShortcutsManager = ShortcutsManager;
 // Export theme utilities
 OverType.themes = { solar, cave: getTheme('cave') };
 OverType.getTheme = getTheme;
+OverType.defaultLabels = defaultLabels;
 
 // Set default theme
 OverType.currentTheme = solar;
@@ -2373,6 +2377,7 @@ export { OverType };
 
 // Export toolbar buttons for custom toolbar configurations
 export { toolbarButtons, defaultToolbarButtons } from './toolbar-buttons.js';
+export { defaultLabels } from './toolbar.js';
 
 // Re-export markdown-actions. Useful for custom toolbar implementations
 export * as markdownActions from 'markdown-actions';

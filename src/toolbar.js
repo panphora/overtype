@@ -6,6 +6,27 @@
 import * as markdownActions from 'markdown-actions';
 import { formatShortcut } from './shortcuts.js';
 
+/**
+ * The toolbar's own words, in English. Pass `labels` to translate them: any part you leave out keeps
+ * its English. `buttons` maps a button's name to its title (a shortcut is still added in brackets).
+ */
+export const defaultLabels = Object.freeze({
+  toolbar: 'Formatting toolbar',
+  viewMode: 'View mode',
+  viewModes: Object.freeze({ normal: 'Normal Edit', plain: 'Plain Textarea', preview: 'Preview Mode' }),
+  buttons: Object.freeze({})
+});
+
+export function mergeLabels(labels) {
+  const own = labels && typeof labels === 'object' ? labels : {};
+  return {
+    toolbar: own.toolbar ?? defaultLabels.toolbar,
+    viewMode: own.viewMode ?? defaultLabels.viewMode,
+    viewModes: { ...defaultLabels.viewModes, ...(own.viewModes || {}) },
+    buttons: { ...(own.buttons || {}) }
+  };
+}
+
 export class Toolbar {
   constructor(editor, options = {}) {
     this.editor = editor;
@@ -18,6 +39,7 @@ export class Toolbar {
 
     // Get toolbar buttons array
     this.toolbarButtons = options.toolbarButtons || [];
+    this.labels = mergeLabels(options.labels);
   }
 
   /**
@@ -29,7 +51,7 @@ export class Toolbar {
     this.editor._markChrome(this.container);
     this.container.id = this.getInstanceElementId('toolbar');
     this.container.setAttribute('role', 'toolbar');
-    this.container.setAttribute('aria-label', 'Formatting toolbar');
+    this.container.setAttribute('aria-label', this.labels.toolbar);
     this.container.setAttribute('aria-controls', this.editor.textarea.id);
 
     // Create buttons from toolbarButtons array
@@ -198,7 +220,7 @@ export class Toolbar {
     button.className = 'overtype-toolbar-button';
     button.type = 'button';
     button.setAttribute('data-button', buttonConfig.name);
-    const title = buttonConfig.title || '';
+    const title = this.labels.buttons[buttonConfig.name] ?? buttonConfig.title ?? '';
     const label = buttonConfig.shortcut ? `${title} (${formatShortcut(buttonConfig.shortcut)})`.trim() : title;
     button.title = label;
     button.setAttribute('aria-label', label || buttonConfig.name);
@@ -379,16 +401,16 @@ export class Toolbar {
     this.editor._markChrome(dropdown);
     dropdown.id = this.getInstanceElementId('toolbar-view-mode-menu');
     dropdown.setAttribute('role', 'menu');
-    dropdown.setAttribute('aria-label', 'View mode');
+    dropdown.setAttribute('aria-label', this.labels.viewMode);
 
     dropdown.addEventListener('keydown', (e) => {
       this.onViewModeMenuKeydown(e, button);
     });
 
     const items = [
-      { id: 'normal', label: 'Normal Edit', icon: '✓' },
-      { id: 'plain', label: 'Plain Textarea', icon: '✓' },
-      { id: 'preview', label: 'Preview Mode', icon: '✓' }
+      { id: 'normal', label: this.labels.viewModes.normal, icon: '✓' },
+      { id: 'plain', label: this.labels.viewModes.plain, icon: '✓' },
+      { id: 'preview', label: this.labels.viewModes.preview, icon: '✓' }
     ];
 
     const currentMode = this.editor.container.dataset.mode || 'normal';

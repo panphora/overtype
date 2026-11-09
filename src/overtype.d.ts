@@ -67,6 +67,20 @@ export interface Stats {
 /**
  * Toolbar button definition
  */
+/**
+ * The toolbar's own words (defaults in English: OverType.defaultLabels). Parts left out keep their English.
+ */
+export interface Labels {
+  /** The toolbar's accessible name */
+  toolbar?: string;
+  /** The view mode menu's accessible name */
+  viewMode?: string;
+  /** The view mode menu's items */
+  viewModes?: { normal?: string; plain?: string; preview?: string };
+  /** Button titles by button name, e.g. { bold: 'Fett' }; a shortcut is still added in brackets */
+  buttons?: Record<string, string>;
+}
+
 export interface ToolbarButton {
   /** Unique button identifier */
   name: string;
@@ -131,6 +145,7 @@ export interface Options {
   showStats?: boolean;
   toolbar?: boolean;
   toolbarButtons?: ToolbarButton[];  // Custom toolbar button configuration
+  labels?: Labels;            // The toolbar's words in another language
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   clickToToggleTasks?: boolean;  // Click inside a rendered task's brackets to toggle its state (default: false)
   spellcheck?: boolean;       // Browser spellcheck (default: false)
@@ -189,6 +204,7 @@ export interface OverTypeConstructor {
   setCustomSyntax(processor: ((html: string) => string) | null): void;
   initGlobalListeners(): void;
   getTheme(name: string): Theme;
+  defaultLabels: Required<Omit<Labels, 'viewModes' | 'buttons'>> & { viewModes: Required<NonNullable<Labels['viewModes']>>; buttons: Record<string, string> };
 }
 
 export interface RenderOptions {
