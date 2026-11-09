@@ -121,8 +121,8 @@ export interface Options {
   // Behavior
   autofocus?: boolean;
   autoResize?: boolean;      // v1.1.2+ Auto-expand height with content
-  minHeight?: string;         // v1.1.2+ Minimum height for autoResize mode
-  maxHeight?: string | null;  // v1.1.2+ Maximum height for autoResize mode
+  minHeight?: string | number | null;  // v1.1.2+ Minimum height for autoResize mode (px, rem, em, vh, vw, vmin, vmax; null = none)
+  maxHeight?: string | number | null;  // v1.1.2+ Maximum height for autoResize mode (px, rem, em, vh, vw, vmin, vmax)
   placeholder?: string;
   value?: string;
 

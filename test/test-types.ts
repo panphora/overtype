@@ -158,4 +158,8 @@ restricted.setCustomSyntax((html: string) => html);
 restricted.setCustomSyntax(false);
 OverType.setCustomSyntax(null);
 
+// Test autoResize limits: CSS units, numbers, and null for no limit
+const [sized] = new OverType('#sized', { autoResize: true, minHeight: null, maxHeight: '60vh' });
+sized.reinit({ minHeight: 120, maxHeight: null });
+
 console.log('TypeScript definitions test completed successfully!');
