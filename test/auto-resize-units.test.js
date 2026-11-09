@@ -59,6 +59,7 @@ assert(heightWith({ minHeight: '120px' }, 1) === '120px', 'px as before');
 assert(heightWith({ minHeight: 90 }, 1) === '90px', 'a number is pixels');
 assert(heightWith({ minHeight: '150' }, 1) === '150px', 'a unitless string is pixels, as before');
 assert(heightWith({ maxHeight: null }, 100) === '2000px', 'no maxHeight: no limit');
+assert(heightWith({ minHeight: null }, 1) === '20px', 'minHeight: null removes the 100px default', heightWith({ minHeight: null }, 1));
 assert(heightWith({ minHeight: '100px', maxHeight: '30vh' }, 3) === '100px', 'min and max together (min wins below max)');
 assert(heightWith({ maxHeight: 'calc(50vh - 10px)' }, 100) === '2000px', 'an unsupported value is no limit, as before');
 {
