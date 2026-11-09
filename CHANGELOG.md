@@ -11,6 +11,7 @@
 - Keyboard shortcuts for inline code (Cmd/Ctrl+E), headings (Cmd/Ctrl+Alt+1, 2, 3), task lists (Cmd/Ctrl+Shift+9) and quotes (Cmd/Ctrl+Shift+.), shown in their toolbar tooltips.
 
 ### Fixed
+- `minHeight` and `maxHeight` take CSS units with `autoResize`: `rem`, `em`, `vh`, `vw`, `vmin` and `vmax` are converted to pixels (viewport units follow the window on resize). They were read with `parseInt`, so `maxHeight: '60vh'` capped the editor at 60 pixels.
 - Indenting or outdenting keeps the cursor and selection on the same text, instead of selecting the whole line.
 - Enter with the cursor before or inside a list marker moves the item down, instead of adding a second marker.
 - Cmd/Ctrl+Shift+7 and 8 match the physical key, so they no longer depend on what Shift makes that key type.

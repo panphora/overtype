@@ -1724,6 +1724,43 @@ class OverType {
      * Update height based on scrollHeight
      * @private
      */
+    /**
+     * Convert a minHeight / maxHeight value to pixels, so autoResize honours CSS units.
+     * Numbers and px are pixels; rem uses the root font size, em the editor's own,
+     * vh, vw, vmin and vmax the window, read on every resize so they follow it.
+     * Anything else keeps the old reading (its leading number as pixels).
+     * @param {string|number|null|undefined} value
+     * @returns {number|null} Pixels, or null for no limit
+     * @private
+     */
+    _lengthToPx(value) {
+      if (value === null || value === undefined || value === '') return null;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+      const match = /^\s*(-?\d*\.?\d+)\s*(px|rem|em|vh|vw|vmin|vmax)?\s*$/i.exec(String(value));
+      if (!match) {
+        const legacy = parseFloat(value);
+        return Number.isFinite(legacy) ? legacy : null;
+      }
+      const amount = parseFloat(match[1]);
+      const unit = (match[2] || 'px').toLowerCase();
+      const fontSize = (el) => {
+        const size = el && window.getComputedStyle ? parseFloat(window.getComputedStyle(el).fontSize) : NaN;
+        return Number.isFinite(size) && size > 0 ? size : 16;
+      };
+      const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+      const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      const px = {
+        rem: () => amount * fontSize(document.documentElement),
+        em: () => amount * fontSize(this.textarea || this.wrapper),
+        vh: () => amount * vh / 100,
+        vw: () => amount * vw / 100,
+        vmin: () => amount * Math.min(vw, vh) / 100,
+        vmax: () => amount * Math.max(vw, vh) / 100,
+        px: () => amount
+      }[unit]();
+      return Math.round(px);
+    }
+
     _updateAutoHeight() {
       if (!this.options.autoResize) return;
 
@@ -1754,15 +1791,15 @@ class OverType {
       let newHeight = textarea.scrollHeight;
 
       // Apply min height constraint
-      if (this.options.minHeight) {
-        const minHeight = parseInt(this.options.minHeight);
+      const minHeight = this._lengthToPx(this.options.minHeight);
+      if (minHeight !== null) {
         newHeight = Math.max(newHeight, minHeight);
       }
 
       // Apply max height constraint
       let overflow = 'hidden';
-      if (this.options.maxHeight) {
-        const maxHeight = parseInt(this.options.maxHeight);
+      const maxHeight = this._lengthToPx(this.options.maxHeight);
+      if (maxHeight !== null) {
         if (newHeight > maxHeight) {
           newHeight = maxHeight;
           overflow = 'auto';
