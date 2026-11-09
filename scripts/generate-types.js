@@ -223,6 +223,7 @@ export interface Options {
   showStats?: boolean;
   toolbar?: boolean;
   toolbarButtons?: ToolbarButton[];  // Custom toolbar button configuration
+  dir?: 'ltr' | 'rtl' | 'auto';  // Writing direction ('auto' follows the page)
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   clickToToggleTasks?: boolean;  // Click inside a rendered task's brackets to toggle its state (default: false)
   spellcheck?: boolean;       // Browser spellcheck (default: false)

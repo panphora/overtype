@@ -158,4 +158,8 @@ restricted.setCustomSyntax((html: string) => html);
 restricted.setCustomSyntax(false);
 OverType.setCustomSyntax(null);
 
+// Test the writing direction
+const [hebrew] = new OverType('#hebrew', { dir: 'rtl' });
+hebrew.reinit({ dir: 'auto' });
+
 console.log('TypeScript definitions test completed successfully!');
