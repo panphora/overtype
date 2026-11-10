@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- A `dir` option writes from right to left (`'rtl'`) or follows the page (`'auto'`). The container, textarea and preview get the same direction, so the overlay stays aligned; alignment turns to the right, and preview mode puts list indents, task boxes and quote bars on the right. The default stays `'ltr'`. Hebrew works with monospace fonts, Arabic with `proportional: true`.
 - A `proportional` option keeps letter widths the same in bold and italic while editing, so the cursor stays on the text with a proportional `fontFamily`. It draws bold as a thin stroke and turns off the slant, preview mode keeps real bold and italic, and a stylesheet can set the same `--instance-bold-weight`, `--instance-bold-stroke` and `--instance-italic-style` variables.
 - A `linkActions` option shows the link popover for your own text patterns, such as `[[2026-10-06]]`, and runs your action on click.
 - Indent and outdent toolbar buttons, in the default toolbar and as `toolbarButtons.indent` and `toolbarButtons.outdent`.

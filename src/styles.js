@@ -97,6 +97,22 @@ export function generateStyles(options = {}) {
     .overtype-container .overtype-wrapper * {
       text-align: left !important;
     }
+
+    /* Right to left (the dir option): both layers flow the same way, so the overlay stays aligned */
+    .overtype-container[dir="rtl"],
+    .overtype-container[dir="rtl"] .overtype-wrapper * {
+      text-align: right !important;
+    }
+
+    .overtype-container[dir="rtl"] .overtype-wrapper .overtype-input,
+    .overtype-container[dir="rtl"] .overtype-wrapper .overtype-preview {
+      direction: rtl !important;
+      text-align: right !important;
+    }
+
+    .overtype-container[dir="rtl"] .overtype-wrapper .overtype-preview div {
+      text-align: right !important;
+    }
     
     /* Auto-resize mode styles */
     .overtype-container.overtype-auto-resize {
@@ -797,6 +813,18 @@ export function generateStyles(options = {}) {
       vertical-align: middle !important;
     }
 
+    /* Preview mode, right to left: lists, task boxes and quotes on the other side */
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview ul,
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview ol {
+      padding-left: 0 !important;
+      padding-right: 2em !important;
+    }
+
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview li.task-list input[type="checkbox"] {
+      margin-right: 0 !important;
+      margin-left: 0.5em !important;
+    }
+
     /* Task list in normal mode - keep syntax visible */
     .overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview li.task-list {
       list-style: none !important;
@@ -852,6 +880,13 @@ export function generateStyles(options = {}) {
       padding-left: 1em !important;
       margin: 1em 0 !important;
       font-style: italic !important;
+    }
+
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview .blockquote {
+      border-left: none !important;
+      border-right: 4px solid var(--preview-blockquote, var(--preview-blockquote-default)) !important;
+      padding-left: 0 !important;
+      padding-right: 1em !important;
     }
 
     /* Typography improvements in preview mode */

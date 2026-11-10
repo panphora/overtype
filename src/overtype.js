@@ -265,6 +265,7 @@ class OverType {
         showStats: false,
         toolbar: false,
         toolbarButtons: null,  // Defaults to defaultToolbarButtons if toolbar: true
+        dir: 'ltr',            // Writing direction: 'ltr', 'rtl', or 'auto' (follow the page)
         statsFormatter: null,
         smartLists: true,  // Enable smart list continuation
         clickToToggleTasks: false,
@@ -669,12 +670,33 @@ class OverType {
     }
 
     /**
+     * Apply the `dir` option: 'ltr' (default), 'rtl', or 'auto' (the page's direction where the editor sits).
+     * @private
+     */
+    _applyDirection() {
+      let dir = this.options.dir;
+      if (dir === 'auto') {
+        // the computed direction where the editor sits; the nearest dir attribute where styles aren't computed
+        const from = this.container.parentElement || this.element;
+        const css = from && window.getComputedStyle ? window.getComputedStyle(from).direction : '';
+        dir = css === 'rtl' || css === 'ltr' ? css : (from?.closest?.('[dir]')?.getAttribute('dir') || 'ltr');
+      }
+      dir = dir === 'rtl' ? 'rtl' : 'ltr';
+      this.container.setAttribute('dir', dir);
+      this.textarea.setAttribute('dir', dir);
+      this.preview?.setAttribute('dir', dir);
+    }
+
+    /**
      * Apply options to the editor
      * @private
      */
     _applyOptions() {
       // Re-apply instance-specific CSS vars so reinit() picks up font/padding changes
       this._applyInstanceCSSVars();
+
+      // Writing direction (both layers must agree, so it's set on the container and the textarea)
+      this._applyDirection();
 
       // Apply autofocus
       if (this.options.autofocus) {
