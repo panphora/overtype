@@ -95,6 +95,31 @@ editor.reinit({ labels: { buttons: { bold: 'Gras' } } });
 assert(/^Gras \(/.test(titleOf(editor, 'bold')), 'reinit applies new labels', titleOf(editor, 'bold'));
 assert(editor.toolbar.container.getAttribute('aria-label') === 'Formatting toolbar', 'what the new labels leave out is English again');
 
+// labels are the object's own keys: a button named after an Object.prototype member keeps its title
+editor = createEditor({ toolbarButtons: ['toString', 'constructor', '__proto__'].map(name => ({ name, title: 'Mine ' + name, icon: '<svg></svg>', action() {} })),
+                        labels: { buttons: {} } });
+assert(['toString', 'constructor', '__proto__'].every(n => titleOf(editor, n) === 'Mine ' + n), 'inherited names are not labels',
+       ['toString', 'constructor', '__proto__'].map(n => titleOf(editor, n)).join(' / '));
+const own = JSON.parse('{"buttons": {"__proto__": "Eigen"}}');
+editor = createEditor({ toolbarButtons: [{ name: '__proto__', title: 'Mine', icon: '<svg></svg>', action() {} }], labels: own });
+assert(titleOf(editor, '__proto__') === 'Eigen', 'an own key of that name is a label', titleOf(editor, '__proto__'));
+
+// a view mode label left undefined keeps its English
+editor = createEditor({ labels: { viewModes: { normal: undefined, preview: 'Vorschau' } } });
+button(editor, 'viewMode').click();
+const modes = Array.from(document.querySelectorAll('.overtype-dropdown-menu .overtype-dropdown-item')).map(i => i.textContent.replace('✓', '').trim());
+assert(JSON.stringify(modes) === JSON.stringify(['Normal Edit', 'Plain Textarea', 'Vorschau']), 'undefined keeps its English', JSON.stringify(modes));
+document.body.click();
+
+// the same labels object changed in place, then reinit: the toolbar shows the change
+const shared = { buttons: { bold: 'Fett' } };
+editor = createEditor({ labels: shared });
+shared.buttons.bold = 'Dick';
+editor.reinit({ labels: shared });
+assert(/^Dick \(/.test(titleOf(editor, 'bold')), 'changes in place are picked up', titleOf(editor, 'bold'));
+editor.reinit({ placeholder: 'y' });
+assert(/^Dick \(/.test(titleOf(editor, 'bold')), 'and kept');
+
 // a toolbar shown with showToolbar() on an editor created without one survives reinit, also a labels rebuild
 editor = createEditor({ toolbar: false });
 editor.showToolbar();

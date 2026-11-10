@@ -8,7 +8,7 @@ import { MarkdownParser } from './parser.js';
 import { ShortcutsManager } from './shortcuts.js';
 import { generateStyles, styleDefaults } from './styles.js';
 import { getTheme, mergeTheme, solar, themeToCSSVars, resolveAutoTheme } from './themes.js';
-import { Toolbar, defaultLabels } from './toolbar.js';
+import { Toolbar, defaultLabels, labelsKey } from './toolbar.js';
 import { LinkTooltip } from './link-tooltip.js';
 import { defaultToolbarButtons, toolbarButtons as builtinToolbarButtons } from './toolbar-buttons.js';
 import { scanFenceOpen, scanFenceClose } from './block-scanner.js';
@@ -1532,7 +1532,6 @@ class OverType {
     reinit(options = {}) {
       const prevToolbarButtons = this.options?.toolbarButtons;
       const prevDisable = this.options?.disable;
-      const prevLabels = JSON.stringify(this.options?.labels ?? null);
       this.options = this._mergeOptions({ ...this.options, ...options });
       // a toolbar shown with showToolbar() stays, unless this call turns it off
       if (this.toolbar && !('toolbar' in options)) {
@@ -1542,7 +1541,7 @@ class OverType {
         this.options.toolbar &&
         (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) ||
           String(prevDisable) !== String(this.options.disable) ||
-          prevLabels !== JSON.stringify(this.options.labels ?? null));
+          this.toolbar.labelsKey !== labelsKey(this.options.labels));   // (against what it was built with: the same object, changed in place, counts)
 
       // Rebuild action map in case toolbarButtons changed
       this._rebuildActionsMap();

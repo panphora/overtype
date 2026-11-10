@@ -4105,20 +4105,39 @@ var defaultLabels = Object.freeze({
   toolbar: "Formatting toolbar",
   viewMode: "View mode",
   viewModes: Object.freeze({ normal: "Normal Edit", plain: "Plain Textarea", preview: "Preview Mode" }),
-  buttons: Object.freeze(Object.fromEntries(
-    Object.values(toolbarButtons).filter((b) => b && b.name && b.title).map((b) => [b.name, b.title])
-  ))
+  // (a loop, not Object.fromEntries: the browser build supports Chrome 62)
+  buttons: Object.freeze(Object.values(toolbarButtons).reduce((titles, b) => {
+    if (b && b.name && b.title)
+      titles[b.name] = b.title;
+    return titles;
+  }, {}))
 });
+var hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 function mergeLabels(labels) {
-  var _a, _b;
+  var _a, _b, _c, _d, _e;
   const own = labels && typeof labels === "object" ? labels : {};
+  const modes = own.viewModes && typeof own.viewModes === "object" ? own.viewModes : {};
+  const buttons = /* @__PURE__ */ Object.create(null);
+  if (own.buttons && typeof own.buttons === "object") {
+    for (const key of Object.keys(own.buttons)) {
+      if (typeof own.buttons[key] === "string")
+        buttons[key] = own.buttons[key];
+    }
+  }
   return {
     toolbar: (_a = own.toolbar) != null ? _a : defaultLabels.toolbar,
     viewMode: (_b = own.viewMode) != null ? _b : defaultLabels.viewMode,
-    viewModes: { ...defaultLabels.viewModes, ...own.viewModes || {} },
-    // only the labels given: a button's own title (a custom one too) stays unless they name it
-    buttons: { ...own.buttons || {} }
+    viewModes: {
+      normal: (_c = modes.normal) != null ? _c : defaultLabels.viewModes.normal,
+      plain: (_d = modes.plain) != null ? _d : defaultLabels.viewModes.plain,
+      preview: (_e = modes.preview) != null ? _e : defaultLabels.viewModes.preview
+    },
+    buttons
   };
+}
+function labelsKey(labels) {
+  const merged = mergeLabels(labels);
+  return JSON.stringify([merged.toolbar, merged.viewMode, merged.viewModes, Object.keys(merged.buttons).sort().map((k) => [k, merged.buttons[k]])]);
 }
 var Toolbar = class {
   constructor(editor, options = {}) {
@@ -4131,6 +4150,7 @@ var Toolbar = class {
     this.activeDropdownButton = null;
     this.toolbarButtons = options.toolbarButtons || [];
     this.labels = mergeLabels(options.labels);
+    this.labelsKey = labelsKey(options.labels);
   }
   /**
    * Create and render toolbar
@@ -4276,12 +4296,12 @@ var Toolbar = class {
    * Create a toolbar button
    */
   createButton(buttonConfig) {
-    var _a, _b;
+    var _a;
     const button = document.createElement("button");
     button.className = "overtype-toolbar-button";
     button.type = "button";
     button.setAttribute("data-button", buttonConfig.name);
-    const title = (_b = (_a = this.labels.buttons[buttonConfig.name]) != null ? _a : buttonConfig.title) != null ? _b : "";
+    const title = (_a = hasOwn(this.labels.buttons, buttonConfig.name) ? this.labels.buttons[buttonConfig.name] : buttonConfig.title) != null ? _a : "";
     const label = buttonConfig.shortcut ? `${title} (${formatShortcut(buttonConfig.shortcut)})`.trim() : title;
     button.title = label;
     button.setAttribute("aria-label", label || buttonConfig.name);
@@ -7375,18 +7395,17 @@ var _OverType = class _OverType {
    * @param {Object} options - New options to apply
    */
   reinit(options = {}) {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c;
     const prevToolbarButtons = (_a = this.options) == null ? void 0 : _a.toolbarButtons;
     const prevDisable = (_b = this.options) == null ? void 0 : _b.disable;
-    const prevLabels = JSON.stringify((_d = (_c = this.options) == null ? void 0 : _c.labels) != null ? _d : null);
     this.options = this._mergeOptions({ ...this.options, ...options });
     if (this.toolbar && !("toolbar" in options)) {
       this.options.toolbar = true;
     }
-    const toolbarNeedsRebuild = this.toolbar && this.options.toolbar && (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) || String(prevDisable) !== String(this.options.disable) || prevLabels !== JSON.stringify((_e = this.options.labels) != null ? _e : null));
+    const toolbarNeedsRebuild = this.toolbar && this.options.toolbar && (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) || String(prevDisable) !== String(this.options.disable) || this.toolbar.labelsKey !== labelsKey(this.options.labels));
     this._rebuildActionsMap();
     if (toolbarNeedsRebuild) {
-      const wasHidden = !!((_f = this.toolbar.container) == null ? void 0 : _f.classList.contains("overtype-toolbar-hidden"));
+      const wasHidden = !!((_c = this.toolbar.container) == null ? void 0 : _c.classList.contains("overtype-toolbar-hidden"));
       this._cleanupToolbarListeners();
       this.toolbar.destroy();
       this.toolbar = null;
