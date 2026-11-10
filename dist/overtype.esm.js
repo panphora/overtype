@@ -1866,6 +1866,22 @@ function generateStyles(options = {}) {
     .overtype-container .overtype-wrapper * {
       text-align: left !important;
     }
+
+    /* Right to left (the dir option): both layers flow the same way, so the overlay stays aligned */
+    .overtype-container[dir="rtl"],
+    .overtype-container[dir="rtl"] .overtype-wrapper * {
+      text-align: right !important;
+    }
+
+    .overtype-container[dir="rtl"] .overtype-wrapper .overtype-input,
+    .overtype-container[dir="rtl"] .overtype-wrapper .overtype-preview {
+      direction: rtl !important;
+      text-align: right !important;
+    }
+
+    .overtype-container[dir="rtl"] .overtype-wrapper .overtype-preview div {
+      text-align: right !important;
+    }
     
     /* Auto-resize mode styles */
     .overtype-container.overtype-auto-resize {
@@ -2566,6 +2582,18 @@ function generateStyles(options = {}) {
       vertical-align: middle !important;
     }
 
+    /* Preview mode, right to left: lists, task boxes and quotes on the other side */
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview ul,
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview ol {
+      padding-left: 0 !important;
+      padding-right: 2em !important;
+    }
+
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview li.task-list input[type="checkbox"] {
+      margin-right: 0 !important;
+      margin-left: 0.5em !important;
+    }
+
     /* Task list in normal mode - keep syntax visible */
     .overtype-container:not([data-mode="preview"]) .overtype-wrapper .overtype-preview li.task-list {
       list-style: none !important;
@@ -2621,6 +2649,13 @@ function generateStyles(options = {}) {
       padding-left: 1em !important;
       margin: 1em 0 !important;
       font-style: italic !important;
+    }
+
+    .overtype-container[dir="rtl"][data-mode="preview"] .overtype-wrapper .overtype-preview .blockquote {
+      border-left: none !important;
+      border-right: 4px solid var(--preview-blockquote, var(--preview-blockquote-default)) !important;
+      padding-left: 0 !important;
+      padding-right: 1em !important;
     }
 
     /* Typography improvements in preview mode */
@@ -2693,7 +2728,7 @@ function generateStyles(options = {}) {
   `;
 }
 
-// node_modules/markdown-actions/dist/markdown-actions.esm.js
+// ../overtype/node_modules/markdown-actions/dist/markdown-actions.esm.js
 var markdown_actions_esm_exports = {};
 __export(markdown_actions_esm_exports, {
   applyCustomFormat: () => applyCustomFormat,
@@ -4244,7 +4279,7 @@ var Toolbar = class {
   }
 };
 
-// node_modules/@floating-ui/utils/dist/floating-ui.utils.mjs
+// ../overtype/node_modules/@floating-ui/utils/dist/floating-ui.utils.mjs
 var min = Math.min;
 var max = Math.max;
 var round = Math.round;
@@ -4375,7 +4410,7 @@ function rectToClientRect(rect) {
   };
 }
 
-// node_modules/@floating-ui/core/dist/floating-ui.core.mjs
+// ../overtype/node_modules/@floating-ui/core/dist/floating-ui.core.mjs
 function computeCoordsFromPlacement(_ref, placement, rtl) {
   let {
     reference,
@@ -4825,7 +4860,7 @@ var shift = function(options) {
   };
 };
 
-// node_modules/@floating-ui/utils/dist/floating-ui.utils.dom.mjs
+// ../overtype/node_modules/@floating-ui/utils/dist/floating-ui.utils.dom.mjs
 function hasWindow() {
   return typeof window !== "undefined";
 }
@@ -4979,7 +5014,7 @@ function getFrameElement(win) {
   return win.parent && Object.getPrototypeOf(win.parent) ? win.frameElement : null;
 }
 
-// node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
+// ../overtype/node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
 function getCssDimensions(element) {
   const css = getComputedStyle2(element);
   let width = parseFloat(css.width) || 0;
@@ -6292,6 +6327,8 @@ var _OverType = class _OverType {
       toolbar: false,
       toolbarButtons: null,
       // Defaults to defaultToolbarButtons if toolbar: true
+      dir: "ltr",
+      // Writing direction: 'ltr', 'rtl', or 'auto' (follow the page)
       statsFormatter: null,
       smartLists: true,
       // Enable smart list continuation
@@ -6616,11 +6653,29 @@ var _OverType = class _OverType {
     }
   }
   /**
+   * Apply the `dir` option: 'ltr' (default), 'rtl', or 'auto' (the page's direction where the editor sits).
+   * @private
+   */
+  _applyDirection() {
+    var _a, _b, _c;
+    let dir = this.options.dir;
+    if (dir === "auto") {
+      const from = this.container.parentElement || this.element;
+      const css = from && window.getComputedStyle ? window.getComputedStyle(from).direction : "";
+      dir = css === "rtl" || css === "ltr" ? css : ((_b = (_a = from == null ? void 0 : from.closest) == null ? void 0 : _a.call(from, "[dir]")) == null ? void 0 : _b.getAttribute("dir")) || "ltr";
+    }
+    dir = dir === "rtl" ? "rtl" : "ltr";
+    this.container.setAttribute("dir", dir);
+    this.textarea.setAttribute("dir", dir);
+    (_c = this.preview) == null ? void 0 : _c.setAttribute("dir", dir);
+  }
+  /**
    * Apply options to the editor
    * @private
    */
   _applyOptions() {
     this._applyInstanceCSSVars();
+    this._applyDirection();
     if (this.options.autofocus) {
       this.textarea.focus();
     }

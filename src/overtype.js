@@ -670,10 +670,6 @@ class OverType {
     }
 
     /**
-     * Apply options to the editor
-     * @private
-     */
-    /**
      * Apply the `dir` option: 'ltr' (default), 'rtl', or 'auto' (the page's direction where the editor sits).
      * @private
      */
@@ -691,6 +687,10 @@ class OverType {
       this.preview?.setAttribute('dir', dir);
     }
 
+    /**
+     * Apply options to the editor
+     * @private
+     */
     _applyOptions() {
       // Re-apply instance-specific CSS vars so reinit() picks up font/padding changes
       this._applyInstanceCSSVars();
