@@ -5,16 +5,20 @@
 
 import * as markdownActions from 'markdown-actions';
 import { formatShortcut } from './shortcuts.js';
+import { toolbarButtons as builtinButtons } from './toolbar-buttons.js';
 
 /**
  * The toolbar's own words, in English. Pass `labels` to translate them: any part you leave out keeps
- * its English. `buttons` maps a button's name to its title (a shortcut is still added in brackets).
+ * its English. `buttons` maps a button's name to its title (a shortcut is still added in brackets);
+ * here it lists the built-in buttons' titles.
  */
 export const defaultLabels = Object.freeze({
   toolbar: 'Formatting toolbar',
   viewMode: 'View mode',
   viewModes: Object.freeze({ normal: 'Normal Edit', plain: 'Plain Textarea', preview: 'Preview Mode' }),
-  buttons: Object.freeze({})
+  buttons: Object.freeze(Object.fromEntries(
+    Object.values(builtinButtons).filter(b => b && b.name && b.title).map(b => [b.name, b.title])
+  ))
 });
 
 export function mergeLabels(labels) {
@@ -23,6 +27,7 @@ export function mergeLabels(labels) {
     toolbar: own.toolbar ?? defaultLabels.toolbar,
     viewMode: own.viewMode ?? defaultLabels.viewMode,
     viewModes: { ...defaultLabels.viewModes, ...(own.viewModes || {}) },
+    // only the labels given: a button's own title (a custom one too) stays unless they name it
     buttons: { ...(own.buttons || {}) }
   };
 }

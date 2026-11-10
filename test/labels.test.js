@@ -61,6 +61,8 @@ assert(editor.toolbar.container.getAttribute('aria-label') === 'Formatting toolb
 assert(titleOf(editor, 'bold').startsWith('Bold ('), 'built-in titles by default', titleOf(editor, 'bold'));
 assert(defaultLabels.viewModes.preview === 'Preview Mode' && OverType.defaultLabels === defaultLabels, 'defaultLabels exported, also on OverType');
 assert(Object.isFrozen(defaultLabels) && Object.isFrozen(defaultLabels.viewModes), 'defaultLabels cannot be changed by accident');
+assert(defaultLabels.buttons.bold === 'Bold' && defaultLabels.buttons.bulletList === toolbarButtons.bulletList.title, "the built-in buttons' English titles");
+assert(Object.isFrozen(defaultLabels.buttons), 'their titles too');
 
 // Translated
 editor = createEditor({ labels: german });
@@ -84,12 +86,30 @@ editor = createEditor({
   labels: { buttons: { save: 'Speichern' } }
 });
 assert(titleOf(editor, 'save') === 'Speichern', 'a custom button by name');
+editor = createEditor({ toolbarButtons: [{ ...toolbarButtons.bold, title: 'Strong' }] });
+assert(/^Strong/.test(titleOf(editor, 'bold')), "a button's own title stays when labels don't name it", titleOf(editor, 'bold'));
 
 // reinit with other labels rebuilds the toolbar
 editor = createEditor({ labels: german });
 editor.reinit({ labels: { buttons: { bold: 'Gras' } } });
 assert(/^Gras \(/.test(titleOf(editor, 'bold')), 'reinit applies new labels', titleOf(editor, 'bold'));
 assert(editor.toolbar.container.getAttribute('aria-label') === 'Formatting toolbar', 'what the new labels leave out is English again');
+
+// a toolbar shown with showToolbar() on an editor created without one survives reinit, also a labels rebuild
+editor = createEditor({ toolbar: false });
+editor.showToolbar();
+editor.reinit({ labels: german });
+assert(editor.toolbar && document.contains(editor.toolbar.container), 'showToolbar() then reinit({ labels }): the toolbar stays');
+assert(/^Fett \(/.test(titleOf(editor, 'bold')), '...in the new language', titleOf(editor, 'bold'));
+editor.reinit({ placeholder: 'x' });
+assert(editor.toolbar && document.contains(editor.toolbar.container), '...and through any other reinit');
+editor.reinit({ toolbar: false });
+assert(!editor.toolbar, 'reinit({ toolbar: false }) still removes it');
+// a hidden toolbar stays hidden when new labels rebuild it
+editor = createEditor({ labels: german });
+editor.hideToolbar();
+editor.reinit({ labels: { buttons: { bold: 'Gras' } } });
+assert(editor.toolbar.container.classList.contains('overtype-toolbar-hidden'), 'hideToolbar() holds through a labels rebuild');
 
 console.log(`\n✅ Passed: ${passed}`);
 console.log(`❌ Failed: ${failed}`);

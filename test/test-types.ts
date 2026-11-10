@@ -1,6 +1,6 @@
 // Test file to verify TypeScript definitions work correctly
 // Run: npx tsc --noEmit test-types.ts
-import OverType, { Theme, Options, Stats, OverType as OverTypeInstance } from '../src/overtype';
+import OverType, { Theme, Options, Stats, OverType as OverTypeInstance, defaultLabels } from '../src/overtype';
 
 // Test basic initialization - constructor returns array
 const editors1: OverTypeInstance[] = new OverType('#editor');
@@ -164,7 +164,8 @@ const [translated] = new OverType('#translated', {
   labels: { toolbar: 'Formatierung', viewMode: 'Ansicht', viewModes: { preview: 'Vorschau' }, buttons: { bold: 'Fett' } }
 });
 translated.reinit({ labels: { buttons: { italic: 'Kursiv' } } });
-const englishBold: string = OverType.defaultLabels.viewModes.normal;
-console.log('Default labels:', englishBold);
+const englishMode: string = OverType.defaultLabels.viewModes.normal;
+const englishBold: string = defaultLabels.buttons.bold;
+console.log('Default labels:', englishMode, englishBold);
 
 console.log('TypeScript definitions test completed successfully!');

@@ -225,7 +225,7 @@ const [editor] = new OverType('#editor', {
 });
 ```
 
-`OverType.defaultLabels` (also exported as `defaultLabels`) holds the English, and `editor.reinit({ labels })` switches language on an open editor.
+`OverType.defaultLabels` (also exported as `defaultLabels`) holds the English, the built-in buttons' titles under `buttons`, and `editor.reinit({ labels })` switches language on an open editor.
 
 ### View Modes
 

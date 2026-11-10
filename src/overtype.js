@@ -1534,6 +1534,10 @@ class OverType {
       const prevDisable = this.options?.disable;
       const prevLabels = JSON.stringify(this.options?.labels ?? null);
       this.options = this._mergeOptions({ ...this.options, ...options });
+      // a toolbar shown with showToolbar() stays, unless this call turns it off
+      if (this.toolbar && !('toolbar' in options)) {
+        this.options.toolbar = true;
+      }
       const toolbarNeedsRebuild = this.toolbar &&
         this.options.toolbar &&
         (toolbarButtonsChanged(prevToolbarButtons, this.options.toolbarButtons) ||
@@ -1544,10 +1548,12 @@ class OverType {
       this._rebuildActionsMap();
 
       if (toolbarNeedsRebuild) {
+        const wasHidden = !!this.toolbar.container?.classList.contains('overtype-toolbar-hidden');
         this._cleanupToolbarListeners();
         this.toolbar.destroy();
         this.toolbar = null;
         this._createToolbar();
+        if (wasHidden) this.toolbar.hide();   // hideToolbar() holds through a rebuild
       }
 
       if (this.fileUploadInitialized) {
