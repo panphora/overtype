@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- A `labels` option translates the toolbar: its accessible name, the view mode menu and its items, and any button's title by name (custom buttons too). Anything left out stays English, shortcuts are still added to the titles, and `reinit({ labels })` rebuilds the toolbar. The English is `OverType.defaultLabels`, also exported as `defaultLabels` (with the built-in buttons' titles under `buttons`).
 - A `proportional` option keeps letter widths the same in bold and italic while editing, so the cursor stays on the text with a proportional `fontFamily`. It draws bold as a thin stroke and turns off the slant, preview mode keeps real bold and italic, and a stylesheet can set the same `--instance-bold-weight`, `--instance-bold-stroke` and `--instance-italic-style` variables.
 - A `linkActions` option shows the link popover for your own text patterns, such as `[[2026-10-06]]`, and runs your action on click.
 - Indent and outdent toolbar buttons, in the default toolbar and as `toolbarButtons.indent` and `toolbarButtons.outdent`.
@@ -11,6 +12,7 @@
 - Keyboard shortcuts for inline code (Cmd/Ctrl+E), headings (Cmd/Ctrl+Alt+1, 2, 3), task lists (Cmd/Ctrl+Shift+9) and quotes (Cmd/Ctrl+Shift+.), shown in their toolbar tooltips.
 
 ### Fixed
+- `reinit()` keeps a toolbar shown with `showToolbar()` on an editor created with `toolbar: false`, unless the call itself passes `toolbar: false`; a toolbar hidden with `hideToolbar()` stays hidden when new `labels` rebuild it.
 - Indenting or outdenting keeps the cursor and selection on the same text, instead of selecting the whole line.
 - Enter with the cursor before or inside a list marker moves the item down, instead of adding a second marker.
 - Cmd/Ctrl+Shift+7 and 8 match the physical key, so they no longer depend on what Shift makes that key type.

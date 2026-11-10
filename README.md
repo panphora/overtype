@@ -1,6 +1,6 @@
 # OverType
 
-A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~144KB minified with all features.
+A lightweight markdown editor library with perfect WYSIWYG alignment using an invisible textarea overlay technique. Includes optional toolbar. ~146KB minified with all features.
 
 ## Live Examples
 
@@ -19,7 +19,7 @@ A lightweight markdown editor library with perfect WYSIWYG alignment using an in
 - ⌨️ **Keyboard shortcuts** - Common markdown shortcuts (Cmd/Ctrl+B for bold, etc.)
 - 📱 **Mobile optimized** - Responsive design with mobile-specific styles
 - 🔄 **DOM persistence aware** - Recovers from existing DOM (perfect for HyperClay and similar platforms)
-- 🚀 **Lightweight** - ~144KB minified
+- 🚀 **Lightweight** - ~146KB minified
 - 🎯 **Optional toolbar** - Clean, minimal toolbar with all essential formatting
 - ✨ **Smart shortcuts** - Keyboard shortcuts with selection preservation
 - 📝 **Smart list continuation** - GitHub-style automatic list continuation on Enter
@@ -37,7 +37,7 @@ We overlap an invisible textarea on top of styled output, giving the illusion of
 
 | Feature | OverType | HyperMD | Milkdown | TUI Editor | EasyMDE |
 |---------|----------|---------|----------|------------|---------|
-| **Size** | ~144KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
+| **Size** | ~146KB | 364.02 KB | 344.51 KB | 560.99 KB | 323.69 KB |
 | **Dependencies** | Bundled | CodeMirror | ProseMirror + plugins | Multiple libs | CodeMirror |
 | **Setup** | Single file | Complex config | Build step required | Complex config | Moderate |
 | **Approach** | Invisible textarea | ContentEditable | ContentEditable | ContentEditable | CodeMirror |
@@ -208,6 +208,24 @@ document.querySelector('#bold-btn').addEventListener('click', () => {
 Available actions include `toggleBold`, `toggleItalic`, `toggleCode`, `insertLink`, `toggleBulletList`, `toggleNumberedList`, `toggleQuote`, `toggleTaskList`, `insertHeader`, `toggleH1`/`H2`/`H3`, `getActiveFormats`, `hasFormat`, `expandSelection`, and `applyCustomFormat`. The same namespace is available as `window.markdownActions` and `OverType.markdownActions` in script-tag builds.
 
 See [examples/custom-toolbar.html](examples/custom-toolbar.html) for complete examples.
+
+#### Toolbar in Other Languages
+
+The toolbar's words are English by default. `labels` translates them; anything you leave out stays English, and a button's shortcut is still added to its title:
+
+```javascript
+const [editor] = new OverType('#editor', {
+  toolbar: true,
+  labels: {
+    toolbar: 'Formatierung',          // the toolbar's accessible name
+    viewMode: 'Ansicht',              // the view mode menu's accessible name
+    viewModes: { normal: 'Bearbeiten', plain: 'Nur Text', preview: 'Vorschau' },
+    buttons: { bold: 'Fett', italic: 'Kursiv', link: 'Link einfügen' }   // by button name, custom buttons too
+  }
+});
+```
+
+`OverType.defaultLabels` (also exported as `defaultLabels`) holds the English, the built-in buttons' titles under `buttons`, and `editor.reinit({ labels })` switches language on an open editor.
 
 ### View Modes
 

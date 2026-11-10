@@ -5,6 +5,58 @@
 
 import * as markdownActions from 'markdown-actions';
 import { formatShortcut } from './shortcuts.js';
+import { toolbarButtons as builtinButtons } from './toolbar-buttons.js';
+
+/**
+ * The toolbar's own words, in English. Pass `labels` to translate them: any part you leave out keeps
+ * its English. `buttons` maps a button's name to its title (a shortcut is still added in brackets);
+ * here it lists the built-in buttons' titles.
+ */
+export const defaultLabels = Object.freeze({
+  toolbar: 'Formatting toolbar',
+  viewMode: 'View mode',
+  viewModes: Object.freeze({ normal: 'Normal Edit', plain: 'Plain Textarea', preview: 'Preview Mode' }),
+  // (a loop, not Object.fromEntries: the browser build supports Chrome 62)
+  buttons: Object.freeze(Object.values(builtinButtons).reduce((titles, b) => {
+    if (b && b.name && b.title) titles[b.name] = b.title;
+    return titles;
+  }, {}))
+});
+
+const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+
+/**
+ * The labels a toolbar uses: each part given, else its English. A copy, so later changes to the object
+ * passed in don't reach a toolbar already built (reinit compares against it).
+ */
+export function mergeLabels(labels) {
+  const own = labels && typeof labels === 'object' ? labels : {};
+  const modes = own.viewModes && typeof own.viewModes === 'object' ? own.viewModes : {};
+  const buttons = Object.create(null);
+  if (own.buttons && typeof own.buttons === 'object') {
+    // only the labels given, and only the object's own keys: a button's own title (a custom one too)
+    // stays unless they name it, and names like toString don't pick up Object.prototype
+    for (const key of Object.keys(own.buttons)) {
+      if (typeof own.buttons[key] === 'string') buttons[key] = own.buttons[key];
+    }
+  }
+  return {
+    toolbar: own.toolbar ?? defaultLabels.toolbar,
+    viewMode: own.viewMode ?? defaultLabels.viewMode,
+    viewModes: {
+      normal: modes.normal ?? defaultLabels.viewModes.normal,
+      plain: modes.plain ?? defaultLabels.viewModes.plain,
+      preview: modes.preview ?? defaultLabels.viewModes.preview
+    },
+    buttons
+  };
+}
+
+/** A comparable snapshot of the labels a toolbar was built with. */
+export function labelsKey(labels) {
+  const merged = mergeLabels(labels);
+  return JSON.stringify([merged.toolbar, merged.viewMode, merged.viewModes, Object.keys(merged.buttons).sort().map(k => [k, merged.buttons[k]])]);
+}
 
 export class Toolbar {
   constructor(editor, options = {}) {
@@ -18,6 +70,8 @@ export class Toolbar {
 
     // Get toolbar buttons array
     this.toolbarButtons = options.toolbarButtons || [];
+    this.labels = mergeLabels(options.labels);
+    this.labelsKey = labelsKey(options.labels);   // (reinit rebuilds when the labels it gets differ from these)
   }
 
   /**
@@ -29,7 +83,7 @@ export class Toolbar {
     this.editor._markChrome(this.container);
     this.container.id = this.getInstanceElementId('toolbar');
     this.container.setAttribute('role', 'toolbar');
-    this.container.setAttribute('aria-label', 'Formatting toolbar');
+    this.container.setAttribute('aria-label', this.labels.toolbar);
     this.container.setAttribute('aria-controls', this.editor.textarea.id);
 
     // Create buttons from toolbarButtons array
@@ -198,7 +252,7 @@ export class Toolbar {
     button.className = 'overtype-toolbar-button';
     button.type = 'button';
     button.setAttribute('data-button', buttonConfig.name);
-    const title = buttonConfig.title || '';
+    const title = (hasOwn(this.labels.buttons, buttonConfig.name) ? this.labels.buttons[buttonConfig.name] : buttonConfig.title) ?? '';
     const label = buttonConfig.shortcut ? `${title} (${formatShortcut(buttonConfig.shortcut)})`.trim() : title;
     button.title = label;
     button.setAttribute('aria-label', label || buttonConfig.name);
@@ -379,16 +433,16 @@ export class Toolbar {
     this.editor._markChrome(dropdown);
     dropdown.id = this.getInstanceElementId('toolbar-view-mode-menu');
     dropdown.setAttribute('role', 'menu');
-    dropdown.setAttribute('aria-label', 'View mode');
+    dropdown.setAttribute('aria-label', this.labels.viewMode);
 
     dropdown.addEventListener('keydown', (e) => {
       this.onViewModeMenuKeydown(e, button);
     });
 
     const items = [
-      { id: 'normal', label: 'Normal Edit', icon: '✓' },
-      { id: 'plain', label: 'Plain Textarea', icon: '✓' },
-      { id: 'preview', label: 'Preview Mode', icon: '✓' }
+      { id: 'normal', label: this.labels.viewModes.normal, icon: '✓' },
+      { id: 'plain', label: this.labels.viewModes.plain, icon: '✓' },
+      { id: 'preview', label: this.labels.viewModes.preview, icon: '✓' }
     ];
 
     const currentMode = this.editor.container.dataset.mode || 'normal';

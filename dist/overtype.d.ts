@@ -65,6 +65,30 @@ export interface Stats {
 }
 
 /**
+ * The toolbar's own words (defaults in English: defaultLabels). Parts left out keep their English.
+ */
+export interface Labels {
+  /** The toolbar's accessible name */
+  toolbar?: string;
+  /** The view mode menu's accessible name */
+  viewMode?: string;
+  /** The view mode menu's items */
+  viewModes?: { normal?: string; plain?: string; preview?: string };
+  /** Button titles by button name, e.g. { bold: 'Fett' }; a shortcut is still added in brackets */
+  buttons?: Record<string, string>;
+}
+
+/**
+ * The toolbar's words in English, with the built-in buttons' titles
+ */
+export interface DefaultLabels {
+  readonly toolbar: string;
+  readonly viewMode: string;
+  readonly viewModes: { readonly normal: string; readonly plain: string; readonly preview: string };
+  readonly buttons: Readonly<Record<string, string>>;
+}
+
+/**
  * Toolbar button definition
  */
 export interface ToolbarButton {
@@ -131,6 +155,7 @@ export interface Options {
   showStats?: boolean;
   toolbar?: boolean;
   toolbarButtons?: ToolbarButton[];  // Custom toolbar button configuration
+  labels?: Labels;            // The toolbar's words in another language
   smartLists?: boolean;       // v1.2.3+ Smart list continuation
   clickToToggleTasks?: boolean;  // Click inside a rendered task's brackets to toggle its state (default: false)
   spellcheck?: boolean;       // Browser spellcheck (default: false)
@@ -189,6 +214,7 @@ export interface OverTypeConstructor {
   setCustomSyntax(processor: ((html: string) => string) | null): void;
   initGlobalListeners(): void;
   getTheme(name: string): Theme;
+  defaultLabels: DefaultLabels;
 }
 
 export interface RenderOptions {
@@ -296,3 +322,4 @@ export const toolbarButtons: {
  * Default toolbar button layout with separators
  */
 export const defaultToolbarButtons: ToolbarButton[];
+export const defaultLabels: DefaultLabels;
