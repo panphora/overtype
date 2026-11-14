@@ -1,5 +1,5 @@
 /**
- * OverType v2.7.0
+ * OverType v2.8.0
  * A lightweight markdown editor library with perfect WYSIWYG alignment
  * @license MIT
  * @author David Miranda
