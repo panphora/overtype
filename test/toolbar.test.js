@@ -333,6 +333,20 @@ await (async () => {
   editor.destroy();
 })();
 
+console.log('\n☑ List buttons start the list on the cursor line\n');
+
+for (const [action, prefix] of [['toggleTaskList', '- [ ] '], ['toggleBulletList', '- '], ['toggleNumberedList', '1. ']]) {
+  const editor = createEditor({ value: '- [ ] Google\n' });
+  editor.textarea.setSelectionRange(13, 13);
+
+  await editor.performAction(action);
+  const expected = `- [ ] Google\n${prefix}`;
+  assert(editor.getValue() === expected, `${action} on the empty line under a task stays on that line`, JSON.stringify(editor.getValue()));
+  assert(editor.textarea.selectionStart === expected.length && editor.textarea.selectionEnd === expected.length, `${action} leaves the cursor after the new marker`, `Got ${editor.textarea.selectionStart}-${editor.textarea.selectionEnd}`);
+
+  editor.destroy();
+}
+
 console.log(`\n${'━'.repeat(50)}`);
 console.log('\n📊 Test Results Summary\n');
 console.log(`✅ Passed: ${results.passed}`);

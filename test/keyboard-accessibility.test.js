@@ -351,6 +351,53 @@ console.log('\n🔒 Readonly and disabled no-op behavior\n');
   assert(editor.getValue() === 'one', 'Disabled indent commands do not edit content', 'Disabled editor should not change');
 })();
 
+console.log('\n⌘ Indent shortcuts keep the cursor on every list type\n');
+
+for (const [label, line, column] of [
+  ['task', '- [ ] Google', 8],
+  ['checked task', '- [x] Google', 12],
+  ['bullet', '- Google', 4],
+  ['numbered', '1. Google', 5]
+]) {
+  for (const [path, stubExecCommand] of [['setRangeText', false], ['execCommand', true]]) {
+    const previousExecCommand = document.execCommand;
+    if (stubExecCommand) {
+      document.execCommand = (command, _showUI, text) => {
+        const textarea = document.activeElement;
+        if (command !== 'insertText' || !textarea) return false;
+        textarea.setRangeText(text, textarea.selectionStart, textarea.selectionEnd, 'end');
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      };
+    }
+
+    const editor = createEditor();
+    editor.setValue(`above\n${line}\nbelow`);
+    editor.textarea.focus();
+    const cursor = 'above\n'.length + column;
+    editor.textarea.setSelectionRange(cursor, cursor);
+
+    dispatchKey(editor, ']', { ctrlKey: true });
+    const afterIndent = [editor.getValue(), editor.textarea.selectionStart, editor.textarea.selectionEnd];
+    dispatchKey(editor, '[', { ctrlKey: true });
+    const afterOutdent = [editor.getValue(), editor.textarea.selectionStart, editor.textarea.selectionEnd];
+
+    document.execCommand = previousExecCommand;
+    editor.destroy();
+
+    assert(
+      afterIndent[0] === `above\n  ${line}\nbelow` && afterIndent[1] === cursor + 2 && afterIndent[2] === cursor + 2,
+      `Ctrl+] on a ${label} line keeps a collapsed cursor on the same character (${path})`,
+      JSON.stringify(afterIndent)
+    );
+    assert(
+      afterOutdent[0] === `above\n${line}\nbelow` && afterOutdent[1] === cursor && afterOutdent[2] === cursor,
+      `Ctrl+[ on a ${label} line keeps a collapsed cursor on the same character (${path})`,
+      JSON.stringify(afterOutdent)
+    );
+  }
+}
+
 console.log('\n👁️ Preview focus state\n');
 
 (() => {

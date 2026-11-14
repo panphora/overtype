@@ -2794,8 +2794,7 @@ var OverTypeEditor = (() => {
     },
     taskList: {
       prefix: "- [ ] ",
-      multiline: true,
-      surroundWithNewlines: true
+      multiline: true
     },
     header1: { prefix: "# " },
     header2: { prefix: "## " },
@@ -3085,6 +3084,27 @@ var OverTypeEditor = (() => {
         }
       }
     }
+    if (!noInitialSelection) {
+      const oldLines = textarea.value.slice(textarea.selectionStart, textarea.selectionEnd).split("\n");
+      const newLines = result.text.split("\n");
+      if (oldLines.length === newLines.length) {
+        const blockStart = textarea.selectionStart;
+        const shiftPosition = (position) => {
+          let oldStart = blockStart;
+          let newStart = blockStart;
+          for (let i = 0; i < oldLines.length; i++) {
+            if (position <= oldStart + oldLines[i].length) {
+              return newStart + Math.max(0, position - oldStart + newLines[i].length - oldLines[i].length);
+            }
+            oldStart += oldLines[i].length + 1;
+            newStart += newLines[i].length + 1;
+          }
+          return position;
+        };
+        result.selectionStart = originalStart === blockStart ? blockStart : shiftPosition(originalStart);
+        result.selectionEnd = shiftPosition(originalEnd);
+      }
+    }
     return result;
   }
   function blockStyle(textarea, style) {
@@ -3252,19 +3272,16 @@ ${blockSuffix}` : suffix;
       }
       return { text: pristineText, selectionStart, selectionEnd };
     }
-    const { newlinesToAppend, newlinesToPrepend } = newlinesToSurroundSelectedText(textarea);
-    const text = newlinesToAppend + prefixedLines.join("\n") + newlinesToPrepend;
+    const text = prefixedLines.join("\n");
     if (noInitialSelection) {
-      selectionStart = Math.max(selectionStart + makePrefix(0, style.unorderedList).length + newlinesToAppend.length, 0);
+      selectionStart = Math.max(selectionStart + makePrefix(0, style.unorderedList).length, 0);
       selectionEnd = selectionStart;
+    } else if (undoResultOppositeList.processed) {
+      selectionStart = Math.max(textarea.selectionStart, 0);
+      selectionEnd = textarea.selectionEnd + totalPrefixLength - totalPrefixLengthOppositeList;
     } else {
-      if (undoResultOppositeList.processed) {
-        selectionStart = Math.max(textarea.selectionStart + newlinesToAppend.length, 0);
-        selectionEnd = textarea.selectionEnd + newlinesToAppend.length + totalPrefixLength - totalPrefixLengthOppositeList;
-      } else {
-        selectionStart = Math.max(textarea.selectionStart + newlinesToAppend.length, 0);
-        selectionEnd = textarea.selectionEnd + newlinesToAppend.length + totalPrefixLength;
-      }
+      selectionStart = Math.max(textarea.selectionStart, 0);
+      selectionEnd = textarea.selectionEnd + totalPrefixLength;
     }
     return { text, selectionStart, selectionEnd };
   }
