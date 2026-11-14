@@ -2,15 +2,17 @@
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-11-13
+
 ### Added
 - A `proportional` option keeps letter widths the same in bold and italic while editing, so the cursor stays on the text with a proportional `fontFamily`. It draws bold as a thin stroke and turns off the slant, preview mode keeps real bold and italic, and a stylesheet can set the same `--instance-bold-weight`, `--instance-bold-stroke` and `--instance-italic-style` variables.
 - A `linkActions` option shows the link popover for your own text patterns, such as `[[2026-10-06]]`, and runs your action on click.
 - Indent and outdent toolbar buttons, in the default toolbar and as `toolbarButtons.indent` and `toolbarButtons.outdent`.
 - A toolbar button's tooltip shows its keyboard shortcut for the current platform, such as `Bold (⌘B)` on a Mac and `Bold (Ctrl+B)` elsewhere. Custom buttons can set the label with `shortcut: 'Mod+B'`. The built-in `bold` and `italic` titles no longer include a hardcoded `Ctrl`.
-
 - Keyboard shortcuts for inline code (Cmd/Ctrl+E), headings (Cmd/Ctrl+Alt+1, 2, 3), task lists (Cmd/Ctrl+Shift+9) and quotes (Cmd/Ctrl+Shift+.), shown in their toolbar tooltips.
 
 ### Fixed
+- Starting a bullet, numbered or task list puts the item on the cursor's line, instead of adding a blank line and starting the list one line lower (markdown-actions 1.2.1).
 - Indenting or outdenting keeps the cursor and selection on the same text, instead of selecting the whole line.
 - Enter with the cursor before or inside a list marker moves the item down, instead of adding a second marker.
 - Cmd/Ctrl+Shift+7 and 8 match the physical key, so they no longer depend on what Shift makes that key type.
